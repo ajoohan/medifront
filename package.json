@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "플러스토닉 병원 컨설팅 랜딩 페이지",
+  "description": "메디프론트(MEDIFRONT) 병원 컨설팅 랜딩 페이지",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

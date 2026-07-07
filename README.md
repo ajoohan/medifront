@@ -1,4 +1,4 @@
-# 플러스토닉 병원 컨설팅 — 랜딩 페이지
+# 메디프론트(MEDIFRONT) 병원 컨설팅 — 랜딩 페이지
 
 haroop.com 구성을 참고해 제작한 병원 컨설팅 랜딩 페이지입니다.
 **Vite + React (JavaScript)** 기반의 단일 페이지 사이트입니다.
@@ -25,11 +25,12 @@ plustonic-medical/
 └─ src/
    ├─ main.jsx                # React 진입점
    ├─ App.jsx                 # 전체 섹션 조립
-   ├─ index.css               # 디자인 시스템 + 전 컴포넌트 스타일 (딥 네이비+블루)
+   ├─ index.css               # 디자인 시스템 + 전 컴포넌트 스타일 (청록/teal 테마)
    ├─ data.js                 # ⭐ 모든 문구/수치/연락처 데이터
    ├─ hooks/useReveal.js      # 스크롤 페이드인
    └─ components/
       ├─ Header.jsx           # 상단 네비 (스크롤 시 배경 변화, 모바일 메뉴)
+      ├─ Logo.jsx             # MEDIFRONT 워드마크 로고 (light/dark variant)
       ├─ Hero.jsx             # 히어로 + 성장 차트 카드
       ├─ Metrics.jsx          # 핵심 지표 4종
       ├─ Services.jsx         # 4대 서비스 (마케팅/경영/개원/AI)
