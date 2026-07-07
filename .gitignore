@@ -11,9 +11,12 @@ npm-debug.log*
 
 # editor / OS
 .DS_Store
-.vscode/
 .idea/
 *.local
+# .vscode 는 공유 설정(settings/extensions)만 포함
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
 
 # env
 .env
