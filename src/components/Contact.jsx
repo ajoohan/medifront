@@ -57,8 +57,8 @@ export default function Contact() {
           </span>
           <h2>무료 블로그·마케팅 정밀 진단 리포트</h2>
           <p>
-            현재 노출 상태, 경쟁 병원 키워드 비교, 개선 우선순위, 성장 시뮬레이션까지.
-            우리 병원의 성장 가능성을 데이터로 확인해 보세요.
+            현재 노출 상태, 경쟁 병원 키워드 비교, 개선 우선순위, 성장 시뮬레이션까지. 우리 병원의
+            성장 가능성을 데이터로 확인해 보세요.
           </p>
           <div className="cta__actions">
             <a href="#contact-form" className="btn btn--light btn--lg">
@@ -77,8 +77,8 @@ export default function Contact() {
             <span className="eyebrow">CONTACT</span>
             <h2>상담 신청</h2>
             <p>
-              아래 정보를 남겨주시면 담당 컨설턴트가 24시간 이내에 연락드립니다.
-              병원 상황에 맞는 맞춤 전략을 제안해 드립니다.
+              아래 정보를 남겨주시면 담당 컨설턴트가 24시간 이내에 연락드립니다. 병원 상황에 맞는
+              맞춤 전략을 제안해 드립니다.
             </p>
             <ul className="contact__list">
               <li>
@@ -114,7 +114,11 @@ export default function Contact() {
           <form className="form reveal" onSubmit={onSubmit}>
             {sent && (
               <div className="form__ok">
-                <IconCheck width={18} height={18} style={{ display: 'inline', verticalAlign: '-3px', marginRight: 6 }} />
+                <IconCheck
+                  width={18}
+                  height={18}
+                  style={{ display: 'inline', verticalAlign: '-3px', marginRight: 6 }}
+                />
                 상담 신청이 접수되었습니다. 곧 연락드리겠습니다!
               </div>
             )}

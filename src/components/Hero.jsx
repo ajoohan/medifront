@@ -56,11 +56,7 @@ export default function Hero() {
           <div className="sub">운영 개월 수에 따른 누적 유입 추이 (예시)</div>
           <div className="mini-chart">
             {bars.map((b, i) => (
-              <div
-                className="bar"
-                key={i}
-                style={{ height: b.h, animationDelay: `${i * 0.12}s` }}
-              >
+              <div className="bar" key={i} style={{ height: b.h, animationDelay: `${i * 0.12}s` }}>
                 {b.label && <span>{b.label}</span>}
               </div>
             ))}

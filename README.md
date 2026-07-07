@@ -6,10 +6,14 @@ haroop.com 구성을 참고해 제작한 병원 컨설팅 랜딩 페이지입니
 ## 실행 방법
 
 ```bash
-npm install      # 최초 1회 (이미 설치됨)
-npm run dev      # 개발 서버 → http://localhost:5173
-npm run build    # 배포용 빌드 → dist/
-npm run preview  # 빌드 결과 미리보기
+npm install       # 최초 1회 (이미 설치됨)
+npm run dev       # 개발 서버 → http://localhost:5173
+npm run build     # 배포용 빌드 → dist/
+npm run preview   # 빌드 결과 미리보기
+
+npm run lint      # ESLint 검사
+npm run lint:fix  # ESLint 자동 수정
+npm run format    # Prettier로 전체 코드 정렬
 ```
 
 > 이 PC에는 winget으로 **Node.js LTS(v24)** 가 설치되어 있습니다.
@@ -58,6 +62,7 @@ plustonic-medical/
 
 `src/components/Contact.jsx` 의 `onSubmit` 함수는 현재 데모 상태(화면 표시만)입니다.
 실제 전송은 아래 중 택1로 연결하세요:
+
 - 이메일 발송 API (예: Formspree, EmailJS)
 - 자체 백엔드 API 엔드포인트
 - 구글 폼 / 스프레드시트 연동

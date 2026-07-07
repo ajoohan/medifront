@@ -12,8 +12,8 @@ export default function Footer() {
               <Logo variant="light" />
             </a>
             <p className="footer__desc" style={{ marginTop: 18 }}>
-              데이터와 AI로 증명하는 병원 성장. 마케팅 운영대행부터 경영 컨설팅,
-              개원 브랜딩, AI 솔루션까지 — 원장님의 든든한 병원 컨설팅 파트너입니다.
+              데이터와 AI로 증명하는 병원 성장. 마케팅 운영대행부터 경영 컨설팅, 개원 브랜딩, AI
+              솔루션까지 — 원장님의 든든한 병원 컨설팅 파트너입니다.
             </p>
           </div>
 

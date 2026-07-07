@@ -20,9 +20,8 @@ export default function AISection() {
             <span className="accent">어떤 AI를 쓰느냐</span>의 차이
           </h2>
           <p style={{ marginTop: 18, color: 'var(--blue-300)', fontSize: '1.08rem' }}>
-            메디프론트는 병원 마케팅에 특화된 자체 AI 파이프라인을 운영합니다.
-            경쟁 분석부터 콘텐츠 생성, 의료광고 검수까지 데이터로 자동화하여
-            더 빠르고 정교한 결과를 만듭니다.
+            메디프론트는 병원 마케팅에 특화된 자체 AI 파이프라인을 운영합니다. 경쟁 분석부터 콘텐츠
+            생성, 의료광고 검수까지 데이터로 자동화하여 더 빠르고 정교한 결과를 만듭니다.
           </p>
           <div
             style={{
