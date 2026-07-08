@@ -1572,6 +1572,47 @@ ul {
   border-color: var(--primary);
   color: #fff;
 }
+.admin-grade-filter {
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: #fff;
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--ink-700);
+  cursor: pointer;
+}
+.admin-grade-filter:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+/* 회원등급 인라인 셀렉트 (일반/의사/원장) */
+.grade-select {
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.grade-select:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(16, 166, 150, 0.3);
+}
+.grade--general {
+  background: rgba(100, 116, 139, 0.14);
+  color: #64748b;
+}
+.grade--doctor {
+  background: rgba(16, 166, 150, 0.14);
+  color: #0f766e;
+}
+.grade--director {
+  background: rgba(184, 134, 11, 0.16);
+  color: #b8860b;
+}
 .admin-table-wrap {
   background: #fff;
   border: 1px solid var(--line);
