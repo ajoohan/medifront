@@ -1,14 +1,6 @@
 import { useEffect } from 'react'
 import Logo from './Logo'
 
-// 간편 로그인(SNS) — UI 플레이스홀더 (실제 연동 전)
-const SOCIALS = [
-  { name: '카카오', bg: '#FEE500', color: '#3C1E1E', label: 'K' },
-  { name: '네이버', bg: '#03C75A', color: '#ffffff', label: 'N' },
-  { name: '구글', bg: '#ffffff', color: '#4285F4', label: 'G', border: true },
-  { name: '페이스북', bg: '#1877F2', color: '#ffffff', label: 'f' },
-]
-
 export default function LoginModal({ open, onClose }) {
   useEffect(() => {
     if (!open) return
@@ -62,28 +54,6 @@ export default function LoginModal({ open, onClose }) {
           <button type="button">아이디 찾기</button>
           <span>·</span>
           <button type="button">비밀번호 찾기</button>
-        </div>
-
-        <div className="login-modal__divider">
-          <span>SNS 계정으로 로그인</span>
-        </div>
-
-        <div className="login-modal__socials">
-          {SOCIALS.map((s) => (
-            <button
-              key={s.name}
-              type="button"
-              className="social-btn"
-              aria-label={`${s.name} 로그인`}
-              style={{
-                background: s.bg,
-                color: s.color,
-                border: s.border ? '1px solid var(--line)' : 'none',
-              }}
-            >
-              {s.label}
-            </button>
-          ))}
         </div>
 
         <p className="login-modal__note">* 로그인 기능은 준비 중입니다.</p>

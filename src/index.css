@@ -976,42 +976,6 @@ ul {
 .login-modal__links span {
   color: var(--line);
 }
-.login-modal__divider {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin: 24px 0 18px;
-  color: var(--ink-300);
-  font-size: 0.8rem;
-}
-.login-modal__divider::before,
-.login-modal__divider::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: var(--line);
-}
-.login-modal__socials {
-  display: flex;
-  justify-content: center;
-  gap: 14px;
-}
-.social-btn {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  font-weight: 800;
-  font-size: 1.15rem;
-  transition:
-    transform 0.15s,
-    box-shadow 0.2s;
-}
-.social-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-sm);
-}
 .login-modal__note {
   text-align: center;
   color: var(--ink-300);
