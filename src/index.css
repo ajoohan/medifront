@@ -1778,6 +1778,42 @@ ul {
   text-align: center;
   color: var(--muted);
 }
+.admin-pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  margin-top: 22px;
+  flex-wrap: wrap;
+}
+.admin-pagination button {
+  min-width: 38px;
+  height: 38px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: #fff;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--ink-700);
+  transition:
+    border-color 0.15s,
+    color 0.15s,
+    background 0.15s;
+}
+.admin-pagination button:hover:not(:disabled):not(.is-active) {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+.admin-pagination button.is-active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+.admin-pagination button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
 /* 관리자 로그인 */
 .admin-login {
   min-height: 100vh;

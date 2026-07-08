@@ -1,5 +1,7 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { MOCK_MEMBERS } from '../../mock/members'
+
+const PAGE_SIZE = 20
 
 // 상태 필터 — 클릭 시 토글(다시 누르면 해제되어 전체 표시)
 const FILTERS = [
@@ -23,6 +25,7 @@ export default function MembersAdmin() {
   const [gradeFilter, setGradeFilter] = useState('전체')
   const [selected, setSelected] = useState(() => new Set())
   const [bulkGrade, setBulkGrade] = useState('일반')
+  const [page, setPage] = useState(1)
 
   const filtered = useMemo(() => {
     const keyword = q.trim()
@@ -37,6 +40,16 @@ export default function MembersAdmin() {
       return matchQ && matchF && matchG
     })
   }, [members, q, filter, gradeFilter])
+
+  // 페이지네이션 (20개씩)
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const currentPage = Math.min(page, totalPages)
+  const pageItems = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
+
+  // 검색/필터가 바뀌면 첫 페이지로
+  useEffect(() => {
+    setPage(1)
+  }, [q, filter, gradeFilter])
 
   const activeCount = members.filter((m) => m.status === 'active').length
   const suspendedCount = members.length - activeCount
@@ -223,7 +236,7 @@ export default function MembersAdmin() {
             </tr>
           </thead>
           <tbody>
-            {filtered.map((m) => (
+            {pageItems.map((m) => (
               <tr key={m.id} className={selected.has(m.id) ? 'is-selected' : undefined}>
                 <td className="admin-check-col">
                   <input
@@ -278,6 +291,26 @@ export default function MembersAdmin() {
         </table>
         {filtered.length === 0 && <div className="admin-empty">조건에 맞는 회원이 없습니다.</div>}
       </div>
+
+      {totalPages > 1 && (
+        <nav className="admin-pagination" aria-label="페이지">
+          <button disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)}>
+            이전
+          </button>
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
+            <button
+              key={n}
+              className={n === currentPage ? 'is-active' : undefined}
+              onClick={() => setPage(n)}
+            >
+              {n}
+            </button>
+          ))}
+          <button disabled={currentPage === totalPages} onClick={() => setPage(currentPage + 1)}>
+            다음
+          </button>
+        </nav>
+      )}
     </>
   )
 }
