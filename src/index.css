@@ -356,6 +356,12 @@ ul {
   align-items: center;
   gap: 12px;
 }
+.header__user {
+  color: var(--blue-300);
+  font-weight: 600;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
 .nav-toggle {
   display: none;
   color: #fff;
@@ -898,6 +904,22 @@ ul {
   color: var(--blue-300);
   font-size: clamp(1rem, 1.4vw, 1.12rem);
 }
+.page-hero--gate {
+  min-height: 70vh;
+  display: flex;
+  align-items: center;
+}
+.page-hero--gate p {
+  max-width: 560px;
+  margin-inline: auto;
+}
+.gate__actions {
+  margin-top: 30px;
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
 
 /* ---------- Login modal (팝업) ---------- */
 .modal-overlay {
@@ -956,6 +978,39 @@ ul {
 }
 .login-modal__pw {
   margin-bottom: 20px;
+}
+.login-modal__demo {
+  font-size: 0.66rem;
+  font-weight: 700;
+  color: var(--primary);
+  background: rgba(16, 166, 150, 0.12);
+  padding: 2px 7px;
+  border-radius: 999px;
+  margin-left: 4px;
+  vertical-align: 1px;
+}
+.login-modal__grades {
+  display: flex;
+  gap: 8px;
+}
+.login-modal__grades button {
+  flex: 1;
+  padding: 11px 0;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--paper-soft);
+  font-weight: 700;
+  font-size: 0.92rem;
+  color: var(--ink-700);
+  transition:
+    background 0.15s,
+    color 0.15s,
+    border-color 0.15s;
+}
+.login-modal__grades button.is-active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
 }
 .login-modal__links {
   display: flex;
@@ -1931,7 +1986,8 @@ ul {
 
 @media (max-width: 720px) {
   .nav,
-  .header__cta .btn {
+  .header__cta .btn,
+  .header__user {
     display: none;
   }
   .nav-toggle {
