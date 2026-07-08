@@ -47,6 +47,9 @@ export default function Header() {
         </nav>
 
         <div className="header__cta">
+          <Link to="/login" className="btn btn--login" onClick={closeMenu}>
+            로그인
+          </Link>
           <button
             className="nav-toggle"
             aria-label="메뉴 열기"
@@ -61,6 +64,9 @@ export default function Header() {
         {NAV.map((item) => (
           <NavItem key={item.to || item.href} item={item} onClick={closeMenu} />
         ))}
+        <Link to="/login" onClick={closeMenu}>
+          로그인
+        </Link>
         <a href="/#contact" className="btn btn--primary" onClick={closeMenu}>
           무료 상담 신청
         </a>
