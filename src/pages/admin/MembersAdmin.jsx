@@ -20,6 +20,8 @@ export default function MembersAdmin() {
   const [q, setQ] = useState('')
   const [filter, setFilter] = useState('all')
   const [gradeFilter, setGradeFilter] = useState('전체')
+  const [selected, setSelected] = useState(() => new Set())
+  const [bulkGrade, setBulkGrade] = useState('일반')
 
   const filtered = useMemo(() => {
     const keyword = q.trim()
@@ -50,11 +52,46 @@ export default function MembersAdmin() {
     const target = members.find((m) => m.id === id)
     if (window.confirm(`'${target?.name}' 회원을 삭제하시겠습니까?`)) {
       setMembers((ms) => ms.filter((m) => m.id !== id))
+      setSelected((prev) => {
+        const next = new Set(prev)
+        next.delete(id)
+        return next
+      })
     }
   }
 
   const changeGrade = (id, grade) => {
     setMembers((ms) => ms.map((m) => (m.id === id ? { ...m, grade } : m)))
+  }
+
+  // 체크박스 선택 / 등급 일괄 변경
+  const filteredIds = filtered.map((m) => m.id)
+  const allSelected = filteredIds.length > 0 && filteredIds.every((id) => selected.has(id))
+  const someSelected = filteredIds.some((id) => selected.has(id))
+
+  const toggleOne = (id) => {
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const toggleAll = () => {
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (allSelected) filteredIds.forEach((id) => next.delete(id))
+      else filteredIds.forEach((id) => next.add(id))
+      return next
+    })
+  }
+
+  const clearSelection = () => setSelected(new Set())
+
+  const applyBulkGrade = () => {
+    setMembers((ms) => ms.map((m) => (selected.has(m.id) ? { ...m, grade: bulkGrade } : m)))
+    setSelected(new Set())
   }
 
   return (
@@ -115,10 +152,49 @@ export default function MembersAdmin() {
         </select>
       </div>
 
+      {selected.size > 0 && (
+        <div className="admin-bulk">
+          <span className="admin-bulk__count">{selected.size}명 선택됨</span>
+          <div className="admin-bulk__actions">
+            <span>등급을</span>
+            <select
+              className="admin-grade-filter"
+              value={bulkGrade}
+              onChange={(e) => setBulkGrade(e.target.value)}
+              aria-label="일괄 변경 등급"
+            >
+              {GRADES.map((g) => (
+                <option key={g} value={g}>
+                  {g}
+                </option>
+              ))}
+            </select>
+            <button className="btn btn--primary admin-bulk__apply" onClick={applyBulkGrade}>
+              일괄 변경
+            </button>
+            <button className="admin-bulk__clear" onClick={clearSelection}>
+              선택 해제
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="admin-table-wrap">
         <table className="admin-table">
           <thead>
             <tr>
+              <th className="admin-check-col">
+                <input
+                  type="checkbox"
+                  className="admin-checkbox"
+                  checked={allSelected}
+                  ref={(el) => {
+                    if (el) el.indeterminate = someSelected && !allSelected
+                  }}
+                  onChange={toggleAll}
+                  aria-label="전체 선택"
+                />
+              </th>
               <th>이름</th>
               <th>이메일</th>
               <th>연락처</th>
@@ -131,7 +207,16 @@ export default function MembersAdmin() {
           </thead>
           <tbody>
             {filtered.map((m) => (
-              <tr key={m.id}>
+              <tr key={m.id} className={selected.has(m.id) ? 'is-selected' : undefined}>
+                <td className="admin-check-col">
+                  <input
+                    type="checkbox"
+                    className="admin-checkbox"
+                    checked={selected.has(m.id)}
+                    onChange={() => toggleOne(m.id)}
+                    aria-label={`${m.name} 선택`}
+                  />
+                </td>
                 <td>
                   <span className="m-name">{m.name}</span>
                 </td>
