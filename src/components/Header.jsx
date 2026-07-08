@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { NAV } from '../data'
 import Logo from './Logo'
+import LoginModal from './LoginModal'
 
 // 네비 항목 렌더: to(라우트)면 Link, href(홈 앵커)면 '/#앵커' 링크로
 function NavItem({ item, onClick }) {
@@ -23,6 +24,7 @@ function NavItem({ item, onClick }) {
 export default function Header() {
   const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [loginOpen, setLoginOpen] = useState(false)
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20)
@@ -32,45 +34,53 @@ export default function Header() {
   }, [])
 
   const closeMenu = () => setMenuOpen(false)
+  const openLogin = () => {
+    setMenuOpen(false)
+    setLoginOpen(true)
+  }
 
   return (
-    <header className={`header ${scrolled ? 'header--scrolled' : 'header--top'}`}>
-      <div className="container header__inner">
-        <Link to="/" className="brand" onClick={closeMenu} aria-label="메디프론트 홈">
-          <Logo variant="light" />
-        </Link>
-
-        <nav className="nav">
-          {NAV.map((item) => (
-            <NavItem key={item.to || item.href} item={item} />
-          ))}
-        </nav>
-
-        <div className="header__cta">
-          <Link to="/login" className="btn btn--login" onClick={closeMenu}>
-            로그인
+    <>
+      <header className={`header ${scrolled ? 'header--scrolled' : 'header--top'}`}>
+        <div className="container header__inner">
+          <Link to="/" className="brand" onClick={closeMenu} aria-label="메디프론트 홈">
+            <Logo variant="light" />
           </Link>
-          <button
-            className="nav-toggle"
-            aria-label="메뉴 열기"
-            onClick={() => setMenuOpen((v) => !v)}
-          >
-            {menuOpen ? '✕' : '☰'}
-          </button>
-        </div>
-      </div>
 
-      <div className={`mobile-menu ${menuOpen ? 'open' : ''}`}>
-        {NAV.map((item) => (
-          <NavItem key={item.to || item.href} item={item} onClick={closeMenu} />
-        ))}
-        <Link to="/login" onClick={closeMenu}>
-          로그인
-        </Link>
-        <a href="/#contact" className="btn btn--primary" onClick={closeMenu}>
-          무료 상담 신청
-        </a>
-      </div>
-    </header>
+          <nav className="nav">
+            {NAV.map((item) => (
+              <NavItem key={item.to || item.href} item={item} />
+            ))}
+          </nav>
+
+          <div className="header__cta">
+            <button className="btn btn--login" onClick={openLogin}>
+              로그인
+            </button>
+            <button
+              className="nav-toggle"
+              aria-label="메뉴 열기"
+              onClick={() => setMenuOpen((v) => !v)}
+            >
+              {menuOpen ? '✕' : '☰'}
+            </button>
+          </div>
+        </div>
+
+        <div className={`mobile-menu ${menuOpen ? 'open' : ''}`}>
+          {NAV.map((item) => (
+            <NavItem key={item.to || item.href} item={item} onClick={closeMenu} />
+          ))}
+          <button className="mobile-login" onClick={openLogin}>
+            로그인
+          </button>
+          <a href="/#contact" className="btn btn--primary" onClick={closeMenu}>
+            무료 상담 신청
+          </a>
+        </div>
+      </header>
+
+      <LoginModal open={loginOpen} onClose={() => setLoginOpen(false)} />
+    </>
   )
 }

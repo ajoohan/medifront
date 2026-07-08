@@ -899,63 +899,135 @@ ul {
   font-size: clamp(1rem, 1.4vw, 1.12rem);
 }
 
-/* ---------- Login page ---------- */
-.login-page {
-  min-height: 78vh;
-  display: flex;
-  align-items: center;
-  background:
-    radial-gradient(800px 400px at 50% -10%, rgba(16, 166, 150, 0.25), transparent 60%),
-    linear-gradient(160deg, var(--navy-900), var(--navy-700));
-  padding-top: clamp(122px, 16vw, 180px);
-  padding-bottom: clamp(60px, 9vw, 110px);
-}
-.login-card {
-  width: 100%;
-  max-width: 420px;
-  margin: 0 auto;
-  background: var(--paper);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
-  padding: clamp(28px, 4vw, 44px);
-  box-shadow: var(--shadow);
-}
-.login-card__title {
-  text-align: center;
-  font-size: clamp(1.6rem, 4vw, 2rem);
-}
-.login-card__sub {
-  text-align: center;
-  color: var(--muted);
-  margin: 8px 0 28px;
-}
-.login-note {
-  text-align: center;
-  color: var(--primary);
-  font-size: 0.86rem;
-  font-weight: 600;
-  margin-bottom: 14px;
-}
-.login-card__foot {
+/* ---------- Login modal (팝업) ---------- */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 16px;
-  margin-top: 22px;
-  font-size: 0.88rem;
-  color: var(--muted);
+  padding: 20px;
+  background: rgba(4, 33, 31, 0.55);
+  backdrop-filter: blur(6px);
+  animation: overlayIn 0.2s ease;
 }
-.login-card__foot a {
+.login-modal {
+  position: relative;
+  width: 100%;
+  max-width: 400px;
+  max-height: 92vh;
+  overflow-y: auto;
+  background: var(--paper);
+  border-radius: var(--radius-lg);
+  padding: clamp(28px, 5vw, 40px);
+  box-shadow: var(--shadow-lg);
+  animation: modalIn 0.25s ease;
+}
+.login-modal__close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--ink-500);
+  font-size: 1.05rem;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+.login-modal__close:hover {
+  background: var(--paper-soft);
+  color: var(--text);
+}
+.login-modal__logo {
+  display: flex;
+  justify-content: center;
+  margin-top: 4px;
+}
+.login-modal__sub {
+  text-align: center;
   color: var(--muted);
+  font-size: 0.9rem;
+  margin: 12px 0 26px;
+}
+.login-modal__pw {
+  margin-bottom: 20px;
+}
+.login-modal__links {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 18px;
+  font-size: 0.85rem;
+}
+.login-modal__links button {
+  color: var(--muted);
+  font-weight: 500;
   transition: color 0.15s;
 }
-.login-card__foot a:hover {
+.login-modal__links button:hover {
   color: var(--primary);
 }
-.login-card__divider {
-  width: 1px;
-  height: 12px;
+.login-modal__links span {
+  color: var(--line);
+}
+.login-modal__divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 24px 0 18px;
+  color: var(--ink-300);
+  font-size: 0.8rem;
+}
+.login-modal__divider::before,
+.login-modal__divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
   background: var(--line);
+}
+.login-modal__socials {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+}
+.social-btn {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  font-size: 1.15rem;
+  transition:
+    transform 0.15s,
+    box-shadow 0.2s;
+}
+.social-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+.login-modal__note {
+  text-align: center;
+  color: var(--ink-300);
+  font-size: 0.76rem;
+  margin-top: 18px;
+}
+@keyframes overlayIn {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes modalIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
 }
 
 /* ---------- Magazine ---------- */
@@ -1441,16 +1513,29 @@ ul {
   .mobile-menu.open {
     transform: translateY(0);
   }
-  .mobile-menu a {
+  .mobile-menu a,
+  .mobile-menu .mobile-login {
     display: block;
+    width: 100%;
     padding: 14px 0;
     color: #fff;
     font-weight: 600;
+    text-align: left;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   }
   .mobile-menu .btn {
     width: 100%;
     margin-top: 18px;
+    /* 메뉴 링크 스타일(.mobile-menu a) 상속 제거 → 깔끔한 버튼으로 */
+    display: flex;
+    padding: 15px 26px;
+    border-bottom: 0;
+    border-radius: 12px;
+  }
+  /* 무료 상담: 대각선 그라디언트 대신 전체 배경 단색 */
+  .mobile-menu .btn--primary {
+    background: var(--primary);
+    box-shadow: 0 10px 22px rgba(16, 166, 150, 0.32);
   }
   .services__grid,
   .results__grid,
