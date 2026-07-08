@@ -1,13 +1,11 @@
 import { useEffect, useState } from 'react'
 import Logo from './Logo'
 import { useUser } from '../context/UserContext'
-
-const GRADES = ['일반', '의사', '원장']
+import { MOCK_MEMBERS } from '../mock/members'
 
 export default function LoginModal({ open, onClose }) {
   const { login } = useUser()
   const [email, setEmail] = useState('')
-  const [grade, setGrade] = useState('일반')
 
   useEffect(() => {
     if (!open) return
@@ -26,8 +24,15 @@ export default function LoginModal({ open, onClose }) {
 
   const onSubmit = (e) => {
     e.preventDefault()
-    // TODO: 실제 로그인 인증 로직 연결 지점 (현재는 데모 — 선택한 등급으로 로그인)
-    login({ name: email.trim() || '데모 회원', grade })
+    // TODO: 실제 로그인 인증 로직 연결 지점
+    // 데모: 회원 데이터에서 이메일로 등급을 조회(없으면 일반)
+    const key = email.trim().toLowerCase()
+    const found = MOCK_MEMBERS.find((m) => m.email.toLowerCase() === key)
+    login({
+      name: found?.name || email.trim() || '회원',
+      email: email.trim(),
+      grade: found?.grade || '일반',
+    })
     onClose()
   }
 
@@ -59,24 +64,6 @@ export default function LoginModal({ open, onClose }) {
             <input type="password" placeholder="비밀번호" required />
           </div>
 
-          <div className="field login-modal__pw">
-            <label>
-              회원 등급 <span className="login-modal__demo">데모</span>
-            </label>
-            <div className="login-modal__grades">
-              {GRADES.map((g) => (
-                <button
-                  key={g}
-                  type="button"
-                  className={grade === g ? 'is-active' : undefined}
-                  onClick={() => setGrade(g)}
-                >
-                  {g}
-                </button>
-              ))}
-            </div>
-          </div>
-
           <button type="submit" className="btn btn--primary btn--lg" style={{ width: '100%' }}>
             로그인
           </button>
@@ -91,7 +78,10 @@ export default function LoginModal({ open, onClose }) {
         </div>
 
         <p className="login-modal__note">
-          * 데모: 선택한 등급으로 로그인됩니다. 매거진은 의사·원장 등급만 열람 가능합니다.
+          * 데모: 로그인 계정 등급에 따라 매거진 열람 권한이 결정됩니다.
+          <br />
+          예) minjun.kim@gmail.com(원장) · doyoon.park@gmail.com(의사) ·
+          chaewon.yoon@gmail.com(일반)
         </p>
       </div>
     </div>

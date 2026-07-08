@@ -979,39 +979,6 @@ ul {
 .login-modal__pw {
   margin-bottom: 20px;
 }
-.login-modal__demo {
-  font-size: 0.66rem;
-  font-weight: 700;
-  color: var(--primary);
-  background: rgba(16, 166, 150, 0.12);
-  padding: 2px 7px;
-  border-radius: 999px;
-  margin-left: 4px;
-  vertical-align: 1px;
-}
-.login-modal__grades {
-  display: flex;
-  gap: 8px;
-}
-.login-modal__grades button {
-  flex: 1;
-  padding: 11px 0;
-  border-radius: 10px;
-  border: 1px solid var(--line);
-  background: var(--paper-soft);
-  font-weight: 700;
-  font-size: 0.92rem;
-  color: var(--ink-700);
-  transition:
-    background 0.15s,
-    color 0.15s,
-    border-color 0.15s;
-}
-.login-modal__grades button.is-active {
-  background: var(--primary);
-  border-color: var(--primary);
-  color: #fff;
-}
 .login-modal__links {
   display: flex;
   align-items: center;
