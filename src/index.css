@@ -845,6 +845,47 @@ ul {
   white-space: nowrap;
 }
 
+/* ---------- Page hero (매거진 등 서브페이지 상단 배너) ---------- */
+.page-hero {
+  position: relative;
+  overflow: hidden;
+  text-align: center;
+  color: #fff;
+  padding-top: clamp(122px, 15vw, 184px);
+  padding-bottom: clamp(48px, 7vw, 84px);
+  background:
+    radial-gradient(900px 420px at 80% -20%, rgba(16, 166, 150, 0.3), transparent 60%),
+    linear-gradient(160deg, var(--navy-900), var(--navy-700));
+}
+.page-hero__grid-bg {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 46px 46px;
+  mask-image: radial-gradient(70% 80% at 50% 0%, #000 30%, transparent 75%);
+  pointer-events: none;
+}
+.page-hero .container {
+  position: relative;
+}
+.page-hero .eyebrow {
+  color: var(--blue-300);
+}
+.page-hero h1 {
+  font-size: clamp(2rem, 5vw, 3rem);
+  letter-spacing: -0.03em;
+}
+.page-hero .accent {
+  color: var(--blue-400);
+}
+.page-hero p {
+  margin-top: 16px;
+  color: var(--blue-300);
+  font-size: clamp(1rem, 1.4vw, 1.12rem);
+}
+
 /* ---------- Magazine ---------- */
 .magazine__filter {
   display: flex;

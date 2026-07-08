@@ -1,6 +1,24 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { NAV } from '../data'
 import Logo from './Logo'
+
+// 네비 항목 렌더: to(라우트)면 Link, href(홈 앵커)면 '/#앵커' 링크로
+function NavItem({ item, onClick }) {
+  const className = item.highlight ? 'nav-highlight' : undefined
+  if (item.to) {
+    return (
+      <Link to={item.to} className={className} onClick={onClick}>
+        {item.label}
+      </Link>
+    )
+  }
+  return (
+    <a href={`/${item.href}`} className={className} onClick={onClick}>
+      {item.label}
+    </a>
+  )
+}
 
 export default function Header() {
   const [scrolled, setScrolled] = useState(false)
@@ -18,24 +36,18 @@ export default function Header() {
   return (
     <header className={`header ${scrolled ? 'header--scrolled' : 'header--top'}`}>
       <div className="container header__inner">
-        <a href="#top" className="brand" onClick={closeMenu} aria-label="메디프론트 홈">
+        <Link to="/" className="brand" onClick={closeMenu} aria-label="메디프론트 홈">
           <Logo variant="light" />
-        </a>
+        </Link>
 
         <nav className="nav">
           {NAV.map((item) => (
-            <a
-              key={item.href}
-              href={item.href}
-              className={item.highlight ? 'nav-highlight' : undefined}
-            >
-              {item.label}
-            </a>
+            <NavItem key={item.to || item.href} item={item} />
           ))}
         </nav>
 
         <div className="header__cta">
-          <a href="#contact" className="btn btn--primary">
+          <a href="/#contact" className="btn btn--primary">
             무료 상담 신청
           </a>
           <button
@@ -50,16 +62,9 @@ export default function Header() {
 
       <div className={`mobile-menu ${menuOpen ? 'open' : ''}`}>
         {NAV.map((item) => (
-          <a
-            key={item.href}
-            href={item.href}
-            onClick={closeMenu}
-            className={item.highlight ? 'nav-highlight' : undefined}
-          >
-            {item.label}
-          </a>
+          <NavItem key={item.to || item.href} item={item} onClick={closeMenu} />
         ))}
-        <a href="#contact" className="btn btn--primary" onClick={closeMenu}>
+        <a href="/#contact" className="btn btn--primary" onClick={closeMenu}>
           무료 상담 신청
         </a>
       </div>

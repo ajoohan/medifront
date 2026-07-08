@@ -20,16 +20,8 @@ export default function Magazine() {
   const items = active === '전체' ? MAGAZINE : MAGAZINE.filter((a) => a.category === active)
 
   return (
-    <section className="section" id="magazine">
+    <section className="section">
       <div className="container">
-        <div className="section-head center reveal">
-          <span className="eyebrow">MAGAZINE</span>
-          <h2>
-            병원 성장 <span className="accent">인사이트</span>
-          </h2>
-          <p>현장에서 검증된 병원 마케팅·경영·개원 노하우를 메디프론트가 정리해 드립니다.</p>
-        </div>
-
         <div className="magazine__filter reveal">
           {MAGAZINE_CATEGORIES.map((c) => (
             <button
