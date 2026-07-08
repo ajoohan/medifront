@@ -24,7 +24,11 @@ export default function Header() {
 
         <nav className="nav">
           {NAV.map((item) => (
-            <a key={item.href} href={item.href}>
+            <a
+              key={item.href}
+              href={item.href}
+              className={item.highlight ? 'nav-highlight' : undefined}
+            >
               {item.label}
             </a>
           ))}
@@ -46,7 +50,12 @@ export default function Header() {
 
       <div className={`mobile-menu ${menuOpen ? 'open' : ''}`}>
         {NAV.map((item) => (
-          <a key={item.href} href={item.href} onClick={closeMenu}>
+          <a
+            key={item.href}
+            href={item.href}
+            onClick={closeMenu}
+            className={item.highlight ? 'nav-highlight' : undefined}
+          >
             {item.label}
           </a>
         ))}

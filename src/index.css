@@ -329,6 +329,15 @@ ul {
 .nav a:hover {
   color: #fff;
 }
+/* 강조 메뉴 (매거진) — 브랜드 청록색으로 눈에 띄게 */
+.nav a.nav-highlight,
+.mobile-menu a.nav-highlight {
+  color: var(--teal-400);
+  font-weight: 700;
+}
+.nav a.nav-highlight:hover {
+  color: #fff;
+}
 .header__cta {
   display: flex;
   align-items: center;

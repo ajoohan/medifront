@@ -22,8 +22,8 @@ export const NAV = [
   { label: '서비스', href: '#services' },
   { label: '성과', href: '#results' },
   { label: '프로세스', href: '#process' },
-  { label: '매거진', href: '#magazine' },
   { label: '자주 묻는 질문', href: '#faq' },
+  { label: '매거진', href: '#magazine', highlight: true },
 ]
 
 export const HERO_STATS = [
