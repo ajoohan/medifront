@@ -31,7 +31,7 @@ export default function Hero() {
 
           <div className="hero__actions">
             <a href="#contact" className="btn btn--primary btn--lg">
-              무료 정밀 진단 받기
+              무료 정밀 상담 받기
               <IconArrowRight width={18} height={18} />
             </a>
             <a href="#services" className="btn btn--ghost btn--lg">
