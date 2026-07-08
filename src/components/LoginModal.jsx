@@ -76,13 +76,6 @@ export default function LoginModal({ open, onClose }) {
           <span>·</span>
           <button type="button">비밀번호 찾기</button>
         </div>
-
-        <p className="login-modal__note">
-          * 데모: 로그인 계정 등급에 따라 매거진 열람 권한이 결정됩니다.
-          <br />
-          예) minjun.kim@gmail.com(원장) · doyoon.park@gmail.com(의사) ·
-          chaewon.yoon@gmail.com(일반)
-        </p>
       </div>
     </div>
   )

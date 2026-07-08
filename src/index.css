@@ -998,12 +998,6 @@ ul {
 .login-modal__links span {
   color: var(--line);
 }
-.login-modal__note {
-  text-align: center;
-  color: var(--ink-300);
-  font-size: 0.76rem;
-  margin-top: 18px;
-}
 @keyframes overlayIn {
   from {
     opacity: 0;
