@@ -87,8 +87,6 @@ export default function MembersAdmin() {
     })
   }
 
-  const clearSelection = () => setSelected(new Set())
-
   const applyBulkGrade = () => {
     setMembers((ms) => ms.map((m) => (selected.has(m.id) ? { ...m, grade: bulkGrade } : m)))
     setSelected(new Set())
@@ -171,9 +169,6 @@ export default function MembersAdmin() {
             </select>
             <button className="btn btn--primary admin-bulk__apply" onClick={applyBulkGrade}>
               일괄 변경
-            </button>
-            <button className="admin-bulk__clear" onClick={clearSelection}>
-              선택 해제
             </button>
           </div>
         </div>

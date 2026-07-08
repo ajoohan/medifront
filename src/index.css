@@ -1658,15 +1658,6 @@ ul {
   padding: 9px 18px;
   font-size: 0.9rem;
 }
-.admin-bulk__clear {
-  color: rgba(255, 255, 255, 0.75);
-  font-weight: 600;
-  font-size: 0.88rem;
-  padding: 8px 10px;
-}
-.admin-bulk__clear:hover {
-  color: #fff;
-}
 .admin-table-wrap {
   background: #fff;
   border: 1px solid var(--line);
