@@ -19,7 +19,7 @@ export const BRAND = {
 
 // href: 홈페이지 내 앵커(다른 페이지에선 '/#앵커'로 이동) / to: 별도 라우트
 export const NAV = [
-  { label: '컨설팅 강점', href: '#why' },
+  { label: 'MEDI-FRONT ?', href: '#why' },
   { label: '서비스', href: '#services' },
   { label: '성과', href: '#results' },
   { label: '프로세스', href: '#process' },
