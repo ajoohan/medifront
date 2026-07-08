@@ -1534,9 +1534,15 @@ ul {
   margin-bottom: 16px;
   flex-wrap: wrap;
 }
+.admin-search-form {
+  display: flex;
+  gap: 8px;
+  flex: 1;
+  min-width: 240px;
+}
 .admin-search {
   flex: 1;
-  min-width: 200px;
+  min-width: 0;
   padding: 11px 14px;
   border: 1px solid var(--line);
   border-radius: 10px;
@@ -1544,6 +1550,24 @@ ul {
   font-family: inherit;
   font-size: 0.95rem;
   color: var(--text);
+}
+.admin-search-btn {
+  padding: 11px 20px;
+  border-radius: 10px;
+  background: var(--primary);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.92rem;
+  white-space: nowrap;
+  transition:
+    background 0.15s,
+    transform 0.1s;
+}
+.admin-search-btn:hover {
+  background: #0e9384;
+}
+.admin-search-btn:active {
+  transform: translateY(1px);
 }
 .admin-search:focus {
   outline: none;

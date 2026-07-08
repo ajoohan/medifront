@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react'
 import { MOCK_MEMBERS } from '../../mock/members'
 
+// 상태 필터 — 클릭 시 토글(다시 누르면 해제되어 전체 표시)
 const FILTERS = [
-  { key: 'all', label: '전체' },
   { key: 'active', label: '활성' },
   { key: 'suspended', label: '정지' },
 ]
@@ -17,6 +17,7 @@ function formatDate(iso) {
 
 export default function MembersAdmin() {
   const [members, setMembers] = useState(MOCK_MEMBERS)
+  const [queryInput, setQueryInput] = useState('')
   const [q, setQ] = useState('')
   const [filter, setFilter] = useState('all')
   const [gradeFilter, setGradeFilter] = useState('전체')
@@ -92,6 +93,14 @@ export default function MembersAdmin() {
     setSelected(new Set())
   }
 
+  const handleSearch = (e) => {
+    e.preventDefault()
+    setQ(queryInput.trim())
+  }
+
+  // 상태 필터 토글: 같은 버튼 다시 누르면 해제되어 전체 표시
+  const toggleFilter = (key) => setFilter((f) => (f === key ? 'all' : key))
+
   return (
     <>
       <div className="admin-head">
@@ -117,19 +126,28 @@ export default function MembersAdmin() {
       </div>
 
       <div className="admin-toolbar">
-        <input
-          className="admin-search"
-          type="search"
-          placeholder="이름 · 이메일 · 병원명 검색"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-        />
+        <form className="admin-search-form" onSubmit={handleSearch}>
+          <input
+            className="admin-search"
+            type="text"
+            placeholder="이름 · 이메일 · 병원명 검색"
+            value={queryInput}
+            onChange={(e) => {
+              const v = e.target.value
+              setQueryInput(v)
+              if (v === '') setQ('')
+            }}
+          />
+          <button type="submit" className="admin-search-btn">
+            검색
+          </button>
+        </form>
         <div className="admin-filter">
           {FILTERS.map((f) => (
             <button
               key={f.key}
               className={filter === f.key ? 'is-active' : undefined}
-              onClick={() => setFilter(f.key)}
+              onClick={() => toggleFilter(f.key)}
             >
               {f.label}
             </button>
