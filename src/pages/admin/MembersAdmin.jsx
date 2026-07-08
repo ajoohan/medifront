@@ -146,7 +146,11 @@ export default function MembersAdmin() {
           {FILTERS.map((f) => (
             <button
               key={f.key}
-              className={filter === f.key ? 'is-active' : undefined}
+              className={
+                [f.key === 'suspended' ? 'danger' : '', filter === f.key ? 'is-active' : '']
+                  .filter(Boolean)
+                  .join(' ') || undefined
+              }
               onClick={() => toggleFilter(f.key)}
             >
               {f.label}
