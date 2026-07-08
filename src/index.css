@@ -319,6 +319,7 @@ ul {
   display: flex;
   align-items: center;
   gap: 30px;
+  margin-left: auto; /* 로고 왼쪽 / 메뉴 오른쪽 정렬 */
 }
 .nav a {
   color: rgba(255, 255, 255, 0.82);

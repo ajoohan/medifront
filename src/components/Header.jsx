@@ -47,9 +47,6 @@ export default function Header() {
         </nav>
 
         <div className="header__cta">
-          <a href="/#contact" className="btn btn--primary">
-            무료 상담 신청
-          </a>
           <button
             className="nav-toggle"
             aria-label="메뉴 열기"
