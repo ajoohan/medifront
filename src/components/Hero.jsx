@@ -22,11 +22,11 @@ export default function Hero() {
           <h1>
             원장님의 든든한
             <br />
-            <span className="grad">병원 컨설팅 파트너</span>
+            <span className="grad">병·의원 컨설팅 파트너</span>
           </h1>
           <p className="hero__sub">
-            마케팅 운영대행부터 경영 컨설팅, 개원 브랜딩, AI 데이터 솔루션까지.
-            {BRAND.name}이 병원 성장의 모든 과정을 함께합니다.
+            입지부터 계약, 개원 컨설팅, 경영컨설팅, 개원 브랜딩, AI데이터 솔루션까지 {BRAND.name}가
+            병·의원 성장의 모든 과정을 함께 합니다.
           </p>
 
           <div className="hero__actions">
@@ -52,7 +52,7 @@ export default function Hero() {
         </div>
 
         <div className="hero__card reveal">
-          <h4>블로그 유입 성장 시뮬레이션</h4>
+          <h4>개원 성장 시뮬레이션</h4>
           <div className="sub">운영 개월 수에 따른 누적 유입 추이 (예시)</div>
           <div className="mini-chart">
             {bars.map((b, i) => (

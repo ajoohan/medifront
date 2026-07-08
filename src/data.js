@@ -28,7 +28,7 @@ export const NAV = [
 ]
 
 export const HERO_STATS = [
-  { label: '진단 리포트', value: '무료' },
+  { label: '상담 리포트', value: '무료' },
   { label: '평균 상담 응답', value: '24시간 내' },
   { label: '데이터 기반 전략', value: '100%' },
 ]
