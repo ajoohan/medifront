@@ -1,6 +1,6 @@
 /* ============================================================
    메디프론트(MEDIFRONT) 병원 컨설팅 — 디자인 시스템 / 전역 스타일
-   테마: 딥 네이비 + 블루
+   테마: 청록(teal)
    ============================================================ */
 
 :root {
@@ -836,6 +836,137 @@ ul {
   white-space: nowrap;
 }
 
+/* ---------- Magazine ---------- */
+.magazine__filter {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 40px;
+}
+.mag-chip {
+  padding: 9px 18px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--ink-700);
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: all 0.15s ease;
+}
+.mag-chip:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+.mag-chip.is-active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+  box-shadow: 0 8px 18px rgba(16, 166, 150, 0.28);
+}
+
+.magazine__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+.mag-card {
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.25s ease,
+    border-color 0.2s;
+}
+.mag-card:hover {
+  transform: translateY(-6px);
+  box-shadow: var(--shadow);
+  border-color: transparent;
+}
+.mag-card__thumb {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  display: flex;
+  align-items: flex-start;
+  padding: 16px;
+  overflow: hidden;
+}
+.mag-card__thumb::after {
+  content: '+';
+  position: absolute;
+  right: -6px;
+  bottom: -34px;
+  font-size: 8rem;
+  font-weight: 900;
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.14);
+  pointer-events: none;
+}
+.mag-card__cat {
+  position: relative;
+  z-index: 1;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--navy-800);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+.mag-card__body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  padding: 22px;
+}
+.mag-card__body h3 {
+  font-size: 1.14rem;
+  line-height: 1.4;
+  color: var(--navy-800);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.mag-card__body p {
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 0.94rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.mag-card__meta {
+  margin-top: auto;
+  padding-top: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 0.82rem;
+  color: var(--ink-500);
+}
+.mag-card__more {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--primary);
+  font-weight: 700;
+  white-space: nowrap;
+}
+.magazine__note {
+  margin-top: 30px;
+  text-align: center;
+  font-size: 0.82rem;
+  color: var(--ink-300);
+}
+
 /* ---------- FAQ ---------- */
 .faq {
   max-width: 840px;
@@ -1153,7 +1284,8 @@ ul {
   }
   .results__grid,
   .pain__grid,
-  .cat__grid {
+  .cat__grid,
+  .magazine__grid {
     grid-template-columns: repeat(2, 1fr);
   }
   .footer__top {
@@ -1202,6 +1334,7 @@ ul {
   .results__grid,
   .pain__grid,
   .cat__grid,
+  .magazine__grid,
   .ai__features,
   .form__row {
     grid-template-columns: 1fr;

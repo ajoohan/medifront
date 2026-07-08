@@ -5,6 +5,7 @@ import Services from './components/Services'
 import PainPoints from './components/PainPoints'
 import Results from './components/Results'
 import Process from './components/Process'
+import Magazine from './components/Magazine'
 import AISection from './components/AISection'
 import Categories from './components/Categories'
 import FAQ from './components/FAQ'
@@ -25,6 +26,7 @@ export default function App() {
         <PainPoints />
         <Results />
         <Process />
+        <Magazine />
         <AISection />
         <Categories />
         <FAQ />
