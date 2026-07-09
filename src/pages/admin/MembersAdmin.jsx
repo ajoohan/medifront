@@ -277,8 +277,11 @@ export default function MembersAdmin() {
                 </td>
                 <td>
                   <div className="admin-actions">
-                    <button onClick={() => toggleStatus(m.id)}>
-                      {m.status === 'active' ? '정지' : '활성화'}
+                    <button
+                      className={m.status === 'active' ? undefined : 'activate'}
+                      onClick={() => toggleStatus(m.id)}
+                    >
+                      {m.status === 'active' ? '정지' : '활성'}
                     </button>
                     <button className="danger" onClick={() => removeMember(m.id)}>
                       삭제

@@ -1874,6 +1874,17 @@ ul {
   border-color: var(--primary);
   color: var(--primary);
 }
+/* 활성 버튼: 파랑 박스 + 흰 글자 */
+.admin-actions .activate {
+  background: #3b82f6;
+  border-color: #3b82f6;
+  color: #fff;
+}
+.admin-actions .activate:hover {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #fff;
+}
 /* 삭제 버튼: 빨간 박스 + 흰 글자 */
 .admin-actions .danger {
   background: #ef4444;
