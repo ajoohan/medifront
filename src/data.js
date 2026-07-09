@@ -149,8 +149,24 @@ export const PROCESS = [
   },
 ]
 
-// 컨설팅 강점 도표 — 준비 중(빈 자리표시 4개). 자료가 확정되면 채워 넣으세요.
-export const AI_FEATURES = [{}, {}, {}, {}]
+export const AI_FEATURES = [
+  {
+    icon: 'database',
+    title: '경쟁 병원 분석',
+    desc: '상권 내 경쟁 병원의 콘텐츠·키워드를 데이터로 진단',
+  },
+  { icon: 'pen', title: 'AI 콘텐츠 생성', desc: '환자 심리 기반 카피를 사람과 AI가 협업해 제작' },
+  {
+    icon: 'search',
+    title: '실시간 SEO·AEO',
+    desc: '검색·AI 답변 최적화로 노출과 유입을 동시에 관리',
+  },
+  {
+    icon: 'shield',
+    title: '의료광고 컴플라이언스',
+    desc: '의료법 3단계 필터로 리스크를 사전 차단',
+  },
+]
 
 export const CATEGORIES = [
   { name: '동물병원', sub: '월 신환 유입', val: '+340%' },

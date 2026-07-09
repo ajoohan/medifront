@@ -1,5 +1,12 @@
 import { AI_FEATURES } from '../data'
-import { IconSpark } from './Icons'
+import { IconDatabase, IconPen, IconSearch, IconShield, IconSpark } from './Icons'
+
+const ICONS = {
+  database: IconDatabase,
+  pen: IconPen,
+  search: IconSearch,
+  shield: IconShield,
+}
 
 export default function AISection() {
   return (
@@ -31,11 +38,19 @@ export default function AISection() {
           </div>
         </div>
 
-        {/* 강점 도표 자리표시 — 자료 확정 시 교체 */}
-        <div className="ai__features reveal">
-          {AI_FEATURES.map((_, i) => (
-            <div className="placeholder-box" key={i} />
-          ))}
+        <div className="ai__features">
+          {AI_FEATURES.map((f) => {
+            const Icon = ICONS[f.icon]
+            return (
+              <article className="ai-feature reveal" key={f.title}>
+                <div className="ico">
+                  <Icon width={26} height={26} />
+                </div>
+                <b>{f.title}</b>
+                <span>{f.desc}</span>
+              </article>
+            )
+          })}
         </div>
       </div>
     </section>
