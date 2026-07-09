@@ -1,8 +1,5 @@
-import { useMemo, useState } from 'react'
-import { MAGAZINE_CATEGORIES } from '../../data'
+import { useRef, useState } from 'react'
 import { loadArticles, saveArticles } from '../../lib/magazineStore'
-
-const CATEGORIES = MAGAZINE_CATEGORIES.filter((c) => c !== '전체')
 
 const todayStr = () => {
   const d = new Date()
@@ -10,86 +7,187 @@ const todayStr = () => {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
 }
 
-const emptyForm = () => ({
-  category: CATEGORIES[0],
-  title: '',
-  excerpt: '',
-  date: todayStr(),
-  read: '5분',
-})
+const FALLBACK_THUMB = 'linear-gradient(135deg, #0b3f3a, #1eb5a6)'
 
-function formatDate(iso) {
-  if (!iso) return '-'
-  const [y, m, d] = iso.split('-')
-  return `${y}.${m}.${d}`
+// 콘텐츠 HTML에서 썸네일(첫 이미지)·요약·읽기시간 자동 추출
+function parseContent(html) {
+  const div = document.createElement('div')
+  div.innerHTML = html
+  const img = div.querySelector('img')
+  const text = div.textContent.replace(/\s+/g, ' ').trim()
+  return {
+    thumbnail: img?.getAttribute('src') || null,
+    excerpt: text.slice(0, 90),
+    read: `${Math.max(1, Math.round(text.length / 500))}분`,
+  }
 }
 
+// 이미지 파일 → 리사이즈된 dataURL (localStorage 용량 보호: 최대 폭 1200px, JPEG 85%)
+function fileToDataUrl(file, maxW = 1200) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onerror = reject
+    reader.onload = () => {
+      const img = new Image()
+      img.onerror = reject
+      img.onload = () => {
+        const scale = Math.min(1, maxW / img.width)
+        const canvas = document.createElement('canvas')
+        canvas.width = Math.round(img.width * scale)
+        canvas.height = Math.round(img.height * scale)
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height)
+        resolve(canvas.toDataURL('image/jpeg', 0.85))
+      }
+      img.src = reader.result
+    }
+    reader.readAsDataURL(file)
+  })
+}
+
+function extractYoutubeId(url) {
+  const m = url.match(
+    /(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/)|youtu\.be\/)([A-Za-z0-9_-]{6,})/,
+  )
+  return m ? m[1] : null
+}
+
+// ─────────────────────────────────────────────────────────
+// 브런치 스타일 글쓰기 에디터 (contentEditable 기반)
+// ─────────────────────────────────────────────────────────
+function MagazineEditor({ article, onSave, onCancel }) {
+  const [title, setTitle] = useState(article?.title || '')
+  const bodyRef = useRef(null)
+  const fileRef = useRef(null)
+  const initialHtml = article?.content || (article?.excerpt ? `<p>${article.excerpt}</p>` : '')
+
+  const exec = (cmd, val) => {
+    bodyRef.current?.focus()
+    document.execCommand(cmd, false, val)
+  }
+
+  const addImages = async (e) => {
+    const files = [...e.target.files]
+    e.target.value = ''
+    if (!files.length) return
+    bodyRef.current?.focus()
+    for (const f of files) {
+      try {
+        const url = await fileToDataUrl(f)
+        document.execCommand('insertHTML', false, `<img src="${url}" alt="" /><p><br/></p>`)
+      } catch {
+        window.alert('이미지를 불러오지 못했습니다.')
+      }
+    }
+  }
+
+  const addYoutube = () => {
+    const url = window.prompt('유튜브 영상 주소(URL)를 입력하세요')
+    if (!url) return
+    const id = extractYoutubeId(url.trim())
+    if (!id) {
+      window.alert('유튜브 주소를 인식하지 못했습니다. (예: https://youtu.be/영상ID)')
+      return
+    }
+    bodyRef.current?.focus()
+    document.execCommand(
+      'insertHTML',
+      false,
+      `<div class="mag-video" contenteditable="false"><iframe src="https://www.youtube.com/embed/${id}" title="YouTube video" allowfullscreen></iframe></div><p><br/></p>`,
+    )
+  }
+
+  const save = () => {
+    const t = title.trim()
+    if (!t) {
+      window.alert('제목을 입력해 주세요.')
+      return
+    }
+    onSave({ title: t, content: bodyRef.current?.innerHTML || '' })
+  }
+
+  // 툴바 버튼은 onMouseDown preventDefault로 에디터 선택 영역을 유지
+  const keep = (e) => e.preventDefault()
+
+  return (
+    <div className="mag-editor">
+      <div className="mag-editor__top">
+        <button className="mag-editor__back" onClick={onCancel}>
+          ← 목록으로
+        </button>
+        <button className="btn btn--primary admin-head__action" onClick={save}>
+          저장
+        </button>
+      </div>
+
+      <input
+        className="mag-editor__title"
+        placeholder="제목을 입력하세요"
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+      />
+
+      <div className="mag-editor__toolbar">
+        <button onMouseDown={keep} onClick={() => exec('fontSize', 6)}>
+          제목
+        </button>
+        <button onMouseDown={keep} onClick={() => exec('fontSize', 5)}>
+          부제목
+        </button>
+        <button onMouseDown={keep} onClick={() => exec('fontSize', 3)}>
+          본문
+        </button>
+        <span className="mag-editor__divider" />
+        <button className="tb-bold" onMouseDown={keep} onClick={() => exec('bold')}>
+          B
+        </button>
+        <span className="mag-editor__divider" />
+        <button onMouseDown={keep} onClick={() => fileRef.current?.click()}>
+          🖼 이미지
+        </button>
+        <button onMouseDown={keep} onClick={addYoutube}>
+          ▶ 유튜브
+        </button>
+        <input ref={fileRef} type="file" accept="image/*" multiple hidden onChange={addImages} />
+      </div>
+
+      <div
+        className="mag-editor__body"
+        ref={bodyRef}
+        contentEditable
+        suppressContentEditableWarning
+        data-placeholder="내용을 입력하세요. 첫 번째로 첨부한 이미지가 썸네일이 됩니다."
+        dangerouslySetInnerHTML={{ __html: initialHtml }}
+      />
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────
+// 매거진 관리 — 썸네일 그리드 (PC 5열)
+// ─────────────────────────────────────────────────────────
 export default function MagazineAdmin() {
   const [articles, setArticles] = useState(loadArticles)
-  const [queryInput, setQueryInput] = useState('')
-  const [q, setQ] = useState('')
-  const [catFilter, setCatFilter] = useState('전체')
-  // editing: null | { mode: 'new' } | { mode: 'edit', id }
-  const [editing, setEditing] = useState(null)
-  const [form, setForm] = useState(emptyForm)
+  // writing: null | { mode: 'new' } | { mode: 'edit', article }
+  const [writing, setWriting] = useState(null)
 
-  // 상태 변경 시 localStorage에도 저장 (공개 매거진 페이지에 반영)
   const update = (list) => {
     setArticles(list)
     saveArticles(list)
   }
 
-  const filtered = useMemo(() => {
-    const keyword = q.trim()
-    return articles.filter((a) => {
-      const matchQ = !keyword || a.title.includes(keyword) || a.excerpt.includes(keyword)
-      const matchC = catFilter === '전체' || a.category === catFilter
-      return matchQ && matchC
-    })
-  }, [articles, q, catFilter])
-
-  const visibleCount = articles.filter((a) => a.status !== 'hidden').length
-
-  const handleSearch = (e) => {
-    e.preventDefault()
-    setQ(queryInput.trim())
-  }
-
-  const openNew = () => {
-    setForm(emptyForm())
-    setEditing({ mode: 'new' })
-  }
-
-  const openEdit = (a) => {
-    setForm({
-      category: a.category,
-      title: a.title,
-      excerpt: a.excerpt,
-      date: a.date,
-      read: a.read,
-    })
-    setEditing({ mode: 'edit', id: a.id })
-  }
-
-  const closeEditor = () => setEditing(null)
-
-  const setField = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }))
-
-  const submitEditor = (e) => {
-    e.preventDefault()
-    const data = {
-      ...form,
-      title: form.title.trim(),
-      excerpt: form.excerpt.trim(),
-      date: form.date || todayStr(),
-      read: form.read.trim() || '5분',
-    }
-    if (editing.mode === 'new') {
-      update([{ id: Date.now(), status: 'visible', ...data }, ...articles])
+  const handleSave = ({ title, content }) => {
+    const meta = parseContent(content)
+    if (writing.mode === 'new') {
+      update([
+        { id: Date.now(), status: 'visible', date: todayStr(), title, content, ...meta },
+        ...articles,
+      ])
     } else {
-      update(articles.map((a) => (a.id === editing.id ? { ...a, ...data } : a)))
+      update(
+        articles.map((a) => (a.id === writing.article.id ? { ...a, title, content, ...meta } : a)),
+      )
     }
-    closeEditor()
+    setWriting(null)
   }
 
   const toggleStatus = (id) => {
@@ -107,171 +205,61 @@ export default function MagazineAdmin() {
     }
   }
 
+  if (writing) {
+    return (
+      <MagazineEditor
+        article={writing.mode === 'edit' ? writing.article : null}
+        onSave={handleSave}
+        onCancel={() => setWriting(null)}
+      />
+    )
+  }
+
   return (
     <>
       <div className="admin-head">
         <div>
           <h1>매거진 관리</h1>
-          <p>매거진 글을 등록·수정하고 노출 여부를 관리합니다.</p>
+          <p>매거진 글을 작성하고 노출 여부를 관리합니다.</p>
         </div>
-        <button className="btn btn--primary admin-head__action" onClick={openNew}>
-          + 새 글 작성
+        <button
+          className="btn btn--primary admin-head__action"
+          onClick={() => setWriting({ mode: 'new' })}
+        >
+          + 매거진 작성
         </button>
       </div>
 
-      <div className="admin-stats">
-        <div className="admin-stat">
-          <b>{articles.length}</b>
-          <span>전체 글</span>
-        </div>
-        <div className="admin-stat">
-          <b>{visibleCount}</b>
-          <span>노출 중</span>
-        </div>
-        <div className="admin-stat">
-          <b>{articles.length - visibleCount}</b>
-          <span>숨김</span>
-        </div>
-      </div>
-
-      <div className="admin-toolbar">
-        <form className="admin-search-form" onSubmit={handleSearch}>
-          <input
-            className="admin-search"
-            type="text"
-            placeholder="제목 · 내용 검색"
-            value={queryInput}
-            onChange={(e) => {
-              const v = e.target.value
-              setQueryInput(v)
-              if (v === '') setQ('')
-            }}
-          />
-          <button type="submit" className="admin-search-btn">
-            검색
-          </button>
-        </form>
-        <select
-          className="admin-grade-filter"
-          value={catFilter}
-          onChange={(e) => setCatFilter(e.target.value)}
-          aria-label="카테고리 필터"
-        >
-          <option value="전체">전체 카테고리</option>
-          {CATEGORIES.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
+      {articles.length === 0 ? (
+        <div className="mag-admin-empty">등록된 매거진이 없습니다</div>
+      ) : (
+        <div className="mag-admin-grid">
+          {articles.map((a) => (
+            <article className="mag-admin-card" key={a.id}>
+              <div
+                className="mag-admin-card__thumb"
+                style={
+                  a.thumbnail
+                    ? { backgroundImage: `url(${a.thumbnail})` }
+                    : { background: FALLBACK_THUMB }
+                }
+              >
+                {a.status === 'hidden' && <span className="mag-admin-card__hidden">숨김</span>}
+              </div>
+              <div className="mag-admin-card__body">
+                <h3>{a.title}</h3>
+                <div className="admin-actions">
+                  <button onClick={() => setWriting({ mode: 'edit', article: a })}>수정</button>
+                  <button onClick={() => toggleStatus(a.id)}>
+                    {a.status === 'hidden' ? '노출' : '숨김'}
+                  </button>
+                  <button className="danger" onClick={() => removeArticle(a.id)}>
+                    삭제
+                  </button>
+                </div>
+              </div>
+            </article>
           ))}
-        </select>
-      </div>
-
-      <div className="admin-table-wrap">
-        <table className="admin-table">
-          <thead>
-            <tr>
-              <th>제목</th>
-              <th>카테고리</th>
-              <th>작성일</th>
-              <th>읽기 시간</th>
-              <th>상태</th>
-              <th>관리</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((a) => (
-              <tr key={a.id}>
-                <td className="t-title">
-                  <span className="m-name">{a.title}</span>
-                </td>
-                <td>{a.category}</td>
-                <td>{formatDate(a.date)}</td>
-                <td>{a.read}</td>
-                <td>
-                  <span
-                    className={`badge badge--${a.status === 'hidden' ? 'suspended' : 'active'}`}
-                  >
-                    {a.status === 'hidden' ? '숨김' : '노출'}
-                  </span>
-                </td>
-                <td>
-                  <div className="admin-actions">
-                    <button onClick={() => openEdit(a)}>수정</button>
-                    <button onClick={() => toggleStatus(a.id)}>
-                      {a.status === 'hidden' ? '노출' : '숨김'}
-                    </button>
-                    <button className="danger" onClick={() => removeArticle(a.id)}>
-                      삭제
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {filtered.length === 0 && <div className="admin-empty">조건에 맞는 글이 없습니다.</div>}
-      </div>
-
-      {editing && (
-        <div className="modal-overlay" onClick={closeEditor} role="dialog" aria-modal="true">
-          <div className="admin-editor" onClick={(e) => e.stopPropagation()}>
-            <h2>{editing.mode === 'new' ? '새 글 작성' : '글 수정'}</h2>
-            <form onSubmit={submitEditor}>
-              <div className="admin-editor__row">
-                <div className="field">
-                  <label>카테고리</label>
-                  <select value={form.category} onChange={setField('category')}>
-                    {CATEGORIES.map((c) => (
-                      <option key={c} value={c}>
-                        {c}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="field">
-                  <label>작성일</label>
-                  <input type="date" value={form.date} onChange={setField('date')} />
-                </div>
-              </div>
-              <div className="field">
-                <label>
-                  제목 <span className="req">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="글 제목을 입력하세요"
-                  value={form.title}
-                  onChange={setField('title')}
-                />
-              </div>
-              <div className="field">
-                <label>요약</label>
-                <textarea
-                  placeholder="목록 카드에 표시될 요약을 입력하세요"
-                  value={form.excerpt}
-                  onChange={setField('excerpt')}
-                />
-              </div>
-              <div className="field">
-                <label>읽기 시간</label>
-                <input
-                  type="text"
-                  placeholder="예: 6분"
-                  value={form.read}
-                  onChange={setField('read')}
-                />
-              </div>
-              <div className="admin-editor__actions">
-                <button type="button" className="cancel" onClick={closeEditor}>
-                  취소
-                </button>
-                <button type="submit" className="btn btn--primary">
-                  저장
-                </button>
-              </div>
-            </form>
-          </div>
         </div>
       )}
     </>

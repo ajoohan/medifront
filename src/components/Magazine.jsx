@@ -3,15 +3,29 @@ import { MAGAZINE_CATEGORIES } from '../data'
 import { IconArrowRight } from './Icons'
 import { loadArticles } from '../lib/magazineStore'
 
-// 카테고리별 썸네일 그라디언트 (브랜드 청록 계열)
+// 카테고리별 썸네일 그라디언트 (브랜드 청록 계열) — 첨부 이미지가 없을 때 사용
 const THUMB = {
   마케팅: 'linear-gradient(135deg, #0f524b, #23c3b1)',
   경영: 'linear-gradient(135deg, #072e2b, #10a696)',
   개원: 'linear-gradient(135deg, #0b3f3a, #2ed9c6)',
   'AI·트렌드': 'linear-gradient(135deg, #04211f, #1eb5a6)',
 }
+const FALLBACK_THUMB = 'linear-gradient(135deg, #0b3f3a, #1eb5a6)'
+
+// 글의 첫 첨부 이미지를 썸네일로, 없으면 그라디언트
+function thumbStyle(a) {
+  if (a.thumbnail) {
+    return {
+      backgroundImage: `url(${a.thumbnail})`,
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+    }
+  }
+  return { background: THUMB[a.category] || FALLBACK_THUMB }
+}
 
 function formatDate(iso) {
+  if (!iso) return ''
   const [y, m, d] = iso.split('-')
   return `${y}. ${Number(m)}. ${Number(d)}.`
 }
@@ -41,15 +55,17 @@ export default function Magazine() {
         <div className="magazine__grid">
           {items.map((a) => (
             <article className="mag-card" key={a.id ?? a.title}>
-              <div className="mag-card__thumb" style={{ background: THUMB[a.category] }}>
-                <span className="mag-card__cat">{a.category}</span>
+              <div className="mag-card__thumb" style={thumbStyle(a)}>
+                {a.category && <span className="mag-card__cat">{a.category}</span>}
               </div>
               <div className="mag-card__body">
                 <h3>{a.title}</h3>
                 <p>{a.excerpt}</p>
                 <div className="mag-card__meta">
                   <span>
-                    {formatDate(a.date)} · {a.read} 읽기
+                    {[formatDate(a.date), a.read ? `${a.read} 읽기` : null]
+                      .filter(Boolean)
+                      .join(' · ')}
                   </span>
                   <span className="mag-card__more">
                     읽어보기 <IconArrowRight width={14} height={14} />
