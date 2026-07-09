@@ -1548,6 +1548,11 @@ ul {
   padding: clamp(20px, 3.5vw, 40px);
 }
 .admin-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
   margin-bottom: 22px;
 }
 .admin-head h1 {
@@ -1557,6 +1562,10 @@ ul {
   color: var(--muted);
   font-size: 0.92rem;
   margin-top: 6px;
+}
+.admin-head__action {
+  padding: 11px 22px;
+  font-size: 0.92rem;
 }
 .admin-stats {
   display: grid;
@@ -1829,6 +1838,55 @@ ul {
   padding: 44px;
   text-align: center;
   color: var(--muted);
+}
+/* 매거진 관리 — 제목 말줄임 + 글 편집 모달 */
+.admin-table td.t-title {
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.admin-editor {
+  position: relative;
+  width: 100%;
+  max-width: 560px;
+  max-height: 92vh;
+  overflow-y: auto;
+  background: var(--paper);
+  border-radius: var(--radius-lg);
+  padding: clamp(24px, 4vw, 36px);
+  box-shadow: var(--shadow-lg);
+  animation: modalIn 0.25s ease;
+}
+.admin-editor h2 {
+  font-size: 1.3rem;
+  margin-bottom: 20px;
+}
+.admin-editor__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.admin-editor__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 8px;
+}
+.admin-editor__actions .cancel {
+  padding: 11px 20px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: #fff;
+  font-weight: 600;
+  color: var(--ink-700);
+}
+.admin-editor__actions .cancel:hover {
+  border-color: var(--ink-300);
+}
+@media (max-width: 720px) {
+  .admin-editor__row {
+    grid-template-columns: 1fr;
+  }
 }
 .admin-pagination {
   display: flex;

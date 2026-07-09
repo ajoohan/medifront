@@ -1,6 +1,16 @@
+import { useState } from 'react'
 import MembersAdmin from './MembersAdmin'
+import MagazineAdmin from './MagazineAdmin'
+
+const VIEWS = [
+  { key: 'members', label: '회원관리', component: MembersAdmin },
+  { key: 'magazine', label: '매거진 관리', component: MagazineAdmin },
+]
 
 export default function AdminDashboard({ onLogout }) {
+  const [view, setView] = useState('members')
+  const Current = VIEWS.find((v) => v.key === view)?.component ?? MembersAdmin
+
   return (
     <div className="admin">
       <aside className="admin__side">
@@ -8,12 +18,17 @@ export default function AdminDashboard({ onLogout }) {
           MEDIFRONT <span>ADMIN</span>
         </div>
         <nav className="admin__nav">
-          <button className="admin__navitem is-active">회원관리</button>
+          {VIEWS.map((v) => (
+            <button
+              key={v.key}
+              className={`admin__navitem ${view === v.key ? 'is-active' : ''}`}
+              onClick={() => setView(v.key)}
+            >
+              {v.label}
+            </button>
+          ))}
           <button className="admin__navitem" disabled>
             상담 관리 <small>준비중</small>
-          </button>
-          <button className="admin__navitem" disabled>
-            매거진 관리 <small>준비중</small>
           </button>
           <button className="admin__navitem" disabled>
             설정 <small>준비중</small>
@@ -25,7 +40,7 @@ export default function AdminDashboard({ onLogout }) {
       </aside>
 
       <main className="admin__main">
-        <MembersAdmin />
+        <Current />
       </main>
     </div>
   )

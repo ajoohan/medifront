@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { MAGAZINE, MAGAZINE_CATEGORIES } from '../data'
+import { MAGAZINE_CATEGORIES } from '../data'
 import { IconArrowRight } from './Icons'
+import { loadArticles } from '../lib/magazineStore'
 
 // 카테고리별 썸네일 그라디언트 (브랜드 청록 계열)
 const THUMB = {
@@ -17,7 +18,10 @@ function formatDate(iso) {
 
 export default function Magazine() {
   const [active, setActive] = useState('전체')
-  const items = active === '전체' ? MAGAZINE : MAGAZINE.filter((a) => a.category === active)
+  // 관리자에서 등록·수정한 글을 반영 (숨김 글 제외)
+  const [articles] = useState(loadArticles)
+  const visible = articles.filter((a) => a.status !== 'hidden')
+  const items = active === '전체' ? visible : visible.filter((a) => a.category === active)
 
   return (
     <section className="section">
@@ -36,7 +40,7 @@ export default function Magazine() {
 
         <div className="magazine__grid">
           {items.map((a) => (
-            <article className="mag-card" key={a.title}>
+            <article className="mag-card" key={a.id ?? a.title}>
               <div className="mag-card__thumb" style={{ background: THUMB[a.category] }}>
                 <span className="mag-card__cat">{a.category}</span>
               </div>
