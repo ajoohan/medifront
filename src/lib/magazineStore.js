@@ -19,6 +19,12 @@ export function loadArticles() {
   return MAGAZINE.map((a, i) => ({ id: i + 1, status: 'visible', ...a }))
 }
 
+// 저장 성공 여부 반환 — 브라우저 저장소 용량 초과(QuotaExceeded) 시 false
 export function saveArticles(list) {
-  localStorage.setItem(KEY, JSON.stringify(list))
+  try {
+    localStorage.setItem(KEY, JSON.stringify(list))
+    return true
+  } catch {
+    return false
+  }
 }

@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import { loadArticles, saveArticles } from '../../lib/magazineStore'
+import { fileToDataUrl } from '../../lib/imageUtils'
 
 const todayStr = () => {
   const d = new Date()
@@ -20,28 +21,6 @@ function parseContent(html) {
     excerpt: text.slice(0, 90),
     read: `${Math.max(1, Math.round(text.length / 500))}분`,
   }
-}
-
-// 이미지 파일 → 리사이즈된 dataURL (localStorage 용량 보호: 최대 폭 1200px, JPEG 85%)
-function fileToDataUrl(file, maxW = 1200) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onerror = reject
-    reader.onload = () => {
-      const img = new Image()
-      img.onerror = reject
-      img.onload = () => {
-        const scale = Math.min(1, maxW / img.width)
-        const canvas = document.createElement('canvas')
-        canvas.width = Math.round(img.width * scale)
-        canvas.height = Math.round(img.height * scale)
-        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height)
-        resolve(canvas.toDataURL('image/jpeg', 0.85))
-      }
-      img.src = reader.result
-    }
-    reader.readAsDataURL(file)
-  })
 }
 
 function extractYoutubeId(url) {
@@ -65,18 +44,18 @@ function MagazineEditor({ article, onSave, onCancel }) {
     document.execCommand(cmd, false, val)
   }
 
+  // 여러 장 동시 등록: 전부 압축(1장당 5MB 미만 보장) 후 한 번에 삽입
   const addImages = async (e) => {
     const files = [...e.target.files]
     e.target.value = ''
     if (!files.length) return
-    bodyRef.current?.focus()
-    for (const f of files) {
-      try {
-        const url = await fileToDataUrl(f)
-        document.execCommand('insertHTML', false, `<img src="${url}" alt="" /><p><br/></p>`)
-      } catch {
-        window.alert('이미지를 불러오지 못했습니다.')
-      }
+    try {
+      const urls = await Promise.all(files.map((f) => fileToDataUrl(f)))
+      bodyRef.current?.focus()
+      const html = urls.map((u) => `<img src="${u}" alt="" /><p><br/></p>`).join('')
+      document.execCommand('insertHTML', false, html)
+    } catch {
+      window.alert('이미지를 불러오지 못했습니다.')
     }
   }
 
@@ -172,7 +151,11 @@ export default function MagazineAdmin() {
 
   const update = (list) => {
     setArticles(list)
-    saveArticles(list)
+    if (!saveArticles(list)) {
+      window.alert(
+        '브라우저 저장 공간이 부족해 저장하지 못했습니다.\n이미지 수를 줄이거나 기존 글을 정리해 주세요. (실서비스 전환 시 서버 저장으로 해결됩니다)',
+      )
+    }
   }
 
   const handleSave = ({ title, content }) => {
