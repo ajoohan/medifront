@@ -22,14 +22,14 @@ export default function Results() {
 
         <div className="results__grid reveal">
           {items.map((r) => (
-            <article className="result-card" key={r.tag + r.who}>
+            <article className="result-card" key={r.tag}>
               <span className="result-card__tag">{r.tag}</span>
               <div className="result-card__metric">
                 {r.metric}
                 <small>{r.unit}</small>
               </div>
               <p>{r.desc}</p>
-              <div className="result-card__who">{r.who}</div>
+              {r.who && <div className="result-card__who">{r.who}</div>}
             </article>
           ))}
         </div>
