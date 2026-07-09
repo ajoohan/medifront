@@ -15,7 +15,7 @@ export default function Services() {
         <div className="section-head center reveal">
           <span className="eyebrow">SERVICES</span>
           <h2>
-            병원 성장에 필요한 모든 것,
+            병∙의원 개원과 성장에 필요한 모든 것,
             <br />
             <span className="accent">하나의 파트너</span>로 끝냅니다
           </h2>
