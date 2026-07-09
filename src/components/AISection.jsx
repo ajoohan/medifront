@@ -1,12 +1,5 @@
 import { AI_FEATURES } from '../data'
-import { IconDatabase, IconPen, IconSearch, IconShield, IconSpark } from './Icons'
-
-const ICONS = {
-  database: IconDatabase,
-  pen: IconPen,
-  search: IconSearch,
-  shield: IconShield,
-}
+import { IconSpark } from './Icons'
 
 export default function AISection() {
   return (
@@ -15,13 +8,13 @@ export default function AISection() {
         <div className="reveal">
           <span className="eyebrow">AI TECHNOLOGY</span>
           <h2 style={{ fontSize: 'clamp(1.7rem, 4vw, 2.5rem)' }}>
-            AI를 <span className="accent">쓰느냐</span>가 아니라,
+            컨설팅을 <span className="accent">쓰느냐</span>가 아니라,
             <br />
-            <span className="accent">어떤 AI를 쓰느냐</span>의 차이
+            <span className="accent">어떤 컨설팅을 쓰느냐</span>의 차이
           </h2>
           <p style={{ marginTop: 18, color: 'var(--blue-300)', fontSize: '1.08rem' }}>
-            메디프론트는 병원 마케팅에 특화된 자체 AI 파이프라인을 운영합니다. 경쟁 분석부터 콘텐츠
-            생성, 의료광고 검수까지 데이터로 자동화하여 더 빠르고 정교한 결과를 만듭니다.
+            메디프론트는 병∙의원 개원∙마케팅에 특화된 노하우를 갖추고 있습니다. 입지분석부터
+            개원절차, 마케팅까지 성과로 증명해보이겠습니다.
           </p>
           <div
             style={{
@@ -38,19 +31,11 @@ export default function AISection() {
           </div>
         </div>
 
-        <div className="ai__features">
-          {AI_FEATURES.map((f) => {
-            const Icon = ICONS[f.icon]
-            return (
-              <article className="ai-feature reveal" key={f.title}>
-                <div className="ico">
-                  <Icon width={26} height={26} />
-                </div>
-                <b>{f.title}</b>
-                <span>{f.desc}</span>
-              </article>
-            )
-          })}
+        {/* 강점 도표 자리표시 — 자료 확정 시 교체 */}
+        <div className="ai__features reveal">
+          {AI_FEATURES.map((_, i) => (
+            <div className="placeholder-box" key={i} />
+          ))}
         </div>
       </div>
     </section>

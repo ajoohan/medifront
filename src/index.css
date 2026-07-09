@@ -653,8 +653,52 @@ ul {
 /* ---------- Results ---------- */
 .results__grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 20px;
+}
+/* 빈 자리표시 박스 (사례·자료 준비 중) */
+.placeholder-box {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  aspect-ratio: 16 / 10;
+}
+/* 성과 사례 페이지 번호 (다크 섹션용) */
+.results__pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin-top: 28px;
+  flex-wrap: wrap;
+}
+.results__pagination button {
+  min-width: 38px;
+  height: 38px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: transparent;
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    color 0.15s;
+}
+.results__pagination button:hover:not(:disabled):not(.is-active) {
+  border-color: var(--teal-400);
+  color: var(--teal-400);
+}
+.results__pagination button.is-active {
+  background: #fff;
+  border-color: #fff;
+  color: var(--navy-800);
+}
+.results__pagination button:disabled {
+  opacity: 0.4;
+  cursor: default;
 }
 .result-card {
   padding: 30px;

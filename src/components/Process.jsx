@@ -7,9 +7,9 @@ export default function Process() {
         <div className="section-head center reveal">
           <span className="eyebrow">HOW WE WORK</span>
           <h2>
-            검증된 <span className="accent">4단계 성장 프로세스</span>
+            검증된 <span className="accent">개원∙성장 프로세스</span>
           </h2>
-          <p>감이 아닌 데이터로, 즉흥이 아닌 시스템으로 병원을 성장시킵니다.</p>
+          <p>감이 아닌 데이터로, 즉흥이 아닌 시스템으로 병∙의원을 개원∙성장시킵니다.</p>
         </div>
 
         <div className="process__grid">
