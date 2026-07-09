@@ -167,12 +167,12 @@ export const AI_FEATURES = [
 ]
 
 export const CATEGORIES = [
-  { name: '동물병원', sub: '월 신환 유입', val: '+340%' },
-  { name: '정형외과', sub: '월 신환 유입', val: '+220%' },
-  { name: '피부과', sub: '월 신환 유입', val: '+275%' },
-  { name: '안과', sub: '월 신환 유입', val: '+310%' },
-  { name: '내과', sub: '월 신환 유입', val: '+185%' },
-  { name: '치과', sub: '월 신환 유입', val: '+180%' },
+  { name: '강동*****의원', sub: '매출(월)', val: '약 3억' },
+  { name: '하남*****의원', sub: '매출(월)', val: '약 4억' },
+  { name: '청라*****의원', sub: '매출(월)', val: '약 3.5억' },
+  { name: '다산*****의원', sub: '매출(월)', val: '약 3억' },
+  { name: '평택*****의원', sub: '매출(월)', val: '약 3.5억' },
+  { name: '검단*****의원', sub: '매출(월)', val: '약 4억' },
 ]
 
 export const FAQ = [

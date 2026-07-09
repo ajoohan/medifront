@@ -9,7 +9,6 @@ export default function Categories() {
           <h2>
             <span className="accent">성과 데이터</span>
           </h2>
-          <p>과목마다 환자 여정과 검색 패턴이 다릅니다. 메디프론트는 과목별 전략으로 접근합니다.</p>
         </div>
 
         <div className="cat__grid">
