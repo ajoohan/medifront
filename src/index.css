@@ -653,7 +653,7 @@ ul {
 /* ---------- Results ---------- */
 .results__grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 20px;
 }
 /* 빈 자리표시 박스 (사례·자료 준비 중) */
