@@ -1,11 +1,11 @@
 import { AI_FEATURES } from '../data'
-import { IconDatabase, IconPen, IconSearch, IconShield, IconSpark } from './Icons'
+import { IconBuilding, IconMegaphone, IconPen, IconSearch, IconSpark } from './Icons'
 
 const ICONS = {
-  database: IconDatabase,
-  pen: IconPen,
   search: IconSearch,
-  shield: IconShield,
+  pen: IconPen,
+  building: IconBuilding,
+  megaphone: IconMegaphone,
 }
 
 export default function AISection() {

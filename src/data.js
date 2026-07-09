@@ -145,20 +145,24 @@ export const PROCESS = [
 
 export const AI_FEATURES = [
   {
-    icon: 'database',
-    title: '경쟁 병원 분석',
-    desc: '상권 내 경쟁 병원의 콘텐츠·키워드를 데이터로 진단',
-  },
-  { icon: 'pen', title: 'AI 콘텐츠 생성', desc: '환자 심리 기반 카피를 사람과 AI가 협업해 제작' },
-  {
     icon: 'search',
-    title: '실시간 SEO·AEO',
-    desc: '검색·AI 답변 최적화로 노출과 유입을 동시에 관리',
+    title: '입지분석',
+    desc: '상권, 인구, 지역인프라 분석 등 개원 입지 분석',
   },
   {
-    icon: 'shield',
-    title: '의료광고 컴플라이언스',
-    desc: '의료법 3단계 필터로 리스크를 사전 차단',
+    icon: 'pen',
+    title: '계약',
+    desc: '법률자문을 바탕으로 메디프론트의 전문팀이 계약관련 업무를 수행',
+  },
+  {
+    icon: 'building',
+    title: '개원절차 실행',
+    desc: '인테리어 및 개원에 필요한 모든 절차를 지원∙실행',
+  },
+  {
+    icon: 'megaphone',
+    title: '운영∙마케팅',
+    desc: '경영컨설팅 제공(운영시스템), 매출의 극대화를 위한 마케팅',
   },
 ]
 
