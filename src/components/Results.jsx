@@ -51,18 +51,6 @@ export default function Results() {
             다음
           </button>
         </nav>
-
-        <p
-          className="reveal"
-          style={{
-            marginTop: 20,
-            textAlign: 'center',
-            fontSize: '0.82rem',
-            color: 'rgba(130,226,213,0.7)',
-          }}
-        >
-          * 위 성과는 이해를 돕기 위한 예시이며, 병원별 상황에 따라 결과는 달라질 수 있습니다.
-        </p>
       </div>
     </section>
   )
