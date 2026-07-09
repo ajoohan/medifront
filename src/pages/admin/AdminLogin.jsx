@@ -12,7 +12,10 @@ export default function AdminLogin({ onLogin }) {
   const submit = (e) => {
     e.preventDefault()
     if (!ADMIN_EMAIL || !ADMIN_PW) {
-      setError('관리자 계정이 설정되지 않았습니다. (.env 의 VITE_ADMIN_* 확인)')
+      const missing = [!ADMIN_EMAIL && 'VITE_ADMIN_EMAIL', !ADMIN_PW && 'VITE_ADMIN_PASSWORD']
+        .filter(Boolean)
+        .join(', ')
+      setError(`관리자 환경변수 누락: ${missing} — Vercel 환경변수 확인 후 재배포하세요.`)
       return
     }
     if (email.trim() === ADMIN_EMAIL && pw === ADMIN_PW) {
