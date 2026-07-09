@@ -7,7 +7,10 @@ export default function PainPoints() {
         <div className="section-head center reveal">
           <span className="eyebrow">WHY MEDIFRONT</span>
           <h2>혹시, 이런 고민을 하고 계신가요?</h2>
-          <p>많은 원장님들이 마케팅에 비용을 쓰면서도 같은 벽에 부딪힙니다.</p>
+          <p>
+            막상 개원을 하려니 입지부터 절차까지 막막합니다. 그리고 개원 후 운영이 차질없이 잘 될지,
+            매출은 잘 나올지 걱정이 됩니다.
+          </p>
         </div>
 
         <div className="pain__grid">
