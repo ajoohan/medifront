@@ -34,7 +34,7 @@ export const HERO_STATS = [
 ]
 
 export const METRICS = [
-  { value: '1,200+', label: '누적 컨설팅 병·의원' },
+  { value: '20+', label: '누적 개원 컨설팅 병·의원' },
   { value: '13년', label: '병원 마케팅 노하우' },
   { value: '98%', label: '연간 재계약률' },
   { value: '4.7배', label: '평균 신환 유입 증가' },
