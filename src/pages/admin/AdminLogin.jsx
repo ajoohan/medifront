@@ -4,7 +4,8 @@ const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL
 const ADMIN_PW = import.meta.env.VITE_ADMIN_PASSWORD
 
 export default function AdminLogin({ onLogin }) {
-  const [email, setEmail] = useState('')
+  // 편의: 설정된 관리자 이메일 자동입력 (비밀번호는 보안상 자동입력 안 함)
+  const [email, setEmail] = useState(ADMIN_EMAIL || '')
   const [pw, setPw] = useState('')
   const [error, setError] = useState('')
 
