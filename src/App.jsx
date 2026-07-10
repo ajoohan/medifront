@@ -6,6 +6,8 @@ import LoginModal from './components/LoginModal'
 import HomePage from './pages/HomePage'
 import MagazinePage from './pages/MagazinePage'
 import ResetPasswordPage from './pages/ResetPasswordPage'
+import TermsPage from './pages/TermsPage'
+import PrivacyPage from './pages/PrivacyPage'
 import AdminPage from './pages/admin/AdminPage'
 import { useUser } from './context/UserContext'
 
@@ -24,6 +26,8 @@ function Shell() {
           <Route path="/" element={<HomePage />} />
           <Route path="/magazine" element={<MagazinePage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/terms" element={<TermsPage />} />
+          <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/admin" element={<AdminPage />} />
         </Routes>
       </main>

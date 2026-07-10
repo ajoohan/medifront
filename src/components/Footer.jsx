@@ -41,6 +41,14 @@ export default function Footer() {
           </div>
         </div>
 
+        <div className="footer__policies">
+          <Link to="/terms">이용약관</Link>
+          <span>·</span>
+          <Link to="/privacy" className="strong">
+            개인정보처리방침
+          </Link>
+        </div>
+
         <div className="footer__legal">
           <div className="biz">
             {BRAND.bizName} · 대표 {BRAND.ceo}

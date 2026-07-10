@@ -2284,6 +2284,55 @@ ul {
   }
 }
 
+/* ---------- 약관/개인정보처리방침 문서 페이지 ---------- */
+.policy {
+  max-width: 860px;
+}
+.policy h2 {
+  font-size: 1.12rem;
+  margin: 34px 0 10px;
+  color: var(--navy-800);
+}
+.policy p,
+.policy li {
+  color: var(--ink-700);
+  font-size: 0.95rem;
+  line-height: 1.85;
+}
+.policy ul {
+  list-style: disc;
+  padding-left: 20px;
+  margin: 8px 0;
+}
+.policy .policy-date {
+  margin-top: 44px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+.consent-link {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  font-weight: 600;
+}
+.footer__policies {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 18px 0 0;
+  font-size: 0.86rem;
+  color: rgba(226, 233, 245, 0.55);
+}
+.footer__policies a:hover {
+  color: var(--blue-300);
+}
+.footer__policies .strong {
+  font-weight: 700;
+  color: rgba(226, 233, 245, 0.85);
+}
+
 /* ---------- Reveal on scroll ---------- */
 .reveal {
   opacity: 0;

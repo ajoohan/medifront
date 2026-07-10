@@ -202,7 +202,11 @@ export default function Contact() {
             <label className="form__consent">
               <input type="checkbox" required checked={form.agree} onChange={update('agree')} />
               <span>
-                개인정보 수집·이용에 동의합니다. 수집된 정보는 상담 목적 외에는 사용되지 않습니다.
+                <a href="/privacy" target="_blank" rel="noreferrer" className="consent-link">
+                  개인정보처리방침
+                </a>
+                에 따른 개인정보 수집·이용에 동의합니다. 수집된 정보는 상담 목적 외에는 사용되지
+                않습니다.
               </span>
             </label>
             <button type="submit" className="btn btn--primary btn--lg" style={{ width: '100%' }}>

@@ -428,7 +428,16 @@ export default function LoginModal({ open, onClose }) {
                   checked={agree}
                   onChange={(e) => setAgree(e.target.checked)}
                 />
-                <span>이용약관 및 개인정보처리방침에 동의합니다.</span>
+                <span>
+                  <a href="/terms" target="_blank" rel="noreferrer" className="consent-link">
+                    이용약관
+                  </a>{' '}
+                  및{' '}
+                  <a href="/privacy" target="_blank" rel="noreferrer" className="consent-link">
+                    개인정보처리방침
+                  </a>
+                  에 동의합니다.
+                </span>
               </label>
 
               <button
