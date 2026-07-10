@@ -87,6 +87,22 @@ export function UserProvider({ children }) {
     return error ? { error: error.message } : { ok: true }
   }, [])
 
+  // ── 비밀번호 재설정 메일 발송 ──
+  const requestPasswordReset = useCallback(async (email) => {
+    if (!isSupabaseConfigured) return { error: 'not-configured' }
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    })
+    return error ? { error: error.message } : { ok: true }
+  }, [])
+
+  // ── 새 비밀번호 설정 (재설정 링크로 들어온 세션에서) ──
+  const updatePassword = useCallback(async (password) => {
+    if (!isSupabaseConfigured) return { error: 'not-configured' }
+    const { error } = await supabase.auth.updateUser({ password })
+    return error ? { error: error.message } : { ok: true }
+  }, [])
+
   const logout = useCallback(async () => {
     if (isSupabaseConfigured) await supabase.auth.signOut()
     localStorage.removeItem(DEMO_KEY)
@@ -110,6 +126,8 @@ export function UserProvider({ children }) {
         signInWithEmail,
         signInWithProvider,
         resendVerification,
+        requestPasswordReset,
+        updatePassword,
       }}
     >
       {children}

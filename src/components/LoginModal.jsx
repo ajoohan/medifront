@@ -54,9 +54,10 @@ export default function LoginModal({ open, onClose }) {
     signInWithEmail,
     signInWithProvider,
     resendVerification,
+    requestPasswordReset,
   } = useUser()
 
-  // mode: 'login' | 'signup' | 'verify'(인증 메일 안내)
+  // mode: 'login' | 'signup' | 'verify'(인증 메일 안내) | 'recover'(아이디/비밀번호 찾기)
   const [mode, setMode] = useState('login')
   const [form, setForm] = useState({ name: '', email: '', password: '', confirm: '' })
   const [agree, setAgree] = useState(false)
@@ -152,23 +153,40 @@ export default function LoginModal({ open, onClose }) {
     setInfo(r.ok ? '인증 메일을 다시 보냈습니다. 메일함을 확인해 주세요.' : tr(r.error))
   }
 
-  // Apple 로그인은 Apple Developer 계정($99/년) 등록 후 true로 변경
-  const ENABLE_APPLE = false
+  const submitRecover = async (e) => {
+    e.preventDefault()
+    setMsg('')
+    setInfo('')
+    setBusy(true)
+    const r = await requestPasswordReset(form.email.trim())
+    setBusy(false)
+    if (r.error) setMsg(tr(r.error))
+    else setInfo('비밀번호 재설정 메일을 보냈습니다. 메일의 링크에서 새 비밀번호를 설정하세요.')
+  }
 
-  const socialButtons = (
+  // 소셜 로그인: 각 제공자 설정 완료 후 true로 변경
+  // - Google: Supabase > Authentication > Providers 에 Google Cloud OAuth ID/Secret 등록 후
+  // - Apple: Apple Developer 계정($99/년) 등록 후
+  const ENABLE_GOOGLE = false
+  const ENABLE_APPLE = false
+  const hasSocial = ENABLE_GOOGLE || ENABLE_APPLE
+
+  const socialButtons = hasSocial && (
     <>
       <div className="login-modal__divider">
         <span>또는</span>
       </div>
       <div className="auth-social">
-        <button
-          type="button"
-          className="auth-social__btn auth-social__btn--google"
-          onClick={() => social('google')}
-        >
-          <GoogleIcon />
-          Google로 계속하기
-        </button>
+        {ENABLE_GOOGLE && (
+          <button
+            type="button"
+            className="auth-social__btn auth-social__btn--google"
+            onClick={() => social('google')}
+          >
+            <GoogleIcon />
+            Google로 계속하기
+          </button>
+        )}
         {ENABLE_APPLE && (
           <button
             type="button"
@@ -260,7 +278,44 @@ export default function LoginModal({ open, onClose }) {
                 회원가입
               </button>
               <span>·</span>
-              <button type="button">비밀번호 찾기</button>
+              <button type="button" onClick={() => switchMode('recover')}>
+                아이디/비밀번호 찾기
+              </button>
+            </div>
+          </>
+        )}
+
+        {/* ── 아이디/비밀번호 찾기 ── */}
+        {mode === 'recover' && (
+          <>
+            <div className="auth-notice" style={{ textAlign: 'left' }}>
+              💡 <b>아이디 안내</b>: 아이디는 가입 시 사용한 <b>이메일 주소</b>입니다. 자주 쓰는
+              이메일로 로그인해 보세요.
+            </div>
+            <form onSubmit={submitRecover}>
+              <div className="field login-modal__pw">
+                <label>가입 이메일</label>
+                <input
+                  type="email"
+                  placeholder="you@example.com"
+                  value={form.email}
+                  onChange={set('email')}
+                  required
+                />
+              </div>
+              <button
+                type="submit"
+                className="btn btn--primary btn--lg"
+                style={{ width: '100%' }}
+                disabled={busy}
+              >
+                {busy ? '발송 중...' : '비밀번호 재설정 메일 발송'}
+              </button>
+            </form>
+            <div className="login-modal__links">
+              <button type="button" className="auth-strong" onClick={() => switchMode('login')}>
+                로그인으로 돌아가기
+              </button>
             </div>
           </>
         )}
