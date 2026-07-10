@@ -10,7 +10,8 @@ import { useUser } from './context/UserContext'
 
 function Shell() {
   const { pathname } = useLocation()
-  const isAdmin = pathname.startsWith('/admin')
+  // 대소문자 무관 판정 (/ADMIN 등으로 접속해도 헤더/푸터 숨김)
+  const isAdmin = pathname.toLowerCase().startsWith('/admin')
   const { loginOpen, closeLogin } = useUser()
 
   return (
