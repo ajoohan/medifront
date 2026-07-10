@@ -152,6 +152,9 @@ export default function LoginModal({ open, onClose }) {
     setInfo(r.ok ? '인증 메일을 다시 보냈습니다. 메일함을 확인해 주세요.' : tr(r.error))
   }
 
+  // Apple 로그인은 Apple Developer 계정($99/년) 등록 후 true로 변경
+  const ENABLE_APPLE = false
+
   const socialButtons = (
     <>
       <div className="login-modal__divider">
@@ -166,14 +169,16 @@ export default function LoginModal({ open, onClose }) {
           <GoogleIcon />
           Google로 계속하기
         </button>
-        <button
-          type="button"
-          className="auth-social__btn auth-social__btn--apple"
-          onClick={() => social('apple')}
-        >
-          <AppleIcon />
-          Apple로 계속하기
-        </button>
+        {ENABLE_APPLE && (
+          <button
+            type="button"
+            className="auth-social__btn auth-social__btn--apple"
+            onClick={() => social('apple')}
+          >
+            <AppleIcon />
+            Apple로 계속하기
+          </button>
+        )}
       </div>
     </>
   )
