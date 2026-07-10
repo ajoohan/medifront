@@ -46,14 +46,14 @@ export function UserProvider({ children }) {
     setUser(u)
   }, [])
 
-  // ── 이메일 회원가입 (인증 메일 발송) ──
-  const signUpWithEmail = useCallback(async ({ name, email, password }) => {
+  // ── 이메일 회원가입 (인증 메일 발송) — 표시 이름은 이메일 앞부분을 자동 사용 ──
+  const signUpWithEmail = useCallback(async ({ email, password }) => {
     if (!isSupabaseConfigured) return { error: 'not-configured' }
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: { name, grade: '일반' },
+        data: { grade: '일반' },
         emailRedirectTo: window.location.origin,
       },
     })

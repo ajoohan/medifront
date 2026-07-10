@@ -59,8 +59,7 @@ export default function LoginModal({ open, onClose }) {
 
   // mode: 'login' | 'signup' | 'verify'(인증 메일 안내) | 'recover'(아이디/비밀번호 찾기)
   const [mode, setMode] = useState('login')
-  const [form, setForm] = useState({ name: '', email: '', password: '', confirm: '' })
-  const [agree, setAgree] = useState(false)
+  const [form, setForm] = useState({ email: '', password: '', confirm: '' })
   const [grade, setGrade] = useState('일반') // 데모 모드 전용
   const [msg, setMsg] = useState('')
   const [info, setInfo] = useState('')
@@ -69,8 +68,7 @@ export default function LoginModal({ open, onClose }) {
   useEffect(() => {
     if (open) {
       setMode('login')
-      setForm({ name: '', email: '', password: '', confirm: '' })
-      setAgree(false)
+      setForm({ email: '', password: '', confirm: '' })
       setMsg('')
       setInfo('')
     }
@@ -127,7 +125,6 @@ export default function LoginModal({ open, onClose }) {
     }
     setBusy(true)
     const r = await signUpWithEmail({
-      name: form.name.trim(),
       email: form.email.trim(),
       password: form.password,
     })
@@ -328,16 +325,6 @@ export default function LoginModal({ open, onClose }) {
             )}
             <form onSubmit={submitSignup}>
               <div className="field">
-                <label>이름</label>
-                <input
-                  type="text"
-                  placeholder="홍길동"
-                  value={form.name}
-                  onChange={set('name')}
-                  required
-                />
-              </div>
-              <div className="field">
                 <label>이메일</label>
                 <input
                   type="email"
@@ -368,16 +355,6 @@ export default function LoginModal({ open, onClose }) {
                   required
                 />
               </div>
-
-              <label className="form__consent" style={{ margin: '0 0 16px' }}>
-                <input
-                  type="checkbox"
-                  required
-                  checked={agree}
-                  onChange={(e) => setAgree(e.target.checked)}
-                />
-                <span>이용약관 및 개인정보처리방침에 동의합니다.</span>
-              </label>
 
               <button
                 type="submit"
