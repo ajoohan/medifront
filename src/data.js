@@ -35,7 +35,7 @@ export const HERO_STATS = [
 
 export const METRICS = [
   { value: '20+', label: '누적 개원 컨설팅 병·의원' },
-  { value: '10년', label: '개원 후 운영 노하우' },
+  { value: '10년', label: '컨설팅 경력' },
   { value: '0%', label: '폐업률' },
   { value: '3억원 이상', label: '월 평균 매출' },
 ]
