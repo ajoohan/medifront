@@ -1080,6 +1080,123 @@ ul {
 .login-modal__links span {
   color: var(--line);
 }
+.login-modal__note {
+  text-align: center;
+  color: var(--ink-300);
+  font-size: 0.76rem;
+  margin-top: 18px;
+}
+/* ── 인증(로그인/회원가입) 공통 ── */
+.login-modal__divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0 14px;
+  color: var(--ink-300);
+  font-size: 0.8rem;
+}
+.login-modal__divider::before,
+.login-modal__divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+.auth-social {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.auth-social__btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 13px 0;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  transition:
+    filter 0.15s,
+    background 0.15s;
+}
+.auth-social__btn--google {
+  background: #fff;
+  border: 1px solid var(--line);
+  color: #3c4043;
+}
+.auth-social__btn--google:hover {
+  background: var(--paper-soft);
+}
+.auth-social__btn--apple {
+  background: #000;
+  color: #fff;
+}
+.auth-social__btn--apple:hover {
+  filter: brightness(1.25);
+}
+.auth-error {
+  background: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
+  font-size: 0.85rem;
+  padding: 10px 14px;
+  border-radius: 8px;
+  margin-bottom: 14px;
+  text-align: center;
+}
+.auth-info {
+  background: rgba(16, 166, 150, 0.1);
+  color: #0f766e;
+  font-size: 0.85rem;
+  padding: 10px 14px;
+  border-radius: 8px;
+  margin-bottom: 14px;
+  text-align: center;
+}
+.auth-notice {
+  background: rgba(244, 183, 64, 0.14);
+  color: #92600a;
+  font-size: 0.83rem;
+  padding: 10px 14px;
+  border-radius: 8px;
+  margin-bottom: 14px;
+  text-align: center;
+}
+.auth-strong {
+  color: var(--primary) !important;
+  font-weight: 700 !important;
+}
+/* 인증 메일 안내 화면 */
+.auth-verify {
+  text-align: center;
+  padding: 6px 0 4px;
+}
+.auth-verify__icon {
+  font-size: 2.6rem;
+  margin-bottom: 10px;
+}
+.auth-verify h3 {
+  font-size: 1.2rem;
+  margin-bottom: 12px;
+}
+.auth-verify p {
+  color: var(--muted);
+  font-size: 0.92rem;
+  line-height: 1.7;
+}
+.auth-verify__hint {
+  margin-top: 8px;
+  font-size: 0.82rem !important;
+  color: var(--ink-300) !important;
+}
+.auth-verify__actions {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+}
 @keyframes overlayIn {
   from {
     opacity: 0;
