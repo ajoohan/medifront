@@ -58,8 +58,10 @@ export default function LoginModal({ open, onClose }) {
   } = useUser()
 
   // mode: 'login' | 'signup' | 'verify'(인증 메일 안내) | 'recover'(아이디/비밀번호 찾기)
+  // mode 추가: 'signup2' = 가입 2단계(이름·휴대폰·약관 동의)
   const [mode, setMode] = useState('login')
-  const [form, setForm] = useState({ email: '', password: '', confirm: '' })
+  const [form, setForm] = useState({ email: '', password: '', confirm: '', name: '', phone: '' })
+  const [agree, setAgree] = useState(false)
   const [grade, setGrade] = useState('일반') // 데모 모드 전용
   const [msg, setMsg] = useState('')
   const [info, setInfo] = useState('')
@@ -68,7 +70,8 @@ export default function LoginModal({ open, onClose }) {
   useEffect(() => {
     if (open) {
       setMode('login')
-      setForm({ email: '', password: '', confirm: '' })
+      setForm({ email: '', password: '', confirm: '', name: '', phone: '' })
+      setAgree(false)
       setMsg('')
       setInfo('')
     }
@@ -112,13 +115,21 @@ export default function LoginModal({ open, onClose }) {
     else onClose()
   }
 
-  const submitSignup = async (e) => {
+  // 가입 1단계: 이메일/비밀번호 검증 후 2단계로 이동 (서버 호출 없음)
+  const submitSignup = (e) => {
     e.preventDefault()
     setMsg('')
     if (form.password !== form.confirm) {
       setMsg('비밀번호가 일치하지 않습니다.')
       return
     }
+    switchMode('signup2')
+  }
+
+  // 가입 2단계: 이름/휴대폰/약관 동의 수집 후 실제 가입 (인증 메일 발송)
+  const submitSignup2 = async (e) => {
+    e.preventDefault()
+    setMsg('')
     if (!authReady) {
       setMsg(tr('not-configured'))
       return
@@ -127,6 +138,8 @@ export default function LoginModal({ open, onClose }) {
     const r = await signUpWithEmail({
       email: form.email.trim(),
       password: form.password,
+      name: form.name.trim(),
+      phone: form.phone.trim(),
     })
     setBusy(false)
     if (r.error) setMsg(tr(r.error))
@@ -362,7 +375,7 @@ export default function LoginModal({ open, onClose }) {
                 style={{ width: '100%' }}
                 disabled={busy}
               >
-                {busy ? '가입 중...' : '이메일로 가입하기'}
+                이메일로 가입하기
               </button>
             </form>
 
@@ -372,6 +385,64 @@ export default function LoginModal({ open, onClose }) {
               <span>이미 계정이 있으신가요?</span>
               <button type="button" className="auth-strong" onClick={() => switchMode('login')}>
                 로그인
+              </button>
+            </div>
+          </>
+        )}
+
+        {/* ── 회원가입 2단계: 이름·휴대폰번호·약관 동의 ── */}
+        {mode === 'signup2' && (
+          <>
+            <div
+              className="auth-notice"
+              style={{ background: 'var(--paper-blue)', color: 'var(--ink-700)' }}
+            >
+              마지막 단계입니다 (2/2) — 가입자 정보를 입력해 주세요.
+            </div>
+            <form onSubmit={submitSignup2}>
+              <div className="field">
+                <label>이름</label>
+                <input
+                  type="text"
+                  placeholder="홍길동"
+                  value={form.name}
+                  onChange={set('name')}
+                  required
+                />
+              </div>
+              <div className="field login-modal__pw">
+                <label>휴대폰번호</label>
+                <input
+                  type="tel"
+                  placeholder="010-0000-0000"
+                  value={form.phone}
+                  onChange={set('phone')}
+                  required
+                />
+              </div>
+
+              <label className="form__consent" style={{ margin: '0 0 16px' }}>
+                <input
+                  type="checkbox"
+                  required
+                  checked={agree}
+                  onChange={(e) => setAgree(e.target.checked)}
+                />
+                <span>이용약관 및 개인정보처리방침에 동의합니다.</span>
+              </label>
+
+              <button
+                type="submit"
+                className="btn btn--primary btn--lg"
+                style={{ width: '100%' }}
+                disabled={busy}
+              >
+                {busy ? '가입 중...' : '가입 완료'}
+              </button>
+            </form>
+            <div className="login-modal__links">
+              <button type="button" onClick={() => switchMode('signup')}>
+                ← 이전 단계로
               </button>
             </div>
           </>
