@@ -37,7 +37,7 @@ export const METRICS = [
   { value: '20+', label: '누적 개원 컨설팅 병·의원' },
   { value: '10년', label: '컨설팅 경력' },
   { value: '0%', label: '폐업률' },
-  { value: '3억원 이상', label: '월 평균 매출' },
+  { value: '3억-8억원', label: '월 매출' },
 ]
 
 export const SERVICES = [
@@ -110,7 +110,7 @@ export const PAINS = [
   {
     q: 'Q1',
     title: '수많은 개원 절차를 어떻게 ?',
-    desc: '입지부터 개설등록, 인테리어, HR컨설팅등 개원에 필요한 모든 것을 함께 합니다.',
+    desc: '입지부터 개설등록, 인테리어, HR컨설팅 등 개원에 필요한 모든 것을 함께 합니다.',
   },
   {
     q: 'Q2',
