@@ -293,42 +293,17 @@ ul {
   gap: 11px;
 }
 
-/* ---------- Logo (MEDIFRONT wordmark) ---------- */
-.logo {
-  display: inline-flex;
-  flex-direction: column;
-  line-height: 0.9;
-  font-weight: 900;
-  letter-spacing: -0.02em;
-  font-size: 1.4rem; /* 기본 크기 — className으로 조정 */
-  user-select: none;
+/* ---------- Logo (MEDIFRONT 공식 이미지) ---------- */
+.logo-img {
+  display: block;
+  height: 24px;
+  width: auto;
 }
-.logo--light {
-  color: #fff;
+.footer .logo-img {
+  height: 22px;
 }
-.logo--dark {
-  color: #1b1b1b;
-}
-.logo__row {
-  display: inline-flex;
-  align-items: center;
-}
-.logo__row--2 {
-  /* 공식 로고: FRONT는 얇은 웨이트 + 넓은 자간 */
-  font-weight: 300;
-  letter-spacing: 0.24em;
-  padding-left: 0.02em;
-}
-.logo__cross {
-  display: inline-flex;
-  width: 0.82em;
-  height: 0.82em;
-  margin: 0 0.02em;
-  color: var(--logo-teal);
-  transform: translateY(-0.02em);
-}
-.logo--lg {
-  font-size: 1.9rem;
+.login-modal__logo .logo-img {
+  height: 24px;
 }
 .nav {
   display: flex;
