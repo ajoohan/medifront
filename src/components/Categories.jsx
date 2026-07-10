@@ -1,4 +1,4 @@
-import { CATEGORIES, SPECIALTIES } from '../data'
+import { CATEGORIES, PARTNER_CLINICS } from '../data'
 
 export default function Categories() {
   return (
@@ -7,7 +7,7 @@ export default function Categories() {
         <div className="section-head center reveal">
           <span className="eyebrow">BY SPECIALTY</span>
           <h2>
-            <span className="accent">성과 데이터</span>
+            메디프론트의 <span className="accent">성과데이터</span>
           </h2>
         </div>
 
@@ -33,7 +33,7 @@ export default function Categories() {
             justifyContent: 'center',
           }}
         >
-          {SPECIALTIES.map((s) => (
+          {PARTNER_CLINICS.map((s) => (
             <span
               key={s}
               style={{
