@@ -314,7 +314,9 @@ ul {
   align-items: center;
 }
 .logo__row--2 {
-  letter-spacing: 0.16em;
+  /* 공식 로고: FRONT는 얇은 웨이트 + 넓은 자간 */
+  font-weight: 300;
+  letter-spacing: 0.24em;
   padding-left: 0.02em;
 }
 .logo__cross {

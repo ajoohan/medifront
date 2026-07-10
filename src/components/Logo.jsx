@@ -5,10 +5,11 @@
 // 크로스(+)는 항상 브랜드 틸 컬러.
 
 function Cross() {
+  // 공식 로고의 크로스: 우하단만 라운드 처리된 플러스 (파비콘과 동일 형태)
   return (
     <span className="logo__cross" aria-hidden="true">
-      <svg viewBox="0 0 32 32" fill="currentColor" width="100%" height="100%">
-        <path d="M13 2.5h6A1.8 1.8 0 0 1 20.8 4.3V11.2H27.7A1.8 1.8 0 0 1 29.5 13v6a1.8 1.8 0 0 1-1.8 1.8H20.8V27.7A1.8 1.8 0 0 1 19 29.5h-6a1.8 1.8 0 0 1-1.8-1.8V20.8H4.3A1.8 1.8 0 0 1 2.5 19v-6A1.8 1.8 0 0 1 4.3 11.2H11.2V4.3A1.8 1.8 0 0 1 13 2.5Z" />
+      <svg viewBox="0 0 512 512" fill="currentColor" width="100%" height="100%">
+        <path d="M216 106 H298 V216 H404 V298 H298 V342 A82 82 0 0 1 216 424 V298 H106 V216 H216 Z" />
       </svg>
     </span>
   )
