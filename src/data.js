@@ -25,6 +25,7 @@ export const NAV = [
   { label: '프로세스', href: '#process' },
   { label: '자주 묻는 질문', href: '#faq' },
   { label: '매거진', to: '/magazine', highlight: true },
+  { label: 'AI채팅 키즈', to: '/kids-chat' },
 ]
 
 export const HERO_STATS = [

@@ -35,6 +35,13 @@ export default [
       'no-unused-vars': ['warn', { varsIgnorePattern: '^[A-Z_]' }],
     },
   },
+  // Vercel 서버리스 함수(api/) — Node 환경
+  {
+    files: ['api/**/*.js'],
+    languageOptions: {
+      globals: { ...globals.node },
+    },
+  },
   // Prettier와 충돌하는 포매팅 규칙 비활성화 (반드시 마지막)
   prettier,
 ]
