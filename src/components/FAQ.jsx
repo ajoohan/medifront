@@ -24,7 +24,7 @@ export default function FAQ() {
         <div className="section-head center reveal">
           <span className="eyebrow">FAQ</span>
           <h2>자주 묻는 질문</h2>
-          <p>궁금한 점이 남아 있다면 무료 상담에서 자세히 답변드립니다.</p>
+          <p>더 궁금한 점은 아래 1:1 문의하기를 이용해주세요.</p>
         </div>
 
         <div className="faq reveal">
