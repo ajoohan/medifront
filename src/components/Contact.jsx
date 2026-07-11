@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { BRAND, SPECIALTIES, REGIONS } from '../data'
 import { IconPhone, IconMail, IconClock, IconCheck } from './Icons'
 import { useUser } from '../context/UserContext'
+import { formatPhone } from '../lib/phone'
 
 const initial = {
   name: '',
@@ -163,10 +164,11 @@ export default function Contact() {
                 </label>
                 <input
                   type="tel"
+                  inputMode="numeric"
                   required
                   placeholder="010-0000-0000"
                   value={form.phone}
-                  onChange={update('phone')}
+                  onChange={(e) => setForm((f) => ({ ...f, phone: formatPhone(e.target.value) }))}
                 />
               </div>
             </div>

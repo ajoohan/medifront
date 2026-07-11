@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import { loadConsults, saveConsults } from '../../lib/consultStore'
 import { fileToDataUrl, MAX_IMAGE_BYTES } from '../../lib/imageUtils'
 import { SPECIALTIES, REGIONS } from '../../data'
+import { formatPhone } from '../../lib/phone'
 
 // 개원희망시기 옵션 — 오늘이 속한 분기부터 향후 12개 분기(3년)
 const QUARTERS = (() => {
@@ -193,9 +194,12 @@ function ConsultEditor({ consult, onSave, onCancel }) {
             <span>연락처</span>
             <input
               type="tel"
+              inputMode="numeric"
               placeholder="010-0000-0000"
               value={draft.doctorPhone}
-              onChange={setD('doctorPhone')}
+              onChange={(e) =>
+                setDraft((d) => ({ ...d, doctorPhone: formatPhone(e.target.value) }))
+              }
             />
           </label>
           <label className="admin-add__field">

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { loadOperators, saveOperators } from '../../lib/operatorStore'
 import { supabase, isSupabaseConfigured } from '../../lib/supabase'
+import { formatPhone } from '../../lib/phone'
 
 // 운영자 등급: 마스터(전체 권한) / 매니저
 const OPERATOR_GRADES = ['마스터', '매니저']
@@ -141,9 +142,10 @@ export default function SettingsAdmin() {
               <span>전화번호</span>
               <input
                 type="tel"
+                inputMode="numeric"
                 placeholder="010-0000-0000"
                 value={draft.phone}
-                onChange={setD('phone')}
+                onChange={(e) => setDraft((d) => ({ ...d, phone: formatPhone(e.target.value) }))}
               />
             </label>
             <label className="admin-add__field">

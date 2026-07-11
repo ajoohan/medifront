@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import Logo from './Logo'
 import { useUser } from '../context/UserContext'
+import { formatPhone } from '../lib/phone'
 
 // 회원유형 — 가입 2단계에서 선택 (매거진은 의사 회원 전용)
 const MEMBER_TYPES = [
@@ -470,9 +471,10 @@ export default function LoginModal({ open, onClose }) {
                 <label>휴대폰번호</label>
                 <input
                   type="tel"
+                  inputMode="numeric"
                   placeholder="010-0000-0000"
                   value={form.phone}
-                  onChange={set('phone')}
+                  onChange={(e) => setForm((f) => ({ ...f, phone: formatPhone(e.target.value) }))}
                   required
                 />
               </div>

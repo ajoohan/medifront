@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { MOCK_MEMBERS } from '../../mock/members'
+import { formatPhone } from '../../lib/phone'
 
 const PAGE_SIZE = 20
 
@@ -198,9 +199,10 @@ export default function MembersAdmin() {
               <span>연락처</span>
               <input
                 type="tel"
+                inputMode="numeric"
                 placeholder="010-0000-0000"
                 value={draft.phone}
-                onChange={setD('phone')}
+                onChange={(e) => setDraft((d) => ({ ...d, phone: formatPhone(e.target.value) }))}
               />
             </label>
             <label className="admin-add__field">
