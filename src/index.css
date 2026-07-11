@@ -1724,6 +1724,8 @@ ul {
   font-size: 1.15rem;
   letter-spacing: -0.02em;
   padding: 0 8px 20px;
+  color: inherit;
+  text-align: left;
 }
 .admin__brand span {
   color: var(--teal-400);

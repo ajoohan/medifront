@@ -26,9 +26,13 @@ export default function AdminDashboard({ onLogout }) {
   return (
     <div className="admin">
       <aside className="admin__side">
-        <div className="admin__brand">
+        <button
+          className="admin__brand"
+          onClick={() => setView('members')}
+          aria-label="관리자 메인으로"
+        >
           MEDIFRONT <span>ADMIN</span>
-        </div>
+        </button>
         <nav className="admin__nav">
           {VIEWS.map((v) => (
             <button
