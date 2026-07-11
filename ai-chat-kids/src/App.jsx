@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 
-// AI채팅 키즈 — 어린이 눈높이 건강 챗봇 '메디'
+// AI채팅 키즈 — 어린이 건강 친구 '메디'
 const GREETING =
   '안녕! 나는 메디야 🐻 몸과 건강에 대해 궁금한 게 있으면 뭐든지 물어봐! 아프면 꼭 어른에게 말해야 하는 거, 알지?'
 
@@ -48,7 +48,7 @@ function offlineReply(text) {
   return found ? found.reply : OFFLINE_DEFAULT
 }
 
-export default function KidsChatPage() {
+export default function App() {
   const [messages, setMessages] = useState([{ role: 'assistant', content: GREETING }])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
@@ -107,74 +107,76 @@ export default function KidsChatPage() {
   }
 
   return (
-    <div className="kids-chat">
-      <section className="kids-chat__hero">
-        <div className="container">
-          <span className="kids-chat__badge">AI CHAT · KIDS</span>
-          <h1>
-            AI채팅 <span className="kids-chat__accent">키즈</span> 🐻
-          </h1>
-          <p>
-            어린이 건강 친구 <b>메디</b>에게 몸과 건강에 대해 무엇이든 물어보세요!
-            {offline && <span className="kids-chat__offline"> (지금은 연습 모드예요)</span>}
-          </p>
+    <div className="app">
+      <header className="app__header">
+        <div className="app__title">
+          <span className="app__logo" aria-hidden>
+            🐻
+          </span>
+          <div>
+            <h1>
+              AI채팅 <span className="app__accent">키즈</span>
+            </h1>
+            <p>
+              어린이 건강 친구 <b>메디</b>
+              {offline && <span className="app__offline"> · 연습 모드</span>}
+            </p>
+          </div>
         </div>
-      </section>
+      </header>
 
-      <section className="container kids-chat__body">
-        <div className="kids-chat__window">
-          <div className="kids-chat__messages" ref={scrollRef}>
-            {messages.map((m, i) => (
-              <div key={i} className={`kids-bubble kids-bubble--${m.role}`}>
-                {m.role === 'assistant' && (
-                  <span className="kids-bubble__avatar" aria-hidden>
-                    🐻
-                  </span>
-                )}
-                <p>{m.content}</p>
-              </div>
-            ))}
-            {loading && (
-              <div className="kids-bubble kids-bubble--assistant">
-                <span className="kids-bubble__avatar" aria-hidden>
+      <main className="chat">
+        <div className="chat__messages" ref={scrollRef}>
+          {messages.map((m, i) => (
+            <div key={i} className={`bubble bubble--${m.role}`}>
+              {m.role === 'assistant' && (
+                <span className="bubble__avatar" aria-hidden>
                   🐻
                 </span>
-                <p className="kids-typing" aria-label="메디가 생각하는 중">
-                  <span />
-                  <span />
-                  <span />
-                </p>
-              </div>
-            )}
-          </div>
-
-          <div className="kids-chat__chips">
-            {QUICK_QUESTIONS.map((q) => (
-              <button key={q} type="button" onClick={() => send(q)} disabled={loading}>
-                {q}
-              </button>
-            ))}
-          </div>
-
-          <form className="kids-chat__form" onSubmit={onSubmit}>
-            <input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="메디에게 궁금한 걸 물어보세요!"
-              maxLength={500}
-              aria-label="메디에게 보낼 질문"
-            />
-            <button type="submit" disabled={loading || !input.trim()}>
-              보내기 🚀
-            </button>
-          </form>
+              )}
+              <p>{m.content}</p>
+            </div>
+          ))}
+          {loading && (
+            <div className="bubble bubble--assistant">
+              <span className="bubble__avatar" aria-hidden>
+                🐻
+              </span>
+              <p className="typing" aria-label="메디가 생각하는 중">
+                <span />
+                <span />
+                <span />
+              </p>
+            </div>
+          )}
         </div>
 
-        <p className="kids-chat__notice">
-          메디는 AI 친구라서 의사 선생님을 대신할 수 없어요. 아프면 꼭 어른에게 말하고 병원에
-          가세요! 많이 아플 땐 어른과 함께 <b>119</b>에 전화해요. 🚑
-        </p>
-      </section>
+        <div className="chat__chips">
+          {QUICK_QUESTIONS.map((q) => (
+            <button key={q} type="button" onClick={() => send(q)} disabled={loading}>
+              {q}
+            </button>
+          ))}
+        </div>
+
+        <form className="chat__form" onSubmit={onSubmit}>
+          <input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="메디에게 궁금한 걸 물어보세요!"
+            maxLength={500}
+            aria-label="메디에게 보낼 질문"
+          />
+          <button type="submit" disabled={loading || !input.trim()}>
+            보내기 🚀
+          </button>
+        </form>
+      </main>
+
+      <footer className="app__notice">
+        메디는 AI 친구라서 의사 선생님을 대신할 수 없어요. 아프면 꼭 어른에게 말하고 병원에 가세요!
+        많이 아플 땐 어른과 함께 <b>119</b>에 전화해요. 🚑
+      </footer>
     </div>
   )
 }

@@ -7,7 +7,8 @@ import prettier from 'eslint-config-prettier'
 
 // Flat config (ESLint 9) — Vite + React (JavaScript)
 export default [
-  { ignores: ['dist/**', 'node_modules/**'] },
+  // ai-chat-kids/ 는 별개 프로젝트 (자체 설정 사용)
+  { ignores: ['dist/**', 'node_modules/**', 'ai-chat-kids/**'] },
   js.configs.recommended,
   {
     files: ['**/*.{js,jsx}'],
@@ -33,13 +34,6 @@ export default [
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
       // 대문자/상수 형태의 미사용 변수는 허용(데이터 상수 등)
       'no-unused-vars': ['warn', { varsIgnorePattern: '^[A-Z_]' }],
-    },
-  },
-  // Vercel 서버리스 함수(api/) — Node 환경
-  {
-    files: ['api/**/*.js'],
-    languageOptions: {
-      globals: { ...globals.node },
     },
   },
   // Prettier와 충돌하는 포매팅 규칙 비활성화 (반드시 마지막)

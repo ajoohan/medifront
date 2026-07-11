@@ -1,0 +1,21 @@
+{
+  "name": "ai-chat-kids",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "AI채팅 키즈 — 어린이 건강 친구 '메디' 챗봇",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.111.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "vite": "^5.4.11"
+  }
+}

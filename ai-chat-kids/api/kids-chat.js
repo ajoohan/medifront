@@ -4,7 +4,7 @@ import Anthropic from '@anthropic-ai/sdk'
 
 const MODEL = process.env.ANTHROPIC_MODEL || 'claude-opus-4-8'
 
-const SYSTEM_PROMPT = `너는 '메디'야. 메디프론트의 어린이 건강 친구 AI 챗봇이란다.
+const SYSTEM_PROMPT = `너는 '메디'야. 'AI채팅 키즈'의 어린이 건강 친구 AI 챗봇이란다.
 대화 상대는 유치원생~초등학생 어린이야.
 
 말하기 규칙:
