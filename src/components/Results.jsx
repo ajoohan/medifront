@@ -15,7 +15,9 @@ export default function Results() {
         <div className="section-head center reveal">
           <span className="eyebrow">SUCCESS STORIES</span>
           <h2>
-            <span className="accent">폐업률 0%</span>가 증명하는 성공 개원의 결과
+            <span className="accent">폐업률 0%</span>가 증명하는
+            <br />
+            성공 개원의 결과
           </h2>
           <p>진료과목을 가리지 않고, 데이터로 관리한 병원은 다르게 성장합니다.</p>
         </div>
