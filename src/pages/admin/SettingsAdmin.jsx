@@ -1,7 +1,13 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { loadOperators, saveOperators } from '../../lib/operatorStore'
 import { supabase, isSupabaseConfigured } from '../../lib/supabase'
 import { formatPhone } from '../../lib/phone'
+import {
+  fetchOperatorsDb,
+  insertOperatorDb,
+  updateOperatorDb,
+  deleteOperatorDb,
+} from '../../lib/operatorsDb'
 
 // 운영자 등급: 마스터(전체 권한) / 매니저
 const OPERATOR_GRADES = ['마스터', '매니저']
@@ -26,17 +32,46 @@ async function sendOperatorMail({ email, name }) {
 }
 
 export default function SettingsAdmin() {
-  const [operators, setOperators] = useState(loadOperators)
+  const [operators, setOperators] = useState([])
+  const [dbReady, setDbReady] = useState(false) // operators 테이블 사용 가능 여부
+  const [checked, setChecked] = useState(false)
   const [adding, setAdding] = useState(false)
   const [draft, setDraft] = useState(EMPTY_DRAFT)
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState(null) // { type: 'ok' | 'warn', text }
 
+  // DB 로드 — 테이블 미생성 시 브라우저 저장 폴백.
+  // DB가 비어 있고 브라우저 저장분이 있으면 1회 자동 이전한다.
+  useEffect(() => {
+    fetchOperatorsDb().then(async (list) => {
+      if (list) {
+        setDbReady(true)
+        const local = loadOperators()
+        if (list.length === 0 && local.length > 0) {
+          const uploaded = []
+          let allOk = true
+          for (const op of local) {
+            const r = await insertOperatorDb(op)
+            if (r.ok) uploaded.push(r.operator)
+            else allOk = false
+          }
+          if (allOk) saveOperators([])
+          setOperators(uploaded)
+        } else {
+          setOperators(list)
+        }
+      } else {
+        setOperators(loadOperators())
+      }
+      setChecked(true)
+    })
+  }, [])
+
   const setD = (key) => (e) => setDraft((d) => ({ ...d, [key]: e.target.value }))
 
   const persist = (next) => {
     setOperators(next)
-    saveOperators(next)
+    if (!dbReady) saveOperators(next)
   }
 
   const addOperator = async (e) => {
@@ -46,7 +81,7 @@ export default function SettingsAdmin() {
       window.alert('이미 등록된 이메일입니다.')
       return
     }
-    const newOp = {
+    let newOp = {
       id: Math.max(0, ...operators.map((o) => o.id)) + 1,
       name: draft.name.trim(),
       email,
@@ -56,6 +91,15 @@ export default function SettingsAdmin() {
     }
     setBusy(true)
     const mail = await sendOperatorMail(newOp)
+    if (dbReady) {
+      const res = await insertOperatorDb({ ...newOp, createdAt: undefined })
+      if (res.ok) newOp = res.operator
+      else {
+        setBusy(false)
+        setNotice({ type: 'warn', text: `운영자 DB 저장 실패: ${res.error}` })
+        return
+      }
+    }
     setBusy(false)
 
     persist([newOp, ...operators])
@@ -78,12 +122,14 @@ export default function SettingsAdmin() {
 
   const changeGrade = (id, grade) => {
     persist(operators.map((o) => (o.id === id ? { ...o, grade } : o)))
+    if (dbReady) updateOperatorDb(id, { grade })
   }
 
   const removeOperator = (id) => {
     const target = operators.find((o) => o.id === id)
     if (window.confirm(`'${target?.name}' 운영자를 삭제하시겠습니까?`)) {
       persist(operators.filter((o) => o.id !== id))
+      if (dbReady) deleteOperatorDb(id)
     }
   }
 
@@ -101,6 +147,13 @@ export default function SettingsAdmin() {
           {adding ? '추가 취소' : '+ 운영자 추가'}
         </button>
       </div>
+
+      {checked && !dbReady && (
+        <div className="admin-notice admin-notice--warn">
+          운영자 DB 테이블(operators)이 아직 없어 이 브라우저에만 저장됩니다. supabase/setup-3.sql
+          을 Supabase SQL Editor에서 실행해 주세요.
+        </div>
+      )}
 
       {notice && (
         <div className={`admin-notice admin-notice--${notice.type}`}>

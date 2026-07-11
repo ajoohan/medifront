@@ -4,6 +4,12 @@ import { fileToDataUrl, MAX_IMAGE_BYTES } from '../../lib/imageUtils'
 import { SPECIALTIES, REGIONS } from '../../data'
 import { formatPhone } from '../../lib/phone'
 import { fetchAllInquiries, answerInquiry, deleteInquiry } from '../../lib/inquiriesDb'
+import {
+  fetchConsultsDb,
+  insertConsultDb,
+  updateConsultDb,
+  deleteConsultDb,
+} from '../../lib/consultsDb'
 
 // 개원희망시기 옵션 — 오늘이 속한 분기부터 향후 12개 분기(3년)
 const QUARTERS = (() => {
@@ -289,24 +295,64 @@ function ConsultEditor({ consult, onSave, onCancel }) {
 // 상담 관리 > 대면 상담 — 회의록 목록
 // ─────────────────────────────────────────────────────────
 export default function ConsultMeetingAdmin() {
-  const [consults, setConsults] = useState(loadConsults)
+  const [consults, setConsults] = useState([])
+  const [dbReady, setDbReady] = useState(false) // consults 테이블 사용 가능 여부
+  const [checked, setChecked] = useState(false)
   // writing: null | { mode: 'new' } | { mode: 'edit', consult }
   const [writing, setWriting] = useState(null)
 
+  // DB 로드 — 테이블 미생성 시 브라우저 저장 폴백.
+  // DB가 비어 있고 브라우저 저장분이 있으면 1회 자동 이전한다.
+  useEffect(() => {
+    fetchConsultsDb().then(async (list) => {
+      if (list) {
+        setDbReady(true)
+        const local = loadConsults()
+        if (list.length === 0 && local.length > 0) {
+          const uploaded = []
+          let allOk = true
+          for (const c of local) {
+            const r = await insertConsultDb(c)
+            if (r.ok) uploaded.push(r.consult)
+            else allOk = false
+          }
+          if (allOk) saveConsults([]) // 이전 완료 → 브라우저 저장 비움
+          setConsults(uploaded)
+        } else {
+          setConsults(list)
+        }
+      } else {
+        setConsults(loadConsults())
+      }
+      setChecked(true)
+    })
+  }, [])
+
   const update = (list) => {
     setConsults(list)
-    if (!saveConsults(list)) {
+    if (!dbReady && !saveConsults(list)) {
       window.alert(
-        '브라우저 저장 공간이 부족해 저장하지 못했습니다.\n첨부 이미지·파일 수를 줄여 주세요. (실서비스 전환 시 서버 저장으로 해결됩니다)',
+        '브라우저 저장 공간이 부족해 저장하지 못했습니다.\n첨부 이미지·파일 수를 줄여 주세요.',
       )
     }
   }
 
-  const handleSave = ({ fields, content }) => {
+  const handleSave = async ({ fields, content }) => {
     if (writing.mode === 'new') {
-      update([{ id: Date.now(), fields, content }, ...consults])
+      if (dbReady) {
+        const res = await insertConsultDb({ fields, content })
+        if (res.ok) {
+          update([res.consult, ...consults])
+        } else {
+          window.alert(`상담 기록 저장 실패: ${res.error}`)
+          return
+        }
+      } else {
+        update([{ id: Date.now(), fields, content }, ...consults])
+      }
     } else {
       update(consults.map((c) => (c.id === writing.consult.id ? { ...c, fields, content } : c)))
+      if (dbReady) updateConsultDb(writing.consult.id, { fields, content })
     }
     setWriting(null)
   }
@@ -315,6 +361,7 @@ export default function ConsultMeetingAdmin() {
     const target = consults.find((c) => c.id === id)
     if (window.confirm(`'${target?.fields.doctorName}' 원장 상담 기록을 삭제하시겠습니까?`)) {
       update(consults.filter((c) => c.id !== id))
+      if (dbReady) deleteConsultDb(id)
     }
   }
 
@@ -342,6 +389,13 @@ export default function ConsultMeetingAdmin() {
           + 상담 기록 작성
         </button>
       </div>
+
+      {checked && !dbReady && (
+        <div className="admin-notice admin-notice--warn">
+          상담 기록 DB 테이블(consults)이 아직 없어 이 브라우저에만 저장됩니다. supabase/setup-3.sql
+          을 Supabase SQL Editor에서 실행해 주세요.
+        </div>
+      )}
 
       <div className="admin-table-wrap">
         <table className="admin-table">
