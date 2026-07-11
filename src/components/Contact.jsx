@@ -55,8 +55,8 @@ export default function Contact() {
           <span className="price-tag">지금 무료</span>
           <h2>개원 컨설팅·마케팅 정밀 진단 리포트</h2>
           <p>
-            현재 노출 상태, 경쟁 병원 키워드 비교, 개선 우선순위, 성장 시뮬레이션까지. 우리 병원의
-            성장 가능성을 데이터로 확인해 보세요.
+            성공적인 개원을 위한 입지분석, 개원방법, 인테리어, 운영, 마케팅까지 각 분야의 전문가의
+            컨설팅을 받아보세요.
           </p>
           <div className="cta__actions">
             <a href="#contact-form" className="btn btn--light btn--lg">

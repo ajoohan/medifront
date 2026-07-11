@@ -18,6 +18,9 @@ function formatDate(iso) {
   return `${y}.${m}.${d}`
 }
 
+// 수동 추가 폼 초기값
+const EMPTY_DRAFT = { name: '', email: '', phone: '', hospital: '', specialty: '', grade: '일반' }
+
 export default function MembersAdmin() {
   const [members, setMembers] = useState(MOCK_MEMBERS)
   const [queryInput, setQueryInput] = useState('')
@@ -27,6 +30,8 @@ export default function MembersAdmin() {
   const [selected, setSelected] = useState(() => new Set())
   const [bulkGrade, setBulkGrade] = useState('일반')
   const [page, setPage] = useState(1)
+  const [adding, setAdding] = useState(false)
+  const [draft, setDraft] = useState(EMPTY_DRAFT)
 
   const filtered = useMemo(() => {
     const keyword = q.trim()
@@ -79,6 +84,38 @@ export default function MembersAdmin() {
     setMembers((ms) => ms.map((m) => (m.id === id ? { ...m, grade } : m)))
   }
 
+  // ── 회원 수동 추가 ──
+  const setD = (key) => (e) => setDraft((d) => ({ ...d, [key]: e.target.value }))
+
+  const addMember = (e) => {
+    e.preventDefault()
+    const email = draft.email.trim()
+    if (members.some((m) => m.email === email)) {
+      window.alert('이미 등록된 이메일입니다.')
+      return
+    }
+    const newMember = {
+      id: Math.max(0, ...members.map((m) => m.id)) + 1,
+      name: draft.name.trim(),
+      email,
+      phone: draft.phone.trim() || '-',
+      hospital: draft.hospital.trim() || '-',
+      specialty: draft.specialty.trim() || '-',
+      grade: draft.grade,
+      joinedAt: new Date().toISOString().slice(0, 10),
+      status: 'active',
+    }
+    setMembers((ms) => [newMember, ...ms])
+    // 새 회원이 바로 보이도록 검색/필터 초기화 후 첫 페이지로
+    setQueryInput('')
+    setQ('')
+    setFilter('all')
+    setGradeFilter('전체')
+    setPage(1)
+    setDraft(EMPTY_DRAFT)
+    setAdding(false)
+  }
+
   // 체크박스 선택 / 등급 일괄 변경
   const filteredIds = filtered.map((m) => m.id)
   const allSelected = filteredIds.length > 0 && filteredIds.every((id) => selected.has(id))
@@ -122,7 +159,96 @@ export default function MembersAdmin() {
           <h1>회원관리</h1>
           <p>가입 회원을 조회하고 상태를 관리합니다.</p>
         </div>
+        <button
+          className="btn btn--primary admin-head__action"
+          onClick={() => setAdding((a) => !a)}
+        >
+          {adding ? '추가 취소' : '+ 회원 추가'}
+        </button>
       </div>
+
+      {adding && (
+        <form className="admin-add" onSubmit={addMember}>
+          <div className="admin-add__grid">
+            <label className="admin-add__field">
+              <span>
+                이름 <b className="req">*</b>
+              </span>
+              <input
+                type="text"
+                required
+                placeholder="홍길동"
+                value={draft.name}
+                onChange={setD('name')}
+              />
+            </label>
+            <label className="admin-add__field">
+              <span>
+                이메일 <b className="req">*</b>
+              </span>
+              <input
+                type="email"
+                required
+                placeholder="user@example.com"
+                value={draft.email}
+                onChange={setD('email')}
+              />
+            </label>
+            <label className="admin-add__field">
+              <span>연락처</span>
+              <input
+                type="tel"
+                placeholder="010-0000-0000"
+                value={draft.phone}
+                onChange={setD('phone')}
+              />
+            </label>
+            <label className="admin-add__field">
+              <span>병원명</span>
+              <input
+                type="text"
+                placeholder="OO의원"
+                value={draft.hospital}
+                onChange={setD('hospital')}
+              />
+            </label>
+            <label className="admin-add__field">
+              <span>진료과목</span>
+              <input
+                type="text"
+                placeholder="내과"
+                value={draft.specialty}
+                onChange={setD('specialty')}
+              />
+            </label>
+            <label className="admin-add__field">
+              <span>회원유형</span>
+              <select value={draft.grade} onChange={setD('grade')}>
+                {GRADES.map((g) => (
+                  <option key={g} value={g}>
+                    {g}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <div className="admin-add__actions">
+            <button type="submit" className="btn btn--primary">
+              회원 추가
+            </button>
+            <button
+              type="button"
+              className="btn admin-add__cancel"
+              onClick={() => {
+                setDraft(EMPTY_DRAFT)
+                setAdding(false)
+              }}
+            >
+              취소
+            </button>
+          </div>
+        </form>
+      )}
 
       <div className="admin-stats">
         <div className="admin-stat">

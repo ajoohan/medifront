@@ -1891,6 +1891,64 @@ ul {
   outline: none;
   border-color: var(--primary);
 }
+/* 회원 수동 추가 폼 */
+.admin-add {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 18px;
+  margin-bottom: 16px;
+}
+.admin-add__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.admin-add__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--ink-700);
+}
+.admin-add__field .req {
+  color: #dc2626;
+}
+.admin-add__field input,
+.admin-add__field select {
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  font-family: inherit;
+  font-size: 0.92rem;
+  color: var(--text);
+}
+.admin-add__field input:focus,
+.admin-add__field select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(16, 166, 150, 0.15);
+}
+.admin-add__actions {
+  display: flex;
+  gap: 8px;
+}
+.admin-add__cancel {
+  background: #fff;
+  color: var(--ink-700);
+  border: 1px solid var(--line);
+}
+.admin-add__cancel:hover {
+  background: #f1f5f4;
+}
+@media (max-width: 860px) {
+  .admin-add__grid {
+    grid-template-columns: 1fr;
+  }
+}
 /* 회원유형 인라인 셀렉트 (의사/병원/일반) */
 .grade-select {
   padding: 5px 10px;
