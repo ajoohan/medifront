@@ -2242,6 +2242,24 @@ ul {
   align-items: flex-end;
   margin-top: 12px;
 }
+/* 관리자 섹션 제목 (대면 상담: 신청 접수 / 상담 기록) */
+.admin-section-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 12px;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--ink-900);
+}
+.admin-section-title__count {
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(217, 119, 6, 0.12);
+  color: #b45309;
+  font-size: 0.74rem;
+  font-weight: 700;
+}
 /* 회원 목록 행 클릭 → 상세 */
 .admin-row-clickable {
   cursor: pointer;

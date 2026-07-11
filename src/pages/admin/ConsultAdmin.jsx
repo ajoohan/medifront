@@ -299,8 +299,18 @@ export default function ConsultMeetingAdmin() {
   const [consults, setConsults] = useState([])
   const [dbReady, setDbReady] = useState(false) // consults 테이블 사용 가능 여부
   const [checked, setChecked] = useState(false)
-  // writing: null | { mode: 'new' } | { mode: 'edit', consult }
+  // writing: null | { mode: 'new', fromRequest?, prefill? } | { mode: 'edit', consult }
   const [writing, setWriting] = useState(null)
+  // 상담 신청 접수 (consult_requests)
+  const [requests, setRequests] = useState([])
+  const [reqAvailable, setReqAvailable] = useState(true)
+
+  useEffect(() => {
+    fetchRequests().then((rows) => {
+      if (rows === null) setReqAvailable(false)
+      else setRequests(rows)
+    })
+  }, [])
 
   // DB 로드 — 테이블 미생성 시 브라우저 저장 폴백.
   // DB가 비어 있고 브라우저 저장분이 있으면 1회 자동 이전한다.
@@ -351,11 +361,49 @@ export default function ConsultMeetingAdmin() {
       } else {
         update([{ id: Date.now(), fields, content }, ...consults])
       }
+      // 상담 신청에서 작성한 기록이면 해당 신청을 처리완료로 전환
+      if (writing.fromRequest) {
+        const reqId = writing.fromRequest.id
+        setRequests((ls) => ls.map((q) => (q.id === reqId ? { ...q, status: 'done' } : q)))
+        updateRequestStatus(reqId, 'done')
+      }
     } else {
       update(consults.map((c) => (c.id === writing.consult.id ? { ...c, fields, content } : c)))
       if (dbReady) updateConsultDb(writing.consult.id, { fields, content })
     }
     setWriting(null)
+  }
+
+  // 접수된 신청 → 상담 기록 작성 (신청자 정보 자동 입력)
+  const writeFromRequest = (q) => {
+    const clean = (v) => (v && v !== '-' ? v : '')
+    setWriting({
+      mode: 'new',
+      fromRequest: q,
+      prefill: {
+        fields: {
+          ...EMPTY_DRAFT,
+          doctorName: q.name,
+          doctorPhone: clean(q.phone),
+          specialty: clean(q.specialty),
+          region: clean(q.openingRegion),
+          period: clean(q.openingPeriod),
+        },
+        content: q.message ? `<p><b>신청 시 문의 내용</b><br/>${q.message}</p><p><br/></p>` : '',
+      },
+    })
+  }
+
+  const toggleRequestStatus = (q) => {
+    const next = q.status === 'done' ? 'new' : 'done'
+    setRequests((ls) => ls.map((it) => (it.id === q.id ? { ...it, status: next } : it)))
+    updateRequestStatus(q.id, next)
+  }
+
+  const removeRequest = (q) => {
+    if (!window.confirm(`'${q.name}' 님의 상담 신청을 삭제하시겠습니까?`)) return
+    setRequests((ls) => ls.filter((it) => it.id !== q.id))
+    deleteRequest(q.id)
   }
 
   const removeConsult = (id) => {
@@ -369,19 +417,21 @@ export default function ConsultMeetingAdmin() {
   if (writing) {
     return (
       <ConsultEditor
-        consult={writing.mode === 'edit' ? writing.consult : null}
+        consult={writing.mode === 'edit' ? writing.consult : writing.prefill || null}
         onSave={handleSave}
         onCancel={() => setWriting(null)}
       />
     )
   }
 
+  const newCount = requests.filter((q) => q.status === 'new').length
+
   return (
     <>
       <div className="admin-head">
         <div>
           <h1>대면 상담</h1>
-          <p>원장님과의 대면 상담 내용을 회의록으로 기록합니다.</p>
+          <p>접수된 상담 신청을 확인하고, 진행한 상담을 회의록으로 기록합니다.</p>
         </div>
         <button
           className="btn btn--primary admin-head__action"
@@ -397,6 +447,80 @@ export default function ConsultMeetingAdmin() {
           을 Supabase SQL Editor에서 실행해 주세요.
         </div>
       )}
+
+      {/* ── 상담 신청 접수 ── */}
+      <h3 className="admin-section-title">
+        상담 신청 접수
+        {reqAvailable && newCount > 0 && (
+          <span className="admin-section-title__count">신규 {newCount}</span>
+        )}
+      </h3>
+
+      {!reqAvailable ? (
+        <div className="admin-notice admin-notice--warn">
+          상담 신청 테이블(consult_requests)이 아직 없습니다. supabase/setup-4.sql 을 Supabase SQL
+          Editor에서 실행해 주세요.
+        </div>
+      ) : (
+        <div className="admin-table-wrap" style={{ marginBottom: 28 }}>
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>접수일</th>
+                <th>성함</th>
+                <th>연락처</th>
+                <th>전공과목</th>
+                <th>개원희망시기</th>
+                <th>개원희망지역</th>
+                <th>문의 내용</th>
+                <th>상태</th>
+                <th>관리</th>
+              </tr>
+            </thead>
+            <tbody>
+              {requests.map((q) => (
+                <tr key={q.id}>
+                  <td>{formatLogTime(q.createdAt)}</td>
+                  <td>
+                    <span className="m-name">{q.name}</span>
+                  </td>
+                  <td>{q.phone}</td>
+                  <td>{q.specialty}</td>
+                  <td>{q.openingPeriod}</td>
+                  <td>{q.openingRegion}</td>
+                  <td title={q.message}>
+                    {q.message ? q.message.slice(0, 20) + (q.message.length > 20 ? '…' : '') : '-'}
+                  </td>
+                  <td>
+                    <span
+                      className={`iq-badge ${q.status === 'done' ? 'iq-badge--answered' : 'iq-badge--open'}`}
+                    >
+                      {q.status === 'done' ? '처리완료' : '신규'}
+                    </span>
+                  </td>
+                  <td>
+                    <div className="admin-actions">
+                      <button className="activate" onClick={() => writeFromRequest(q)}>
+                        상담 기록 작성
+                      </button>
+                      <button onClick={() => toggleRequestStatus(q)}>
+                        {q.status === 'done' ? '신규로' : '처리완료'}
+                      </button>
+                      <button className="danger" onClick={() => removeRequest(q)}>
+                        삭제
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {requests.length === 0 && <div className="admin-empty">접수된 상담 신청이 없습니다.</div>}
+        </div>
+      )}
+
+      {/* ── 상담 기록 (회의록) ── */}
+      <h3 className="admin-section-title">상담 기록</h3>
 
       <div className="admin-table-wrap">
         <table className="admin-table">
@@ -570,128 +694,6 @@ export function ConsultDirectAdmin() {
               ))}
             </ul>
           )}
-        </>
-      )}
-    </>
-  )
-}
-
-// ─────────────────────────────────────────────────────────
-// 상담 관리 > 상담 신청 — 메인 페이지 상담 신청 폼 접수 목록
-// ─────────────────────────────────────────────────────────
-export function ConsultRequestsAdmin() {
-  const [items, setItems] = useState([])
-  const [available, setAvailable] = useState(true) // consult_requests 테이블 사용 가능 여부
-
-  useEffect(() => {
-    fetchRequests().then((rows) => {
-      if (rows === null) setAvailable(false)
-      else setItems(rows)
-    })
-  }, [])
-
-  const toggleStatus = (q) => {
-    const next = q.status === 'done' ? 'new' : 'done'
-    setItems((ls) => ls.map((it) => (it.id === q.id ? { ...it, status: next } : it)))
-    updateRequestStatus(q.id, next)
-  }
-
-  const remove = (q) => {
-    if (!window.confirm(`'${q.name}' 님의 상담 신청을 삭제하시겠습니까?`)) return
-    setItems((ls) => ls.filter((it) => it.id !== q.id))
-    deleteRequest(q.id)
-  }
-
-  const newCount = items.filter((q) => q.status === 'new').length
-
-  return (
-    <>
-      <div className="admin-head">
-        <div>
-          <h1>상담 신청</h1>
-          <p>메인 페이지 상담 신청 폼으로 접수된 내역입니다.</p>
-        </div>
-      </div>
-
-      {!available ? (
-        <div className="admin-notice admin-notice--warn">
-          상담 신청 테이블(consult_requests)이 아직 없습니다. supabase/setup-4.sql 을 Supabase SQL
-          Editor에서 실행해 주세요.
-        </div>
-      ) : (
-        <>
-          <div className="admin-stats">
-            <div className="admin-stat">
-              <b>{items.length}</b>
-              <span>전체 접수</span>
-            </div>
-            <div className="admin-stat">
-              <b>{newCount}</b>
-              <span>신규</span>
-            </div>
-            <div className="admin-stat">
-              <b>{items.length - newCount}</b>
-              <span>처리 완료</span>
-            </div>
-          </div>
-
-          <div className="admin-table-wrap">
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th>접수일</th>
-                  <th>성함</th>
-                  <th>연락처</th>
-                  <th>전공과목</th>
-                  <th>개원희망시기</th>
-                  <th>개원희망지역</th>
-                  <th>문의 내용</th>
-                  <th>상태</th>
-                  <th>관리</th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((q) => (
-                  <tr key={q.id}>
-                    <td>{formatLogTime(q.createdAt)}</td>
-                    <td>
-                      <span className="m-name">{q.name}</span>
-                    </td>
-                    <td>{q.phone}</td>
-                    <td>{q.specialty}</td>
-                    <td>{q.openingPeriod}</td>
-                    <td>{q.openingRegion}</td>
-                    <td className="request-message" title={q.message}>
-                      {q.message
-                        ? q.message.slice(0, 30) + (q.message.length > 30 ? '…' : '')
-                        : '-'}
-                    </td>
-                    <td>
-                      <span
-                        className={`iq-badge ${q.status === 'done' ? 'iq-badge--answered' : 'iq-badge--open'}`}
-                      >
-                        {q.status === 'done' ? '처리완료' : '신규'}
-                      </span>
-                    </td>
-                    <td>
-                      <div className="admin-actions">
-                        <button
-                          className={q.status === 'done' ? undefined : 'activate'}
-                          onClick={() => toggleStatus(q)}
-                        >
-                          {q.status === 'done' ? '신규로' : '처리완료'}
-                        </button>
-                        <button className="danger" onClick={() => remove(q)}>
-                          삭제
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {items.length === 0 && <div className="admin-empty">접수된 상담 신청이 없습니다.</div>}
-          </div>
         </>
       )}
     </>
