@@ -3,6 +3,7 @@ import Header from './components/Header'
 import Footer from './components/Footer'
 import ScrollToTop from './components/ScrollToTop'
 import LoginModal from './components/LoginModal'
+import FloatingInquiry from './components/FloatingInquiry'
 import HomePage from './pages/HomePage'
 import MagazinePage from './pages/MagazinePage'
 import MagazineDetailPage from './pages/MagazineDetailPage'
@@ -34,6 +35,7 @@ function Shell() {
         </Routes>
       </main>
       {!isAdmin && <Footer />}
+      {!isAdmin && <FloatingInquiry />}
       <LoginModal open={loginOpen} onClose={closeLogin} />
     </>
   )

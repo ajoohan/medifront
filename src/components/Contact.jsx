@@ -1,9 +1,7 @@
 import { useState } from 'react'
 import { BRAND, SPECIALTIES, REGIONS } from '../data'
 import { IconPhone, IconMail, IconClock, IconCheck } from './Icons'
-import { useUser } from '../context/UserContext'
 import { formatPhone } from '../lib/phone'
-import InquiryModal from './InquiryModal'
 import { insertRequest } from '../lib/requestsDb'
 
 const initial = {
@@ -36,25 +34,10 @@ const QUARTERS = (() => {
 export default function Contact() {
   const [form, setForm] = useState(initial)
   const [sent, setSent] = useState(false)
-  const { user, openLogin } = useUser()
-  const [gateMsg, setGateMsg] = useState('')
-  const [inquiryOpen, setInquiryOpen] = useState(false)
 
   const update = (key) => (e) => {
     const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value
     setForm((f) => ({ ...f, [key]: value }))
-  }
-
-  // 1:1 상담하기 — 로그인 회원 전용 비공개 문의 게시판 (비로그인 시 안내 후 로그인 창)
-  const onDirectConsult = () => {
-    if (!user) {
-      setGateMsg('로그인 후 가능합니다')
-      setTimeout(() => setGateMsg(''), 4000)
-      openLogin('로그인 후 가능합니다')
-      return
-    }
-    setGateMsg('')
-    setInquiryOpen(true)
   }
 
   const [submitting, setSubmitting] = useState(false)
@@ -80,7 +63,6 @@ export default function Contact() {
 
   return (
     <section className="section cta" id="contact">
-      <InquiryModal open={inquiryOpen} onClose={() => setInquiryOpen(false)} />
       <div className="container">
         {/* 상단 무료 진단 CTA */}
         <div className="cta__box reveal" style={{ marginBottom: 48 }}>
@@ -139,18 +121,6 @@ export default function Contact() {
                 </div>
               </li>
             </ul>
-
-            <div className="direct-consult">
-              <button
-                type="button"
-                className="btn btn--lg direct-consult__btn"
-                onClick={onDirectConsult}
-              >
-                1:1 상담하기
-              </button>
-              {gateMsg && <p className="direct-consult__msg">{gateMsg}</p>}
-              <span className="direct-consult__hint">※ 무료 회원 가입 후 이용 가능합니다</span>
-            </div>
           </div>
 
           <form className="form reveal" onSubmit={onSubmit}>

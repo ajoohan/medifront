@@ -1,0 +1,40 @@
+import { useState } from 'react'
+import { useUser } from '../context/UserContext'
+import InquiryModal from './InquiryModal'
+
+// 화면에 떠다니는 1:1 문의하기 버튼 (로그인 회원 전용)
+// 비로그인 시 안내 후 로그인 창을 띄운다.
+export default function FloatingInquiry() {
+  const { user, openLogin } = useUser()
+  const [open, setOpen] = useState(false)
+  const [toast, setToast] = useState(false)
+
+  const onClick = () => {
+    if (!user) {
+      setToast(true)
+      setTimeout(() => setToast(false), 3000)
+      openLogin('로그인 후 가능합니다')
+      return
+    }
+    setOpen(true)
+  }
+
+  return (
+    <>
+      <button className="floating-inquiry" onClick={onClick} aria-label="1:1 문의하기">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path
+            d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5Z"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+        <span>1:1 문의</span>
+      </button>
+      {toast && <div className="floating-inquiry__toast">로그인 후 가능합니다</div>}
+      <InquiryModal open={open} onClose={() => setOpen(false)} />
+    </>
+  )
+}
