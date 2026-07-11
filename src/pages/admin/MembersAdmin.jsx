@@ -2,16 +2,17 @@ import { useEffect, useMemo, useState } from 'react'
 import { MOCK_MEMBERS } from '../../mock/members'
 import { formatPhone } from '../../lib/phone'
 import { supabase, isSupabaseConfigured } from '../../lib/supabase'
+import { fetchMembers, upsertMember, updateMemberDb, deleteMemberDb } from '../../lib/membersDb'
 
 // 수동 추가 회원의 기본 비밀번호 (첫 로그인 후 아이디/비밀번호 찾기로 변경 안내)
 const DEFAULT_PASSWORD = 'medifront2026'
 
 // 수동 추가 회원의 실제 로그인 계정 생성 (인증 메일 자동 발송)
-async function createLoginAccount({ email, name, phone, grade }) {
+async function createLoginAccount({ email, name, phone, grade, password }) {
   if (!isSupabaseConfigured) return { error: 'not-configured' }
   const { data, error } = await supabase.auth.signUp({
     email,
-    password: DEFAULT_PASSWORD,
+    password: password || DEFAULT_PASSWORD,
     options: {
       data: { name, phone, grade },
       emailRedirectTo: window.location.origin,
@@ -40,8 +41,16 @@ function formatDate(iso) {
   return `${y}.${m}.${d}`
 }
 
-// 수동 추가 폼 초기값
-const EMPTY_DRAFT = { name: '', email: '', phone: '', hospital: '', specialty: '', grade: '일반' }
+// 수동 추가 폼 초기값 — password 미입력 시 기본 비밀번호(medifront2026) 사용
+const EMPTY_DRAFT = {
+  name: '',
+  email: '',
+  phone: '',
+  hospital: '',
+  specialty: '',
+  grade: '일반',
+  password: '',
+}
 
 export default function MembersAdmin() {
   const [members, setMembers] = useState(MOCK_MEMBERS)
@@ -56,6 +65,22 @@ export default function MembersAdmin() {
   const [draft, setDraft] = useState(EMPTY_DRAFT)
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState(null) // { type: 'ok' | 'warn', text }
+  const [dbReady, setDbReady] = useState(false) // members 테이블 사용 가능 여부
+
+  // DB(members 테이블)에서 실목록 로드 — 테이블 미생성 시 목업 폴백
+  useEffect(() => {
+    fetchMembers().then((list) => {
+      if (list) {
+        setMembers(list)
+        setDbReady(true)
+      } else if (isSupabaseConfigured) {
+        setNotice({
+          type: 'warn',
+          text: '회원 DB 테이블(members)이 아직 없어 임시 목록을 표시합니다. supabase/members-setup.sql 을 Supabase SQL Editor에서 실행하면 실데이터로 전환됩니다.',
+        })
+      }
+    })
+  }, [])
 
   const filtered = useMemo(() => {
     const keyword = q.trim()
@@ -85,11 +110,10 @@ export default function MembersAdmin() {
   const suspendedCount = members.length - activeCount
 
   const toggleStatus = (id) => {
-    setMembers((ms) =>
-      ms.map((m) =>
-        m.id === id ? { ...m, status: m.status === 'active' ? 'suspended' : 'active' } : m,
-      ),
-    )
+    const target = members.find((m) => m.id === id)
+    const next = target?.status === 'active' ? 'suspended' : 'active'
+    setMembers((ms) => ms.map((m) => (m.id === id ? { ...m, status: next } : m)))
+    if (dbReady) updateMemberDb(id, { status: next })
   }
 
   const removeMember = (id) => {
@@ -101,11 +125,13 @@ export default function MembersAdmin() {
         next.delete(id)
         return next
       })
+      if (dbReady) deleteMemberDb(id)
     }
   }
 
   const changeGrade = (id, grade) => {
     setMembers((ms) => ms.map((m) => (m.id === id ? { ...m, grade } : m)))
+    if (dbReady) updateMemberDb(id, { grade })
   }
 
   // ── 회원 수동 추가 ──
@@ -130,14 +156,23 @@ export default function MembersAdmin() {
       status: 'active',
     }
 
-    // 실제 로그인 계정 생성 — 기본 비밀번호 medifront2026
+    // 실제 로그인 계정 생성 — 비밀번호 미입력 시 기본 비밀번호 사용
+    const password = draft.password.trim()
     setBusy(true)
-    const account = await createLoginAccount(newMember)
+    const account = await createLoginAccount({ ...newMember, password })
+    // DB 저장 — 가입 트리거가 먼저 넣은 행이 있으면 병합 (병원/진료과목 등 보강)
+    let savedMember = null
+    if (dbReady) {
+      const res = await upsertMember(newMember)
+      if (res.ok) savedMember = res.member
+    }
     setBusy(false)
     if (account.ok) {
       setNotice({
         type: 'ok',
-        text: `회원 등록 완료 — ${email} 계정이 생성되었습니다. 기본 비밀번호는 ${DEFAULT_PASSWORD} 이며, 인증 메일 확인 후 로그인할 수 있습니다.`,
+        text: `회원 등록 완료 — ${email} 계정이 생성되었습니다. 비밀번호는 ${
+          password ? '입력하신 비밀번호' : `기본 비밀번호(${DEFAULT_PASSWORD})`
+        }이며, 인증 메일 확인 후 로그인할 수 있습니다.`,
       })
     } else if (account.error === 'already-registered') {
       setNotice({
@@ -156,7 +191,7 @@ export default function MembersAdmin() {
       })
     }
 
-    setMembers((ms) => [newMember, ...ms])
+    setMembers((ms) => [savedMember || newMember, ...ms])
     // 새 회원이 바로 보이도록 검색/필터 초기화 후 첫 페이지로
     setQueryInput('')
     setQ('')
@@ -192,6 +227,7 @@ export default function MembersAdmin() {
 
   const applyBulkGrade = () => {
     setMembers((ms) => ms.map((m) => (selected.has(m.id) ? { ...m, grade: bulkGrade } : m)))
+    if (dbReady) [...selected].forEach((id) => updateMemberDb(id, { grade: bulkGrade }))
     setSelected(new Set())
   }
 
@@ -291,6 +327,17 @@ export default function MembersAdmin() {
                   </option>
                 ))}
               </select>
+            </label>
+            <label className="admin-add__field">
+              <span>비밀번호</span>
+              <input
+                type="password"
+                minLength={6}
+                autoComplete="new-password"
+                placeholder={`미입력 시 ${DEFAULT_PASSWORD}`}
+                value={draft.password}
+                onChange={setD('password')}
+              />
             </label>
           </div>
           <div className="admin-add__actions">

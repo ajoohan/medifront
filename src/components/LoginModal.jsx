@@ -2,6 +2,10 @@ import { useEffect, useState } from 'react'
 import Logo from './Logo'
 import { useUser } from '../context/UserContext'
 import { formatPhone } from '../lib/phone'
+import { isSupabaseMisconfigured } from '../lib/supabase'
+
+const MISCONFIG_MSG =
+  '인증 서버 설정 오류로 로그인할 수 없습니다. 관리자에게 문의해 주세요. (환경변수 손상)'
 
 // 회원유형 — 가입 2단계에서 선택 (매거진은 의사 회원 전용)
 const MEMBER_TYPES = [
@@ -128,6 +132,10 @@ export default function LoginModal({ open, onClose }) {
     e.preventDefault()
     setMsg('')
     if (!authReady) {
+      if (isSupabaseMisconfigured) {
+        setMsg(MISCONFIG_MSG)
+        return
+      }
       // 데모 모드: 선택한 등급으로 로그인
       demoLogin({ name: form.email.trim() || '데모 회원', grade })
       onClose()
@@ -293,7 +301,7 @@ export default function LoginModal({ open, onClose }) {
                 <span>자동 로그인</span>
               </label>
 
-              {!authReady && (
+              {!authReady && !isSupabaseMisconfigured && (
                 <div className="field login-modal__pw">
                   <label>
                     회원유형 <span className="login-modal__demo">데모</span>
@@ -546,7 +554,11 @@ export default function LoginModal({ open, onClose }) {
         )}
 
         {!authReady && mode !== 'verify' && (
-          <p className="login-modal__note">* 현재 데모 모드입니다. (인증 서버 연결 전)</p>
+          <p className="login-modal__note">
+            {isSupabaseMisconfigured
+              ? '* 인증 서버 환경변수가 손상되어 로그인이 비활성화되었습니다.'
+              : '* 현재 데모 모드입니다. (인증 서버 연결 전)'}
+          </p>
         )}
       </div>
     </div>

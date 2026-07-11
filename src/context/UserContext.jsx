@@ -29,6 +29,19 @@ function mapSupabaseUser(u) {
   }
 }
 
+// members 테이블의 등급이 있으면 우선 적용 — 관리자 화면에서 변경한 등급이 실권한에 반영됨
+// (테이블 미생성 등 조회 실패 시 가입 메타데이터 등급 유지)
+async function withDbGrade(u) {
+  if (!u) return null
+  const { data, error } = await supabase
+    .from('members')
+    .select('grade')
+    .eq('email', u.email)
+    .maybeSingle()
+  if (error || !data?.grade) return u
+  return { ...u, grade: data.grade }
+}
+
 export function UserProvider({ children }) {
   const [user, setUser] = useState(() => (isSupabaseConfigured ? null : readDemoUser()))
   const [loginOpen, setLoginOpen] = useState(false)
@@ -46,10 +59,19 @@ export function UserProvider({ children }) {
       if (!keepLogin && newBrowserSession) {
         await supabase.auth.signOut()
       }
+      // 등급 DB 조회가 끝나기 전에도 기본 정보로 먼저 표시하고, 조회 후 등급만 보정
+      const applyUser = (base) => {
+        setUser(base)
+        if (base) {
+          withDbGrade(base).then((u2) =>
+            setUser((cur) => (cur && u2 && cur.email === u2.email ? u2 : cur)),
+          )
+        }
+      }
       const { data } = await supabase.auth.getSession()
-      setUser(mapSupabaseUser(data.session?.user))
+      applyUser(mapSupabaseUser(data.session?.user))
       sub = supabase.auth.onAuthStateChange((_event, session) => {
-        setUser(mapSupabaseUser(session?.user))
+        applyUser(mapSupabaseUser(session?.user))
       }).data
     }
     init()
