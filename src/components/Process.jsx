@@ -9,7 +9,11 @@ export default function Process() {
           <h2>
             검증된 <span className="accent">개원∙성장 프로세스</span>
           </h2>
-          <p>감이 아닌 데이터로, 즉흥이 아닌 시스템으로 병∙의원을 개원∙성장시킵니다.</p>
+          <p>
+            감이 아닌 데이터로, 즉흥이 아닌 시스템으로,
+            <br />
+            병∙의원을 개원∙성장시킵니다.
+          </p>
         </div>
 
         <div className="process__grid">
