@@ -4,6 +4,7 @@ import { fileToDataUrl, MAX_IMAGE_BYTES } from '../../lib/imageUtils'
 import { SPECIALTIES, REGIONS } from '../../data'
 import { formatPhone } from '../../lib/phone'
 import { fetchAllInquiries, answerInquiry, deleteInquiry } from '../../lib/inquiriesDb'
+import { fetchRequests, updateRequestStatus, deleteRequest } from '../../lib/requestsDb'
 import {
   fetchConsultsDb,
   insertConsultDb,
@@ -569,6 +570,128 @@ export function ConsultDirectAdmin() {
               ))}
             </ul>
           )}
+        </>
+      )}
+    </>
+  )
+}
+
+// ─────────────────────────────────────────────────────────
+// 상담 관리 > 상담 신청 — 메인 페이지 상담 신청 폼 접수 목록
+// ─────────────────────────────────────────────────────────
+export function ConsultRequestsAdmin() {
+  const [items, setItems] = useState([])
+  const [available, setAvailable] = useState(true) // consult_requests 테이블 사용 가능 여부
+
+  useEffect(() => {
+    fetchRequests().then((rows) => {
+      if (rows === null) setAvailable(false)
+      else setItems(rows)
+    })
+  }, [])
+
+  const toggleStatus = (q) => {
+    const next = q.status === 'done' ? 'new' : 'done'
+    setItems((ls) => ls.map((it) => (it.id === q.id ? { ...it, status: next } : it)))
+    updateRequestStatus(q.id, next)
+  }
+
+  const remove = (q) => {
+    if (!window.confirm(`'${q.name}' 님의 상담 신청을 삭제하시겠습니까?`)) return
+    setItems((ls) => ls.filter((it) => it.id !== q.id))
+    deleteRequest(q.id)
+  }
+
+  const newCount = items.filter((q) => q.status === 'new').length
+
+  return (
+    <>
+      <div className="admin-head">
+        <div>
+          <h1>상담 신청</h1>
+          <p>메인 페이지 상담 신청 폼으로 접수된 내역입니다.</p>
+        </div>
+      </div>
+
+      {!available ? (
+        <div className="admin-notice admin-notice--warn">
+          상담 신청 테이블(consult_requests)이 아직 없습니다. supabase/setup-4.sql 을 Supabase SQL
+          Editor에서 실행해 주세요.
+        </div>
+      ) : (
+        <>
+          <div className="admin-stats">
+            <div className="admin-stat">
+              <b>{items.length}</b>
+              <span>전체 접수</span>
+            </div>
+            <div className="admin-stat">
+              <b>{newCount}</b>
+              <span>신규</span>
+            </div>
+            <div className="admin-stat">
+              <b>{items.length - newCount}</b>
+              <span>처리 완료</span>
+            </div>
+          </div>
+
+          <div className="admin-table-wrap">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>접수일</th>
+                  <th>성함</th>
+                  <th>연락처</th>
+                  <th>전공과목</th>
+                  <th>개원희망시기</th>
+                  <th>개원희망지역</th>
+                  <th>문의 내용</th>
+                  <th>상태</th>
+                  <th>관리</th>
+                </tr>
+              </thead>
+              <tbody>
+                {items.map((q) => (
+                  <tr key={q.id}>
+                    <td>{formatLogTime(q.createdAt)}</td>
+                    <td>
+                      <span className="m-name">{q.name}</span>
+                    </td>
+                    <td>{q.phone}</td>
+                    <td>{q.specialty}</td>
+                    <td>{q.openingPeriod}</td>
+                    <td>{q.openingRegion}</td>
+                    <td className="request-message" title={q.message}>
+                      {q.message
+                        ? q.message.slice(0, 30) + (q.message.length > 30 ? '…' : '')
+                        : '-'}
+                    </td>
+                    <td>
+                      <span
+                        className={`iq-badge ${q.status === 'done' ? 'iq-badge--answered' : 'iq-badge--open'}`}
+                      >
+                        {q.status === 'done' ? '처리완료' : '신규'}
+                      </span>
+                    </td>
+                    <td>
+                      <div className="admin-actions">
+                        <button
+                          className={q.status === 'done' ? undefined : 'activate'}
+                          onClick={() => toggleStatus(q)}
+                        >
+                          {q.status === 'done' ? '신규로' : '처리완료'}
+                        </button>
+                        <button className="danger" onClick={() => remove(q)}>
+                          삭제
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {items.length === 0 && <div className="admin-empty">접수된 상담 신청이 없습니다.</div>}
+          </div>
         </>
       )}
     </>

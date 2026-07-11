@@ -1655,6 +1655,17 @@ ul {
   text-align: center;
   margin-bottom: 16px;
 }
+.form__error {
+  padding: 14px 16px;
+  border-radius: var(--radius-sm);
+  background: rgba(220, 38, 38, 0.08);
+  border: 1px solid rgba(220, 38, 38, 0.35);
+  color: #dc2626;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-align: center;
+  margin-bottom: 14px;
+}
 
 /* ---------- Footer ---------- */
 .footer {

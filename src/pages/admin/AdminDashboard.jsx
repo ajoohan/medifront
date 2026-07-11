@@ -3,7 +3,7 @@ import MembersAdmin from './MembersAdmin'
 import MagazineAdmin from './MagazineAdmin'
 import SettingsAdmin from './SettingsAdmin'
 import PerformanceAdmin from './PerformanceAdmin'
-import ConsultMeetingAdmin, { ConsultDirectAdmin } from './ConsultAdmin'
+import ConsultMeetingAdmin, { ConsultDirectAdmin, ConsultRequestsAdmin } from './ConsultAdmin'
 
 const ADMIN_VERSION = 'Version 0.7'
 
@@ -15,8 +15,9 @@ const CONTENT_VIEWS = [
   { key: 'magazine', label: '매거진 관리', component: MagazineAdmin },
 ]
 
-// 상담 관리 서브메뉴 (대면 상담 / 1:1 상담)
+// 상담 관리 서브메뉴 (상담 신청 / 대면 상담 / 1:1 상담)
 const CONSULT_VIEWS = [
+  { key: 'consult-requests', label: '상담 신청', component: ConsultRequestsAdmin },
   { key: 'consult-meeting', label: '대면 상담', component: ConsultMeetingAdmin },
   { key: 'consult-direct', label: '1:1 상담', component: ConsultDirectAdmin },
 ]

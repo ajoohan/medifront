@@ -4,6 +4,7 @@ import { IconPhone, IconMail, IconClock, IconCheck } from './Icons'
 import { useUser } from '../context/UserContext'
 import { formatPhone } from '../lib/phone'
 import InquiryModal from './InquiryModal'
+import { insertRequest } from '../lib/requestsDb'
 
 const initial = {
   name: '',
@@ -56,13 +57,25 @@ export default function Contact() {
     setInquiryOpen(true)
   }
 
-  const onSubmit = (e) => {
+  const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState('')
+
+  // 상담 신청 접수 — DB(consult_requests) 저장, 관리자 > 상담 관리 > 상담 신청에 표시
+  const onSubmit = async (e) => {
     e.preventDefault()
-    // TODO: 실제 전송 로직(API/이메일/구글폼 등) 연결 지점
-    // 현재는 데모로 화면에만 접수 완료 표시
-    setSent(true)
-    setForm(initial)
-    setTimeout(() => setSent(false), 6000)
+    setSubmitError('')
+    setSubmitting(true)
+    const r = await insertRequest(form)
+    setSubmitting(false)
+    if (r.ok) {
+      setSent(true)
+      setForm(initial)
+      setTimeout(() => setSent(false), 6000)
+    } else {
+      setSubmitError(
+        `접수 중 오류가 발생했습니다. 잠시 후 다시 시도하시거나 전화(${BRAND.phone})로 문의해 주세요.`,
+      )
+    }
   }
 
   return (
@@ -239,8 +252,14 @@ export default function Contact() {
                 않습니다.
               </span>
             </label>
-            <button type="submit" className="btn btn--primary btn--lg" style={{ width: '100%' }}>
-              무료 상담 신청하기
+            {submitError && <div className="form__error">{submitError}</div>}
+            <button
+              type="submit"
+              className="btn btn--primary btn--lg"
+              style={{ width: '100%' }}
+              disabled={submitting}
+            >
+              {submitting ? '접수 중...' : '무료 상담 신청하기'}
             </button>
           </form>
         </div>
