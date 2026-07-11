@@ -1974,6 +1974,41 @@ ul {
 .admin-add__cancel:hover {
   background: #f1f5f4;
 }
+.admin-add__hint {
+  margin: 12px 0 0;
+  font-size: 0.82rem;
+  color: var(--ink-300);
+}
+/* 관리자 알림 배너 (메일 발송 결과 등) */
+.admin-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  margin-bottom: 16px;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+.admin-notice--ok {
+  background: rgba(16, 166, 150, 0.1);
+  color: #0f766e;
+  border: 1px solid rgba(16, 166, 150, 0.3);
+}
+.admin-notice--warn {
+  background: rgba(217, 119, 6, 0.08);
+  color: #b45309;
+  border: 1px solid rgba(217, 119, 6, 0.3);
+}
+.admin-notice__close {
+  color: inherit;
+  font-size: 0.9rem;
+  opacity: 0.7;
+}
+.admin-notice__close:hover {
+  opacity: 1;
+}
 @media (max-width: 860px) {
   .admin-add__grid {
     grid-template-columns: 1fr;
@@ -2004,6 +2039,15 @@ ul {
 .grade--hospital {
   background: rgba(59, 130, 246, 0.14);
   color: #2563eb;
+}
+/* 운영자 등급 (설정 > 운영자 관리) */
+.grade--master {
+  background: rgba(184, 134, 11, 0.16);
+  color: #b8860b;
+}
+.grade--manager {
+  background: rgba(100, 116, 139, 0.14);
+  color: #475569;
 }
 /* 체크박스 선택 + 등급 일괄 변경 바 */
 .admin-checkbox {
