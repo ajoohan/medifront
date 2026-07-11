@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { BRAND, SPECIALTIES, REGIONS } from '../data'
 import { IconPhone, IconMail, IconClock, IconCheck } from './Icons'
+import { useUser } from '../context/UserContext'
 
 const initial = {
   name: '',
@@ -32,10 +33,25 @@ const QUARTERS = (() => {
 export default function Contact() {
   const [form, setForm] = useState(initial)
   const [sent, setSent] = useState(false)
+  const { user, openLogin } = useUser()
+  const [gateMsg, setGateMsg] = useState('')
 
   const update = (key) => (e) => {
     const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value
     setForm((f) => ({ ...f, [key]: value }))
+  }
+
+  // 1:1 상담하기 — 로그인 회원 전용 (비로그인 시 안내 후 로그인 창)
+  const onDirectConsult = () => {
+    if (!user) {
+      setGateMsg('로그인 후 가능합니다')
+      setTimeout(() => setGateMsg(''), 4000)
+      openLogin('로그인 후 가능합니다')
+      return
+    }
+    setGateMsg('')
+    // 스크롤 방식은 전역 CSS(scroll-behavior: smooth)를 따른다
+    document.getElementById('contact-form')?.scrollIntoView()
   }
 
   const onSubmit = (e) => {
@@ -107,6 +123,14 @@ export default function Contact() {
                 </div>
               </li>
             </ul>
+
+            <div className="direct-consult">
+              <button type="button" className="btn btn--primary btn--lg" onClick={onDirectConsult}>
+                1:1 상담하기
+              </button>
+              {gateMsg && <p className="direct-consult__msg">{gateMsg}</p>}
+              <span className="direct-consult__hint">로그인 회원 전용 서비스입니다.</span>
+            </div>
           </div>
 
           <form className="form reveal" onSubmit={onSubmit}>

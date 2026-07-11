@@ -1492,6 +1492,32 @@ ul {
   color: var(--blue-300);
 }
 
+/* 1:1 상담하기 — 로그인 회원 전용 */
+.direct-consult {
+  margin-top: 30px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+.direct-consult .btn {
+  width: 100%;
+  max-width: 320px;
+}
+.direct-consult__msg {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: rgba(220, 38, 38, 0.08);
+  color: #dc2626;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+.direct-consult__hint {
+  font-size: 0.82rem;
+  color: var(--ink-300);
+}
+
 /* ---------- Contact form ---------- */
 .contact__inner {
   display: grid;

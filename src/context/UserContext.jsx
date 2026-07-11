@@ -32,6 +32,7 @@ function mapSupabaseUser(u) {
 export function UserProvider({ children }) {
   const [user, setUser] = useState(() => (isSupabaseConfigured ? null : readDemoUser()))
   const [loginOpen, setLoginOpen] = useState(false)
+  const [loginNotice, setLoginNotice] = useState('') // 로그인 창 상단 안내 문구
 
   // Supabase 세션 구독 (OAuth 리다이렉트 복귀·인증 메일 링크 클릭 포함)
   // 자동 로그인 꺼진 상태에서 브라우저를 새로 연 경우에는 세션을 종료한다.
@@ -138,7 +139,11 @@ export function UserProvider({ children }) {
     setUser(null)
   }, [])
 
-  const openLogin = useCallback(() => setLoginOpen(true), [])
+  // notice: 로그인 창에 함께 띄울 안내 문구 (onClick 핸들러로 직접 쓰면 이벤트 객체가 오므로 문자열만 채택)
+  const openLogin = useCallback((notice) => {
+    setLoginNotice(typeof notice === 'string' ? notice : '')
+    setLoginOpen(true)
+  }, [])
   const closeLogin = useCallback(() => setLoginOpen(false), [])
 
   return (
@@ -146,6 +151,7 @@ export function UserProvider({ children }) {
       value={{
         user,
         loginOpen,
+        loginNotice,
         openLogin,
         closeLogin,
         logout,

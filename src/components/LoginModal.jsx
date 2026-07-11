@@ -65,6 +65,7 @@ export default function LoginModal({ open, onClose }) {
     resendVerification,
     requestPasswordReset,
     getLoginPrefs,
+    loginNotice,
   } = useUser()
 
   // mode: 'login' | 'signup' | 'verify'(인증 메일 안내) | 'recover'(아이디/비밀번호 찾기)
@@ -88,9 +89,9 @@ export default function LoginModal({ open, onClose }) {
       setGrade('일반')
       setAgree(false)
       setMsg('')
-      setInfo('')
+      setInfo(loginNotice || '')
     }
-  }, [open, getLoginPrefs])
+  }, [open, getLoginPrefs, loginNotice])
 
   useEffect(() => {
     if (!open) return
