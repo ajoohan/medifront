@@ -7,6 +7,9 @@ import { supabase, isSupabaseConfigured } from '../lib/supabase'
 // - 미설정 시: 데모 로그인(등급 선택) 폴백
 const UserContext = createContext(null)
 const DEMO_KEY = 'medifront_user'
+const AUTOLOGIN_KEY = 'medifront_autologin' // '0'이면 브라우저 종료 시 로그아웃
+const TAB_KEY = 'medifront_tab' // sessionStorage — 브라우저(탭 세션) 생존 마커
+const SAVED_EMAIL_KEY = 'medifront_saved_email' // 아이디(이메일) 기억
 
 function readDemoUser() {
   try {
@@ -31,13 +34,25 @@ export function UserProvider({ children }) {
   const [loginOpen, setLoginOpen] = useState(false)
 
   // Supabase 세션 구독 (OAuth 리다이렉트 복귀·인증 메일 링크 클릭 포함)
+  // 자동 로그인 꺼진 상태에서 브라우저를 새로 연 경우에는 세션을 종료한다.
   useEffect(() => {
     if (!isSupabaseConfigured) return
-    supabase.auth.getSession().then(({ data }) => setUser(mapSupabaseUser(data.session?.user)))
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(mapSupabaseUser(session?.user))
-    })
-    return () => sub.subscription.unsubscribe()
+    let sub
+    const init = async () => {
+      const keepLogin = localStorage.getItem(AUTOLOGIN_KEY) !== '0'
+      const newBrowserSession = !sessionStorage.getItem(TAB_KEY)
+      sessionStorage.setItem(TAB_KEY, '1')
+      if (!keepLogin && newBrowserSession) {
+        await supabase.auth.signOut()
+      }
+      const { data } = await supabase.auth.getSession()
+      setUser(mapSupabaseUser(data.session?.user))
+      sub = supabase.auth.onAuthStateChange((_event, session) => {
+        setUser(mapSupabaseUser(session?.user))
+      }).data
+    }
+    init()
+    return () => sub?.subscription.unsubscribe()
   }, [])
 
   // ── 데모 로그인 (백엔드 미연결 시) ──
@@ -63,12 +78,26 @@ export function UserProvider({ children }) {
     return { ok: true }
   }, [])
 
-  // ── 이메일 로그인 ──
-  const signInWithEmail = useCallback(async ({ email, password }) => {
+  // ── 이메일 로그인 (autoLogin: 체크 시 브라우저 재시작 후에도 로그인 유지 + 아이디 기억) ──
+  const signInWithEmail = useCallback(async ({ email, password, autoLogin = true }) => {
     if (!isSupabaseConfigured) return { error: 'not-configured' }
     const { error } = await supabase.auth.signInWithPassword({ email, password })
-    return error ? { error: error.message } : { ok: true }
+    if (error) return { error: error.message }
+    localStorage.setItem(AUTOLOGIN_KEY, autoLogin ? '1' : '0')
+    sessionStorage.setItem(TAB_KEY, '1')
+    if (autoLogin) localStorage.setItem(SAVED_EMAIL_KEY, email)
+    else localStorage.removeItem(SAVED_EMAIL_KEY)
+    return { ok: true }
   }, [])
+
+  // 저장된 아이디(이메일)/자동 로그인 설정 조회 — 로그인 폼 프리필용
+  const getLoginPrefs = useCallback(
+    () => ({
+      savedEmail: localStorage.getItem(SAVED_EMAIL_KEY) || '',
+      autoLogin: localStorage.getItem(AUTOLOGIN_KEY) !== '0',
+    }),
+    [],
+  )
 
   // ── 소셜 로그인/가입 (google | apple) ──
   const signInWithProvider = useCallback(async (provider) => {
@@ -128,6 +157,7 @@ export function UserProvider({ children }) {
         resendVerification,
         requestPasswordReset,
         updatePassword,
+        getLoginPrefs,
       }}
     >
       {children}

@@ -55,6 +55,7 @@ export default function LoginModal({ open, onClose }) {
     signInWithProvider,
     resendVerification,
     requestPasswordReset,
+    getLoginPrefs,
   } = useUser()
 
   // mode: 'login' | 'signup' | 'verify'(인증 메일 안내) | 'recover'(아이디/비밀번호 찾기)
@@ -63,19 +64,23 @@ export default function LoginModal({ open, onClose }) {
   const [form, setForm] = useState({ email: '', password: '', confirm: '', name: '', phone: '' })
   const [agree, setAgree] = useState(false)
   const [grade, setGrade] = useState('일반') // 데모 모드 전용
+  const [autoLogin, setAutoLogin] = useState(true) // 자동 로그인
   const [msg, setMsg] = useState('')
   const [info, setInfo] = useState('')
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
     if (open) {
+      // 저장된 아이디(이메일)와 자동 로그인 설정 프리필
+      const prefs = getLoginPrefs()
       setMode('login')
-      setForm({ email: '', password: '', confirm: '', name: '', phone: '' })
+      setForm({ email: prefs.savedEmail, password: '', confirm: '', name: '', phone: '' })
+      setAutoLogin(prefs.autoLogin)
       setAgree(false)
       setMsg('')
       setInfo('')
     }
-  }, [open])
+  }, [open, getLoginPrefs])
 
   useEffect(() => {
     if (!open) return
@@ -109,7 +114,11 @@ export default function LoginModal({ open, onClose }) {
       return
     }
     setBusy(true)
-    const r = await signInWithEmail({ email: form.email.trim(), password: form.password })
+    const r = await signInWithEmail({
+      email: form.email.trim(),
+      password: form.password,
+      autoLogin,
+    })
     setBusy(false)
     if (r.error) setMsg(tr(r.error))
     else onClose()
@@ -235,6 +244,7 @@ export default function LoginModal({ open, onClose }) {
                 <input
                   type="email"
                   placeholder="you@example.com"
+                  autoComplete="email"
                   value={form.email}
                   onChange={set('email')}
                   required
@@ -245,11 +255,22 @@ export default function LoginModal({ open, onClose }) {
                 <input
                   type="password"
                   placeholder="비밀번호"
+                  autoComplete="current-password"
                   value={form.password}
                   onChange={set('password')}
                   required
                 />
               </div>
+
+              <label className="auth-remember">
+                <input
+                  type="checkbox"
+                  checked={autoLogin}
+                  onChange={(e) => setAutoLogin(e.target.checked)}
+                />
+                <span>자동 로그인</span>
+                <small>체크 해제 시 브라우저 종료 후 로그아웃됩니다</small>
+              </label>
 
               {!authReady && (
                 <div className="field login-modal__pw">
@@ -353,6 +374,7 @@ export default function LoginModal({ open, onClose }) {
                   type="password"
                   placeholder="6자 이상"
                   minLength={6}
+                  autoComplete="new-password"
                   value={form.password}
                   onChange={set('password')}
                   required
@@ -363,6 +385,7 @@ export default function LoginModal({ open, onClose }) {
                 <input
                   type="password"
                   placeholder="비밀번호 재입력"
+                  autoComplete="new-password"
                   value={form.confirm}
                   onChange={set('confirm')}
                   required
