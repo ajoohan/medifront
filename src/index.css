@@ -1758,6 +1758,18 @@ ul {
   border-radius: 999px;
   font-weight: 700;
 }
+/* 사이드바 그룹 라벨 + 서브 메뉴 (상담 관리) */
+.admin__navgroup {
+  padding: 14px 14px 6px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.45);
+}
+.admin__navitem--sub {
+  padding-left: 28px;
+  font-size: 0.92rem;
+}
 .admin__logout {
   margin-top: auto;
   padding: 11px 14px;
@@ -2013,6 +2025,37 @@ ul {
   .admin-add__grid {
     grid-template-columns: 1fr;
   }
+}
+/* 대면 상담 회의록 에디터 */
+.consult-editor__section {
+  margin: 0 0 12px;
+  font-size: 0.98rem;
+  font-weight: 800;
+  color: var(--ink-900);
+}
+.admin-add .consult-editor__section:not(:first-child) {
+  margin-top: 20px;
+}
+.consult-editor > .consult-editor__section {
+  margin: 22px 0 10px;
+}
+.consult-editor__body {
+  min-height: 320px;
+}
+.consult-file {
+  display: inline-block;
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #f6faf9;
+  color: var(--ink-700);
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin: 4px 0;
+}
+.consult-file:hover {
+  border-color: var(--primary);
+  color: var(--primary);
 }
 /* 회원유형 인라인 셀렉트 (의사/병원/일반) */
 .grade-select {
