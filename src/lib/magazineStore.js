@@ -1,22 +1,17 @@
-// 매거진 글 저장소 (프로토타입) — localStorage에 보관해
-// 관리자에서 등록/수정한 글이 공개 매거진 페이지에도 반영됩니다.
-// 실제 운영 시에는 백엔드(DB) API로 교체하세요.
+// 매거진 글 저장소 — articles 테이블(DB) 미생성 시의 브라우저 폴백.
+// 더미(샘플) 글은 사용하지 않으며, 과거에 저장된 샘플도 걸러낸다.
 import { MAGAZINE } from '../data'
 
 const KEY = 'medifront_magazine'
+const DUMMY_TITLES = new Set(MAGAZINE.map((a) => a.title))
 
 export function loadArticles() {
   try {
-    const raw = localStorage.getItem(KEY)
-    if (raw) {
-      const parsed = JSON.parse(raw)
-      if (Array.isArray(parsed) && parsed.length >= 0) return parsed
-    }
+    const parsed = JSON.parse(localStorage.getItem(KEY))
+    return Array.isArray(parsed) ? parsed.filter((a) => !DUMMY_TITLES.has(a.title)) : []
   } catch {
-    /* 손상된 데이터는 무시하고 기본값 사용 */
+    return []
   }
-  // 최초 실행: 기본 샘플에 id/status 부여
-  return MAGAZINE.map((a, i) => ({ id: i + 1, status: 'visible', ...a }))
 }
 
 // 저장 성공 여부 반환 — 브라우저 저장소 용량 초과(QuotaExceeded) 시 false

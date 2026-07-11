@@ -1,6 +1,12 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { loadArticles, saveArticles } from '../../lib/magazineStore'
 import { fileToDataUrl } from '../../lib/imageUtils'
+import {
+  fetchArticlesDb,
+  insertArticleDb,
+  updateArticleDb,
+  deleteArticleDb,
+} from '../../lib/articlesDb'
 
 const todayStr = () => {
   const d = new Date()
@@ -145,46 +151,69 @@ function MagazineEditor({ article, onSave, onCancel }) {
 // 매거진 관리 — 썸네일 그리드 (PC 5열)
 // ─────────────────────────────────────────────────────────
 export default function MagazineAdmin() {
-  const [articles, setArticles] = useState(loadArticles)
+  const [articles, setArticles] = useState([])
+  const [dbReady, setDbReady] = useState(false) // articles 테이블 사용 가능 여부
+  const [checked, setChecked] = useState(false) // DB 확인 완료 여부
   // writing: null | { mode: 'new' } | { mode: 'edit', article }
   const [writing, setWriting] = useState(null)
 
+  // DB에서 게시물 로드 — 테이블 미생성 시 브라우저 저장 폴백
+  useEffect(() => {
+    fetchArticlesDb().then((list) => {
+      if (list) {
+        setArticles(list)
+        setDbReady(true)
+      } else {
+        setArticles(loadArticles())
+      }
+      setChecked(true)
+    })
+  }, [])
+
   const update = (list) => {
     setArticles(list)
-    if (!saveArticles(list)) {
+    if (!dbReady && !saveArticles(list)) {
       window.alert(
-        '브라우저 저장 공간이 부족해 저장하지 못했습니다.\n이미지 수를 줄이거나 기존 글을 정리해 주세요. (실서비스 전환 시 서버 저장으로 해결됩니다)',
+        '브라우저 저장 공간이 부족해 저장하지 못했습니다.\n이미지 수를 줄이거나 기존 글을 정리해 주세요.',
       )
     }
   }
 
-  const handleSave = ({ title, content }) => {
+  const handleSave = async ({ title, content }) => {
     const meta = parseContent(content)
     if (writing.mode === 'new') {
-      update([
-        { id: Date.now(), status: 'visible', date: todayStr(), title, content, ...meta },
-        ...articles,
-      ])
+      const article = { status: 'visible', date: todayStr(), title, content, ...meta }
+      if (dbReady) {
+        const res = await insertArticleDb(article)
+        if (res.ok) {
+          update([res.article, ...articles])
+        } else {
+          window.alert(`게시물 저장 실패: ${res.error}`)
+          return
+        }
+      } else {
+        update([{ id: Date.now(), ...article }, ...articles])
+      }
     } else {
-      update(
-        articles.map((a) => (a.id === writing.article.id ? { ...a, title, content, ...meta } : a)),
-      )
+      const patch = { title, content, ...meta }
+      update(articles.map((a) => (a.id === writing.article.id ? { ...a, ...patch } : a)))
+      if (dbReady) updateArticleDb(writing.article.id, patch)
     }
     setWriting(null)
   }
 
   const toggleStatus = (id) => {
-    update(
-      articles.map((a) =>
-        a.id === id ? { ...a, status: a.status === 'hidden' ? 'visible' : 'hidden' } : a,
-      ),
-    )
+    const target = articles.find((a) => a.id === id)
+    const next = target?.status === 'hidden' ? 'visible' : 'hidden'
+    update(articles.map((a) => (a.id === id ? { ...a, status: next } : a)))
+    if (dbReady) updateArticleDb(id, { status: next })
   }
 
   const removeArticle = (id) => {
     const target = articles.find((a) => a.id === id)
     if (window.confirm(`'${target?.title}' 글을 삭제하시겠습니까?`)) {
       update(articles.filter((a) => a.id !== id))
+      if (dbReady) deleteArticleDb(id)
     }
   }
 
@@ -212,6 +241,13 @@ export default function MagazineAdmin() {
           + 매거진 작성
         </button>
       </div>
+
+      {checked && !dbReady && (
+        <div className="admin-notice admin-notice--warn">
+          게시물 DB 테이블(articles)이 아직 없어 이 브라우저에만 저장됩니다. supabase/setup-2.sql 을
+          Supabase SQL Editor에서 실행하면 모든 방문자에게 게시물이 표시됩니다.
+        </div>
+      )}
 
       {articles.length === 0 ? (
         <div className="mag-admin-empty">등록된 매거진이 없습니다</div>

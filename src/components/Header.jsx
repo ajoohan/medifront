@@ -60,7 +60,7 @@ export default function Header() {
           {user ? (
             <>
               <span className="header__user">
-                <b>{user.name}</b> 님 · {user.grade} 회원
+                <b>{user.name}</b> 님 ({user.grade} 회원)
               </span>
               <button className="btn btn--login" onClick={handleLogout}>
                 로그아웃
@@ -88,7 +88,7 @@ export default function Header() {
         {user ? (
           <>
             <div className="mobile-user">
-              <b>{user.name}</b> 님 · {user.grade} 회원
+              <b>{user.name}</b> 님 ({user.grade} 회원)
             </div>
             <button className="mobile-login" onClick={handleLogout}>
               로그아웃

@@ -1,8 +1,9 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { loadConsults, saveConsults } from '../../lib/consultStore'
 import { fileToDataUrl, MAX_IMAGE_BYTES } from '../../lib/imageUtils'
 import { SPECIALTIES, REGIONS } from '../../data'
 import { formatPhone } from '../../lib/phone'
+import { fetchAllInquiries, answerInquiry, deleteInquiry } from '../../lib/inquiriesDb'
 
 // 개원희망시기 옵션 — 오늘이 속한 분기부터 향후 12개 분기(3년)
 const QUARTERS = (() => {
@@ -387,32 +388,135 @@ export default function ConsultMeetingAdmin() {
 }
 
 // ─────────────────────────────────────────────────────────
-// 상담 관리 > 1:1 상담 — 접수 목록 (채널 연동 전)
+// 상담 관리 > 1:1 상담 — 회원 비공개 문의 접수·답변
 // ─────────────────────────────────────────────────────────
+function formatLogTime(iso) {
+  const d = new Date(iso)
+  const p = (n) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}.${p(d.getMonth() + 1)}.${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`
+}
+
 export function ConsultDirectAdmin() {
+  const [items, setItems] = useState([])
+  const [available, setAvailable] = useState(true) // inquiries 테이블 사용 가능 여부
+  const [drafts, setDrafts] = useState({}) // id → 답변 초안
+  const [busyId, setBusyId] = useState(null)
+
+  useEffect(() => {
+    fetchAllInquiries().then((rows) => {
+      if (rows === null) setAvailable(false)
+      else setItems(rows)
+    })
+  }, [])
+
+  const saveAnswer = async (q) => {
+    const answer = (drafts[q.id] ?? q.answer).trim()
+    if (!answer) return
+    setBusyId(q.id)
+    const r = await answerInquiry(q.id, answer)
+    setBusyId(null)
+    if (r.ok) {
+      setItems((ls) =>
+        ls.map((it) => (it.id === q.id ? { ...it, answer, status: 'answered' } : it)),
+      )
+    } else {
+      window.alert(`답변 저장 실패: ${r.error}`)
+    }
+  }
+
+  const remove = async (q) => {
+    if (!window.confirm(`'${q.title}' 문의를 삭제하시겠습니까?`)) return
+    setItems((ls) => ls.filter((it) => it.id !== q.id))
+    deleteInquiry(q.id)
+  }
+
+  const waiting = items.filter((q) => q.status !== 'answered').length
+
   return (
     <>
       <div className="admin-head">
         <div>
           <h1>1:1 상담</h1>
-          <p>회원이 접수한 1:1 상담을 관리합니다.</p>
+          <p>회원이 접수한 비공개 문의에 답변합니다. 답변은 회원의 1:1 상담 창에 표시됩니다.</p>
         </div>
       </div>
-      <div className="admin-table-wrap">
-        <table className="admin-table">
-          <thead>
-            <tr>
-              <th>접수일</th>
-              <th>회원</th>
-              <th>이메일</th>
-              <th>문의 내용</th>
-              <th>상태</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-        <div className="admin-empty">접수된 1:1 상담이 없습니다.</div>
-      </div>
+
+      {!available ? (
+        <div className="admin-notice admin-notice--warn">
+          1:1 문의 테이블(inquiries)이 아직 없습니다. supabase/setup-2.sql 을 Supabase SQL
+          Editor에서 실행해 주세요.
+        </div>
+      ) : (
+        <>
+          <div className="admin-stats">
+            <div className="admin-stat">
+              <b>{items.length}</b>
+              <span>전체 문의</span>
+            </div>
+            <div className="admin-stat">
+              <b>{waiting}</b>
+              <span>답변 대기</span>
+            </div>
+            <div className="admin-stat">
+              <b>{items.length - waiting}</b>
+              <span>답변 완료</span>
+            </div>
+          </div>
+
+          {items.length === 0 ? (
+            <div className="admin-table-wrap">
+              <div className="admin-empty">접수된 1:1 문의가 없습니다.</div>
+            </div>
+          ) : (
+            <ul className="inquiry-admin-list">
+              {items.map((q) => (
+                <li key={q.id} className="inquiry-admin-item">
+                  <div className="inquiry-item__head">
+                    <div>
+                      <span className="inquiry-item__date">{formatLogTime(q.createdAt)}</span>
+                      <span className="inquiry-admin-item__member">
+                        {q.name} ({q.email})
+                      </span>
+                    </div>
+                    <div className="inquiry-admin-item__actions">
+                      <span
+                        className={`iq-badge ${q.status === 'answered' ? 'iq-badge--answered' : 'iq-badge--open'}`}
+                      >
+                        {q.status === 'answered' ? '답변완료' : '답변대기'}
+                      </span>
+                      <button className="danger call-log__delete" onClick={() => remove(q)}>
+                        삭제
+                      </button>
+                    </div>
+                  </div>
+                  <b className="inquiry-item__title">{q.title}</b>
+                  <p className="inquiry-item__content">{q.content}</p>
+                  <div className="inquiry-admin-item__answer">
+                    <textarea
+                      className="call-log__input"
+                      placeholder="답변을 입력하세요"
+                      rows={3}
+                      value={drafts[q.id] ?? q.answer}
+                      onChange={(e) => setDrafts((d) => ({ ...d, [q.id]: e.target.value }))}
+                    />
+                    <button
+                      className="btn btn--primary"
+                      onClick={() => saveAnswer(q)}
+                      disabled={busyId === q.id || !(drafts[q.id] ?? q.answer).trim()}
+                    >
+                      {busyId === q.id
+                        ? '저장 중...'
+                        : q.status === 'answered'
+                          ? '답변 수정'
+                          : '답변 저장'}
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
+      )}
     </>
   )
 }

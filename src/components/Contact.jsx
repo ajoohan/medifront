@@ -3,6 +3,7 @@ import { BRAND, SPECIALTIES, REGIONS } from '../data'
 import { IconPhone, IconMail, IconClock, IconCheck } from './Icons'
 import { useUser } from '../context/UserContext'
 import { formatPhone } from '../lib/phone'
+import InquiryModal from './InquiryModal'
 
 const initial = {
   name: '',
@@ -36,13 +37,14 @@ export default function Contact() {
   const [sent, setSent] = useState(false)
   const { user, openLogin } = useUser()
   const [gateMsg, setGateMsg] = useState('')
+  const [inquiryOpen, setInquiryOpen] = useState(false)
 
   const update = (key) => (e) => {
     const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value
     setForm((f) => ({ ...f, [key]: value }))
   }
 
-  // 1:1 상담하기 — 로그인 회원 전용 (비로그인 시 안내 후 로그인 창)
+  // 1:1 상담하기 — 로그인 회원 전용 비공개 문의 게시판 (비로그인 시 안내 후 로그인 창)
   const onDirectConsult = () => {
     if (!user) {
       setGateMsg('로그인 후 가능합니다')
@@ -51,8 +53,7 @@ export default function Contact() {
       return
     }
     setGateMsg('')
-    // 스크롤 방식은 전역 CSS(scroll-behavior: smooth)를 따른다
-    document.getElementById('contact-form')?.scrollIntoView()
+    setInquiryOpen(true)
   }
 
   const onSubmit = (e) => {
@@ -66,6 +67,7 @@ export default function Contact() {
 
   return (
     <section className="section cta" id="contact">
+      <InquiryModal open={inquiryOpen} onClose={() => setInquiryOpen(false)} />
       <div className="container">
         {/* 상단 무료 진단 CTA */}
         <div className="cta__box reveal" style={{ marginBottom: 48 }}>
@@ -134,7 +136,7 @@ export default function Contact() {
                 1:1 상담하기
               </button>
               {gateMsg && <p className="direct-consult__msg">{gateMsg}</p>}
-              <span className="direct-consult__hint">로그인 회원 전용 서비스입니다.</span>
+              <span className="direct-consult__hint">※ 무료 회원 가입 후 이용 가능합니다</span>
             </div>
           </div>
 

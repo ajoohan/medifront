@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { MAGAZINE_CATEGORIES } from '../data'
 import { IconArrowRight } from './Icons'
 import { loadArticles } from '../lib/magazineStore'
+import { fetchArticlesDb } from '../lib/articlesDb'
 
 // 카테고리별 썸네일 그라디언트 (브랜드 청록 계열) — 첨부 이미지가 없을 때 사용
 const THUMB = {
@@ -33,8 +34,17 @@ function formatDate(iso) {
 
 export default function Magazine() {
   const [active, setActive] = useState('전체')
-  // 관리자에서 등록·수정한 글을 반영 (숨김 글 제외)
-  const [articles] = useState(loadArticles)
+  // 관리자에서 등록한 글을 DB에서 로드 (미연결 시 브라우저 저장 폴백, 숨김 글 제외)
+  const [articles, setArticles] = useState([])
+  const [loaded, setLoaded] = useState(false)
+
+  useEffect(() => {
+    fetchArticlesDb().then((list) => {
+      setArticles(list || loadArticles())
+      setLoaded(true)
+    })
+  }, [])
+
   const visible = articles.filter((a) => a.status !== 'hidden')
   const items = active === '전체' ? visible : visible.filter((a) => a.category === active)
 
@@ -52,6 +62,10 @@ export default function Magazine() {
             </button>
           ))}
         </div>
+
+        {loaded && items.length === 0 && (
+          <p className="magazine__note reveal">등록된 게시물이 없습니다.</p>
+        )}
 
         <div className="magazine__grid">
           {items.map((a) => (
@@ -76,8 +90,6 @@ export default function Magazine() {
             </Link>
           ))}
         </div>
-
-        <p className="magazine__note reveal">* 매거진 콘텐츠는 준비 중인 샘플입니다.</p>
       </div>
     </section>
   )

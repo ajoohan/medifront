@@ -3,6 +3,7 @@ import { MOCK_MEMBERS } from '../../mock/members'
 import { formatPhone } from '../../lib/phone'
 import { supabase, isSupabaseConfigured } from '../../lib/supabase'
 import { fetchMembers, upsertMember, updateMemberDb, deleteMemberDb } from '../../lib/membersDb'
+import MemberDetail from './MemberDetail'
 
 // 수동 추가 회원의 기본 비밀번호 (첫 로그인 후 아이디/비밀번호 찾기로 변경 안내)
 const DEFAULT_PASSWORD = 'medifront2026'
@@ -76,6 +77,7 @@ export default function MembersAdmin() {
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState(null) // { type: 'ok' | 'warn', text }
   const [dbReady, setDbReady] = useState(false) // members 테이블 사용 가능 여부
+  const [detailId, setDetailId] = useState(null) // 상세 보기 중인 회원 id
 
   // DB(members 테이블)에서 실목록 로드 — 테이블 미생성 시 목업 폴백
   useEffect(() => {
@@ -259,6 +261,19 @@ export default function MembersAdmin() {
   // 상태 필터 토글: 같은 버튼 다시 누르면 해제되어 전체 표시
   const toggleFilter = (key) => setFilter((f) => (f === key ? 'all' : key))
 
+  // 상세 화면에서 저장한 회원 정보 반영
+  const saveDetail = (id, patch) => {
+    setMembers((ms) => ms.map((m) => (m.id === id ? { ...m, ...patch } : m)))
+    if (dbReady) updateMemberDb(id, patch)
+  }
+
+  const detailMember = detailId != null ? members.find((m) => m.id === detailId) : null
+  if (detailMember) {
+    return (
+      <MemberDetail member={detailMember} onBack={() => setDetailId(null)} onSave={saveDetail} />
+    )
+  }
+
   return (
     <>
       <div className="admin-head">
@@ -330,7 +345,7 @@ export default function MembersAdmin() {
               />
             </label>
             <label className="admin-add__field">
-              <span>진료과목</span>
+              <span>전공과목</span>
               <input
                 type="text"
                 placeholder="내과"
@@ -487,7 +502,7 @@ export default function MembersAdmin() {
               <th>이름</th>
               <th>이메일</th>
               <th>연락처</th>
-              <th>병원 / 진료과목</th>
+              <th>병원 / 전공과목</th>
               <th>등급</th>
               <th>가입일</th>
               <th>상태</th>
@@ -496,7 +511,15 @@ export default function MembersAdmin() {
           </thead>
           <tbody>
             {pageItems.map((m) => (
-              <tr key={m.id} className={selected.has(m.id) ? 'is-selected' : undefined}>
+              <tr
+                key={m.id}
+                className={`admin-row-clickable ${selected.has(m.id) ? 'is-selected' : ''}`}
+                onClick={(e) => {
+                  // 체크박스·등급 선택·관리 버튼 클릭은 상세 진입에서 제외
+                  if (e.target.closest('button, select, input, a')) return
+                  setDetailId(m.id)
+                }}
+              >
                 <td className="admin-check-col">
                   <input
                     type="checkbox"

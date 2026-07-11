@@ -1,5 +1,7 @@
+import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { loadArticles } from '../lib/magazineStore'
+import { fetchArticlesDb } from '../lib/articlesDb'
 import { useUser, canReadMagazine } from '../context/UserContext'
 import MagazineGate from '../components/MagazineGate'
 
@@ -13,12 +15,29 @@ function formatDate(iso) {
 export default function MagazineDetailPage() {
   const { id } = useParams()
   const { user } = useUser()
+  const [articles, setArticles] = useState(null) // null = 로딩 중
+
+  useEffect(() => {
+    fetchArticlesDb().then((list) => setArticles(list || loadArticles()))
+  }, [])
 
   if (!canReadMagazine(user)) {
     return <MagazineGate />
   }
 
-  const article = loadArticles().find((a) => String(a.id) === String(id))
+  if (articles === null) {
+    return (
+      <section className="page-hero">
+        <div className="page-hero__grid-bg" />
+        <div className="container">
+          <span className="eyebrow">MAGAZINE</span>
+          <h1>불러오는 중...</h1>
+        </div>
+      </section>
+    )
+  }
+
+  const article = articles.find((a) => String(a.id) === String(id))
   const notFound = !article || article.status === 'hidden'
 
   if (notFound) {

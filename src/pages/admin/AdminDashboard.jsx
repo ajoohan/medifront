@@ -2,10 +2,16 @@ import { useState } from 'react'
 import MembersAdmin from './MembersAdmin'
 import MagazineAdmin from './MagazineAdmin'
 import SettingsAdmin from './SettingsAdmin'
+import PerformanceAdmin from './PerformanceAdmin'
 import ConsultMeetingAdmin, { ConsultDirectAdmin } from './ConsultAdmin'
 
-const VIEWS = [
-  { key: 'members', label: '회원관리', component: MembersAdmin },
+const ADMIN_VERSION = 'Version 0.7'
+
+const VIEWS = [{ key: 'members', label: '회원관리', component: MembersAdmin }]
+
+// 콘텐츠 관리 서브메뉴 (성과 관리 / 매거진 관리)
+const CONTENT_VIEWS = [
+  { key: 'performance', label: '성과 관리', component: PerformanceAdmin },
   { key: 'magazine', label: '매거진 관리', component: MagazineAdmin },
 ]
 
@@ -17,11 +23,39 @@ const CONSULT_VIEWS = [
 
 const SETTINGS_VIEW = { key: 'settings', label: '설정', component: SettingsAdmin }
 
-const ALL_VIEWS = [...VIEWS, ...CONSULT_VIEWS, SETTINGS_VIEW]
+const ALL_VIEWS = [...VIEWS, ...CONTENT_VIEWS, ...CONSULT_VIEWS, SETTINGS_VIEW]
+
+// 드롭다운 그룹 메뉴 — 상위 메뉴와 동일 스타일, 클릭 시 서브메뉴 펼침/접힘
+function NavGroup({ label, views, open, onToggle, view, setView }) {
+  const hasActive = views.some((v) => v.key === view)
+  return (
+    <>
+      <button
+        className={`admin__navitem ${!open && hasActive ? 'is-active' : ''}`}
+        onClick={onToggle}
+        aria-expanded={open}
+      >
+        {label}
+        <span className={`admin__nav-arrow ${open ? 'open' : ''}`}>▾</span>
+      </button>
+      {open &&
+        views.map((v) => (
+          <button
+            key={v.key}
+            className={`admin__navitem admin__navitem--sub ${view === v.key ? 'is-active' : ''}`}
+            onClick={() => setView(v.key)}
+          >
+            {v.label}
+          </button>
+        ))}
+    </>
+  )
+}
 
 export default function AdminDashboard({ onLogout }) {
   const [view, setView] = useState('members')
-  const [consultOpen, setConsultOpen] = useState(false) // 상담 관리 드롭다운 펼침 상태
+  const [contentOpen, setContentOpen] = useState(false) // 콘텐츠 관리 펼침
+  const [consultOpen, setConsultOpen] = useState(false) // 상담 관리 펼침
   const Current = ALL_VIEWS.find((v) => v.key === view)?.component ?? MembersAdmin
 
   return (
@@ -45,24 +79,23 @@ export default function AdminDashboard({ onLogout }) {
             </button>
           ))}
 
-          <button
-            className={`admin__navitem ${!consultOpen && view.startsWith('consult-') ? 'is-active' : ''}`}
-            onClick={() => setConsultOpen((o) => !o)}
-            aria-expanded={consultOpen}
-          >
-            상담 관리
-            <span className={`admin__nav-arrow ${consultOpen ? 'open' : ''}`}>▾</span>
-          </button>
-          {consultOpen &&
-            CONSULT_VIEWS.map((v) => (
-              <button
-                key={v.key}
-                className={`admin__navitem admin__navitem--sub ${view === v.key ? 'is-active' : ''}`}
-                onClick={() => setView(v.key)}
-              >
-                {v.label}
-              </button>
-            ))}
+          <NavGroup
+            label="콘텐츠 관리"
+            views={CONTENT_VIEWS}
+            open={contentOpen}
+            onToggle={() => setContentOpen((o) => !o)}
+            view={view}
+            setView={setView}
+          />
+
+          <NavGroup
+            label="상담 관리"
+            views={CONSULT_VIEWS}
+            open={consultOpen}
+            onToggle={() => setConsultOpen((o) => !o)}
+            view={view}
+            setView={setView}
+          />
 
           <button
             className={`admin__navitem ${view === SETTINGS_VIEW.key ? 'is-active' : ''}`}
@@ -74,6 +107,7 @@ export default function AdminDashboard({ onLogout }) {
         <button className="admin__logout" onClick={onLogout}>
           로그아웃
         </button>
+        <div className="admin__version">{ADMIN_VERSION}</div>
       </aside>
 
       <main className="admin__main">
