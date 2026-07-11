@@ -1772,13 +1772,14 @@ ul {
   border-radius: 999px;
   font-weight: 700;
 }
-/* 사이드바 그룹 라벨 + 서브 메뉴 (상담 관리) */
-.admin__navgroup {
-  padding: 14px 14px 6px;
-  font-size: 0.78rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  color: rgba(255, 255, 255, 0.45);
+/* 상담 관리 드롭다운 — 상위 메뉴와 동일 스타일 + 펼침 화살표 */
+.admin__nav-arrow {
+  font-size: 0.72rem;
+  transform: rotate(-90deg);
+  transition: transform 0.15s;
+}
+.admin__nav-arrow.open {
+  transform: rotate(0deg);
 }
 .admin__navitem--sub {
   padding-left: 28px;

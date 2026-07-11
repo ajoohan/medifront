@@ -21,6 +21,7 @@ const ALL_VIEWS = [...VIEWS, ...CONSULT_VIEWS, SETTINGS_VIEW]
 
 export default function AdminDashboard({ onLogout }) {
   const [view, setView] = useState('members')
+  const [consultOpen, setConsultOpen] = useState(false) // 상담 관리 드롭다운 펼침 상태
   const Current = ALL_VIEWS.find((v) => v.key === view)?.component ?? MembersAdmin
 
   return (
@@ -44,16 +45,24 @@ export default function AdminDashboard({ onLogout }) {
             </button>
           ))}
 
-          <div className="admin__navgroup">상담 관리</div>
-          {CONSULT_VIEWS.map((v) => (
-            <button
-              key={v.key}
-              className={`admin__navitem admin__navitem--sub ${view === v.key ? 'is-active' : ''}`}
-              onClick={() => setView(v.key)}
-            >
-              {v.label}
-            </button>
-          ))}
+          <button
+            className={`admin__navitem ${!consultOpen && view.startsWith('consult-') ? 'is-active' : ''}`}
+            onClick={() => setConsultOpen((o) => !o)}
+            aria-expanded={consultOpen}
+          >
+            상담 관리
+            <span className={`admin__nav-arrow ${consultOpen ? 'open' : ''}`}>▾</span>
+          </button>
+          {consultOpen &&
+            CONSULT_VIEWS.map((v) => (
+              <button
+                key={v.key}
+                className={`admin__navitem admin__navitem--sub ${view === v.key ? 'is-active' : ''}`}
+                onClick={() => setView(v.key)}
+              >
+                {v.label}
+              </button>
+            ))}
 
           <button
             className={`admin__navitem ${view === SETTINGS_VIEW.key ? 'is-active' : ''}`}
