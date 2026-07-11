@@ -1162,6 +1162,51 @@ ul {
   color: var(--ink-300);
   font-size: 0.76rem;
 }
+/* 회원유형 선택 (가입 2단계) */
+.member-types {
+  display: grid;
+  gap: 8px;
+}
+.member-type {
+  display: grid;
+  grid-template-columns: 16px 1fr;
+  grid-template-areas:
+    'radio label'
+    'radio desc';
+  column-gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1.5px solid var(--line, #e2e8f0);
+  border-radius: 10px;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+}
+.member-type:hover {
+  border-color: var(--primary);
+}
+.member-type.is-active {
+  border-color: var(--primary);
+  background: rgba(16, 166, 150, 0.06);
+}
+.member-type input {
+  grid-area: radio;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+.member-type b {
+  grid-area: label;
+  font-size: 0.9rem;
+  color: var(--ink-900, #0f172a);
+}
+.member-type small {
+  grid-area: desc;
+  font-size: 0.76rem;
+  color: var(--ink-300);
+}
 /* 인증 메일 안내 화면 */
 .auth-verify {
   text-align: center;
@@ -1846,7 +1891,7 @@ ul {
   outline: none;
   border-color: var(--primary);
 }
-/* 회원등급 인라인 셀렉트 (일반/의사/원장) */
+/* 회원유형 인라인 셀렉트 (의사/병원/일반) */
 .grade-select {
   padding: 5px 10px;
   border-radius: 999px;
@@ -1868,9 +1913,9 @@ ul {
   background: rgba(16, 166, 150, 0.14);
   color: #0f766e;
 }
-.grade--director {
-  background: rgba(184, 134, 11, 0.16);
-  color: #b8860b;
+.grade--hospital {
+  background: rgba(59, 130, 246, 0.14);
+  color: #2563eb;
 }
 /* 체크박스 선택 + 등급 일괄 변경 바 */
 .admin-checkbox {

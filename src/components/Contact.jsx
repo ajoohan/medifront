@@ -52,10 +52,8 @@ export default function Contact() {
       <div className="container">
         {/* 상단 무료 진단 CTA */}
         <div className="cta__box reveal" style={{ marginBottom: 48 }}>
-          <span className="price-tag">
-            정가 <s>30만원</s> → 지금 무료
-          </span>
-          <h2>무료 블로그·마케팅 정밀 진단 리포트</h2>
+          <span className="price-tag">지금 무료</span>
+          <h2>개원 컨설팅·마케팅 정밀 진단 리포트</h2>
           <p>
             현재 노출 상태, 경쟁 병원 키워드 비교, 개선 우선순위, 성장 시뮬레이션까지. 우리 병원의
             성장 가능성을 데이터로 확인해 보세요.
@@ -150,7 +148,7 @@ export default function Contact() {
             </div>
             <div className="form__row">
               <div className="field">
-                <label>진료과목</label>
+                <label>전공과목</label>
                 <select value={form.specialty} onChange={update('specialty')}>
                   <option value="">선택해주세요</option>
                   {SPECIALTIES.map((s) => (

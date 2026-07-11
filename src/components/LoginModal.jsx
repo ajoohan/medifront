@@ -2,7 +2,16 @@ import { useEffect, useState } from 'react'
 import Logo from './Logo'
 import { useUser } from '../context/UserContext'
 
-const GRADES = ['일반', '의사', '원장']
+// 회원유형 — 가입 2단계에서 선택 (매거진은 의사 회원 전용)
+const MEMBER_TYPES = [
+  { value: '의사', label: '의사 회원', desc: '대한민국 의사면허 보유자 · 모든 서비스 이용 가능' },
+  { value: '병원', label: '병원 회원', desc: '병원/의원 소속 관계자 · 의사초빙, 임대, 개원입지' },
+  {
+    value: '일반',
+    label: '일반 회원',
+    desc: '의료계 관련 종사자 및 일반 · 의사초빙, 임대, 개원입지',
+  },
+]
 
 // Supabase 에러 → 한국어 안내
 function tr(err) {
@@ -63,7 +72,7 @@ export default function LoginModal({ open, onClose }) {
   const [mode, setMode] = useState('login')
   const [form, setForm] = useState({ email: '', password: '', confirm: '', name: '', phone: '' })
   const [agree, setAgree] = useState(false)
-  const [grade, setGrade] = useState('일반') // 데모 모드 전용
+  const [grade, setGrade] = useState('일반') // 회원유형 (가입 2단계 선택 · 데모 로그인 공용)
   const [autoLogin, setAutoLogin] = useState(true) // 자동 로그인
   const [msg, setMsg] = useState('')
   const [info, setInfo] = useState('')
@@ -76,6 +85,7 @@ export default function LoginModal({ open, onClose }) {
       setMode('login')
       setForm({ email: prefs.savedEmail, password: '', confirm: '', name: '', phone: '' })
       setAutoLogin(prefs.autoLogin)
+      setGrade('일반')
       setAgree(false)
       setMsg('')
       setInfo('')
@@ -149,6 +159,7 @@ export default function LoginModal({ open, onClose }) {
       password: form.password,
       name: form.name.trim(),
       phone: form.phone.trim(),
+      grade,
     })
     setBusy(false)
     if (r.error) setMsg(tr(r.error))
@@ -275,17 +286,17 @@ export default function LoginModal({ open, onClose }) {
               {!authReady && (
                 <div className="field login-modal__pw">
                   <label>
-                    회원 등급 <span className="login-modal__demo">데모</span>
+                    회원유형 <span className="login-modal__demo">데모</span>
                   </label>
                   <div className="login-modal__grades">
-                    {GRADES.map((g) => (
+                    {MEMBER_TYPES.map((t) => (
                       <button
-                        key={g}
+                        key={t.value}
                         type="button"
-                        className={grade === g ? 'is-active' : undefined}
-                        onClick={() => setGrade(g)}
+                        className={grade === t.value ? 'is-active' : undefined}
+                        onClick={() => setGrade(t.value)}
                       >
-                        {g}
+                        {t.value}
                       </button>
                     ))}
                   </div>
@@ -423,6 +434,27 @@ export default function LoginModal({ open, onClose }) {
               마지막 단계입니다 (2/2) — 가입자 정보를 입력해 주세요.
             </div>
             <form onSubmit={submitSignup2}>
+              <div className="field">
+                <label>회원유형</label>
+                <div className="member-types">
+                  {MEMBER_TYPES.map((t) => (
+                    <label
+                      key={t.value}
+                      className={`member-type${grade === t.value ? ' is-active' : ''}`}
+                    >
+                      <input
+                        type="radio"
+                        name="memberType"
+                        value={t.value}
+                        checked={grade === t.value}
+                        onChange={() => setGrade(t.value)}
+                      />
+                      <b>{t.label}</b>
+                      <small>{t.desc}</small>
+                    </label>
+                  ))}
+                </div>
+              </div>
               <div className="field">
                 <label>이름</label>
                 <input

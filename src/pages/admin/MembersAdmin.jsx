@@ -9,8 +9,9 @@ const FILTERS = [
   { key: 'suspended', label: '정지' },
 ]
 
-const GRADES = ['일반', '의사', '원장']
-const GRADE_CLASS = { 일반: 'general', 의사: 'doctor', 원장: 'director' }
+// 회원유형: 의사(의사면허 보유자·모든 서비스) / 병원(병원·의원 소속 관계자) / 일반
+const GRADES = ['의사', '병원', '일반']
+const GRADE_CLASS = { 의사: 'doctor', 병원: 'hospital', 일반: 'general' }
 
 function formatDate(iso) {
   const [y, m, d] = iso.split('-')

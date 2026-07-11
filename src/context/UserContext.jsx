@@ -61,14 +61,14 @@ export function UserProvider({ children }) {
     setUser(u)
   }, [])
 
-  // ── 이메일 회원가입 (인증 메일 발송) — 이름/휴대폰번호는 2단계에서 수집 ──
-  const signUpWithEmail = useCallback(async ({ email, password, name, phone }) => {
+  // ── 이메일 회원가입 (인증 메일 발송) — 이름/휴대폰번호/회원유형은 2단계에서 수집 ──
+  const signUpWithEmail = useCallback(async ({ email, password, name, phone, grade }) => {
     if (!isSupabaseConfigured) return { error: 'not-configured' }
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: { name, phone, grade: '일반' },
+        data: { name, phone, grade: grade || '일반' },
         emailRedirectTo: window.location.origin,
       },
     })
@@ -169,7 +169,8 @@ export function useUser() {
   return useContext(UserContext)
 }
 
-// 매거진 열람 권한 판정 (의사/원장 등급만)
+// 회원유형: 의사(의사면허 보유자·모든 서비스) / 병원(병원·의원 소속 관계자) / 일반
+// 매거진 열람 권한 판정 — 의사 회원 전용
 export function canReadMagazine(user) {
-  return !!user && (user.grade === '의사' || user.grade === '원장')
+  return !!user && user.grade === '의사'
 }
