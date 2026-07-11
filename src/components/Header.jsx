@@ -59,7 +59,9 @@ export default function Header() {
         <div className="header__cta">
           {user ? (
             <>
-              <span className="header__user">{user.grade} 회원</span>
+              <span className="header__user">
+                <b>{user.name}</b> 님 · {user.grade} 회원
+              </span>
               <button className="btn btn--login" onClick={handleLogout}>
                 로그아웃
               </button>
@@ -84,9 +86,14 @@ export default function Header() {
           <NavItem key={item.to || item.href} item={item} onClick={closeMenu} />
         ))}
         {user ? (
-          <button className="mobile-login" onClick={handleLogout}>
-            로그아웃 ({user.grade})
-          </button>
+          <>
+            <div className="mobile-user">
+              <b>{user.name}</b> 님 · {user.grade} 회원
+            </div>
+            <button className="mobile-login" onClick={handleLogout}>
+              로그아웃
+            </button>
+          </>
         ) : (
           <button className="mobile-login" onClick={handleLogin}>
             로그인

@@ -339,6 +339,10 @@ ul {
   font-size: 0.9rem;
   white-space: nowrap;
 }
+.header__user b {
+  color: #fff;
+  font-weight: 700;
+}
 .nav-toggle {
   display: none;
   color: #fff;
@@ -2564,6 +2568,16 @@ ul {
     font-weight: 600;
     text-align: left;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  .mobile-menu .mobile-user {
+    padding: 14px 0 6px;
+    color: var(--blue-300);
+    font-weight: 600;
+    font-size: 0.92rem;
+  }
+  .mobile-menu .mobile-user b {
+    color: #fff;
+    font-weight: 700;
   }
   .mobile-menu .btn {
     width: 100%;
