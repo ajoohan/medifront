@@ -31,7 +31,7 @@ export default function PainPoints() {
             <br />
             개원절차와 성장은 메디프론트가,
             <br />
-            전담팀과 시스템이 병∙의원 개원과 마케팅을 책임집니다.
+            병∙의원 개원과 마케팅을 책임집니다.
           </p>
         </div>
       </div>
