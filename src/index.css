@@ -2284,6 +2284,34 @@ ul {
   }
 }
 
+/* ---------- 매거진 상세 페이지 ---------- */
+.mag-article {
+  max-width: 780px;
+  font-size: 1.05rem;
+  line-height: 1.9;
+  color: var(--ink-700);
+}
+.mag-article__title {
+  max-width: 900px;
+  margin-inline: auto;
+}
+.mag-article img {
+  max-width: 100%;
+  border-radius: 12px;
+  margin: 14px 0;
+}
+.mag-article b,
+.mag-article strong {
+  color: var(--navy-800);
+}
+.mag-article__footer {
+  margin-top: 44px;
+  padding-top: 26px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  justify-content: center;
+}
+
 /* ---------- 약관/개인정보처리방침 문서 페이지 ---------- */
 .policy {
   max-width: 860px;

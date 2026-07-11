@@ -138,3 +138,8 @@ export function UserProvider({ children }) {
 export function useUser() {
   return useContext(UserContext)
 }
+
+// 매거진 열람 권한 판정 (의사/원장 등급만)
+export function canReadMagazine(user) {
+  return !!user && (user.grade === '의사' || user.grade === '원장')
+}

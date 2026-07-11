@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { MAGAZINE_CATEGORIES } from '../data'
 import { IconArrowRight } from './Icons'
 import { loadArticles } from '../lib/magazineStore'
@@ -54,7 +55,7 @@ export default function Magazine() {
 
         <div className="magazine__grid">
           {items.map((a) => (
-            <article className="mag-card" key={a.id ?? a.title}>
+            <Link className="mag-card" to={`/magazine/${a.id}`} key={a.id ?? a.title}>
               <div className="mag-card__thumb" style={thumbStyle(a)}>
                 {a.category && <span className="mag-card__cat">{a.category}</span>}
               </div>
@@ -72,7 +73,7 @@ export default function Magazine() {
                   </span>
                 </div>
               </div>
-            </article>
+            </Link>
           ))}
         </div>
 

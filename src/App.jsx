@@ -5,6 +5,7 @@ import ScrollToTop from './components/ScrollToTop'
 import LoginModal from './components/LoginModal'
 import HomePage from './pages/HomePage'
 import MagazinePage from './pages/MagazinePage'
+import MagazineDetailPage from './pages/MagazineDetailPage'
 import ResetPasswordPage from './pages/ResetPasswordPage'
 import TermsPage from './pages/TermsPage'
 import PrivacyPage from './pages/PrivacyPage'
@@ -25,6 +26,7 @@ function Shell() {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/magazine" element={<MagazinePage />} />
+          <Route path="/magazine/:id" element={<MagazineDetailPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/terms" element={<TermsPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
