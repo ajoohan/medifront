@@ -47,3 +47,15 @@ drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
+
+-- 이미 가입되어 있는 계정 일괄 등록 (관리자 수동 추가·이메일 가입 모두 포함, 중복은 건너뜀)
+insert into public.members (name, email, phone, grade, joined_at)
+select
+  coalesce(u.raw_user_meta_data->>'name', split_part(u.email, '@', 1)),
+  u.email,
+  coalesce(u.raw_user_meta_data->>'phone', '-'),
+  coalesce(u.raw_user_meta_data->>'grade', '일반'),
+  u.created_at::date
+from auth.users u
+where u.email is not null
+on conflict (email) do nothing;

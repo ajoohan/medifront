@@ -41,6 +41,16 @@ function formatDate(iso) {
   return `${y}.${m}.${d}`
 }
 
+// DB 테이블 생성 전 임시 보존(브라우저 저장) — 새로고침해도 추가/변경이 유지되도록
+const LOCAL_KEY = 'medifront_members_local'
+function loadLocalMembers() {
+  try {
+    return JSON.parse(localStorage.getItem(LOCAL_KEY))
+  } catch {
+    return null
+  }
+}
+
 // 수동 추가 폼 초기값 — password 미입력 시 기본 비밀번호(medifront2026) 사용
 const EMPTY_DRAFT = {
   name: '',
@@ -53,7 +63,7 @@ const EMPTY_DRAFT = {
 }
 
 export default function MembersAdmin() {
-  const [members, setMembers] = useState(MOCK_MEMBERS)
+  const [members, setMembers] = useState(() => loadLocalMembers() || MOCK_MEMBERS)
   const [queryInput, setQueryInput] = useState('')
   const [q, setQ] = useState('')
   const [filter, setFilter] = useState('all')
@@ -76,11 +86,21 @@ export default function MembersAdmin() {
       } else if (isSupabaseConfigured) {
         setNotice({
           type: 'warn',
-          text: '회원 DB 테이블(members)이 아직 없어 임시 목록을 표시합니다. supabase/members-setup.sql 을 Supabase SQL Editor에서 실행하면 실데이터로 전환됩니다.',
+          text: '회원 DB 테이블(members)이 아직 없어 이 브라우저에만 임시 저장됩니다. supabase/members-setup.sql 을 Supabase SQL Editor에서 실행하면 실데이터로 전환됩니다.',
         })
       }
     })
   }, [])
+
+  // DB 미연결 동안에는 목록 변경을 브라우저에 보존 (새로고침 유지)
+  useEffect(() => {
+    if (dbReady) return
+    try {
+      localStorage.setItem(LOCAL_KEY, JSON.stringify(members))
+    } catch {
+      // 저장 공간 부족 시 보존 생략 (동작에는 영향 없음)
+    }
+  }, [members, dbReady])
 
   const filtered = useMemo(() => {
     const keyword = q.trim()

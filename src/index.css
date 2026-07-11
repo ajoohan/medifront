@@ -1788,16 +1788,18 @@ ul {
   margin-top: auto;
   padding: 11px 14px;
   border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: rgba(255, 255, 255, 0.8);
-  font-weight: 600;
+  border: 1px solid rgba(239, 68, 68, 0.55);
+  background: rgba(239, 68, 68, 0.16);
+  color: #fca5a5;
+  font-weight: 700;
   font-size: 0.9rem;
   transition:
     background 0.15s,
     color 0.15s;
 }
 .admin__logout:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: #ef4444;
+  border-color: #ef4444;
   color: #fff;
 }
 .admin__main {
