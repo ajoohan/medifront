@@ -116,6 +116,14 @@ export default function LoginModal({ open, onClose }) {
     setInfo('')
   }
 
+  // 비밀번호 칸에서 엔터 → 로그인 버튼과 동일하게 제출 (IME 조합 중 엔터는 무시)
+  const submitOnEnter = (e) => {
+    if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
+      e.preventDefault()
+      e.currentTarget.form?.requestSubmit()
+    }
+  }
+
   const submitLogin = async (e) => {
     e.preventDefault()
     setMsg('')
@@ -271,6 +279,7 @@ export default function LoginModal({ open, onClose }) {
                   autoComplete="current-password"
                   value={form.password}
                   onChange={set('password')}
+                  onKeyDown={submitOnEnter}
                   required
                 />
               </div>

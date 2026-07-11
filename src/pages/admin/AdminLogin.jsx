@@ -53,6 +53,13 @@ export default function AdminLogin({ onLogin }) {
             placeholder="비밀번호"
             value={pw}
             onChange={(e) => setPw(e.target.value)}
+            onKeyDown={(e) => {
+              // 엔터 → 로그인 버튼과 동일하게 제출 (IME 조합 중 엔터는 무시)
+              if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
+                e.preventDefault()
+                e.currentTarget.form?.requestSubmit()
+              }
+            }}
             required
           />
         </div>

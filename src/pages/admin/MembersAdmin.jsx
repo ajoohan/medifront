@@ -1,6 +1,27 @@
 import { useEffect, useMemo, useState } from 'react'
 import { MOCK_MEMBERS } from '../../mock/members'
 import { formatPhone } from '../../lib/phone'
+import { supabase, isSupabaseConfigured } from '../../lib/supabase'
+
+// 수동 추가 회원의 기본 비밀번호 (첫 로그인 후 아이디/비밀번호 찾기로 변경 안내)
+const DEFAULT_PASSWORD = 'medifront2026'
+
+// 수동 추가 회원의 실제 로그인 계정 생성 (인증 메일 자동 발송)
+async function createLoginAccount({ email, name, phone, grade }) {
+  if (!isSupabaseConfigured) return { error: 'not-configured' }
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password: DEFAULT_PASSWORD,
+    options: {
+      data: { name, phone, grade },
+      emailRedirectTo: window.location.origin,
+    },
+  })
+  if (error) return { error: error.message }
+  // 이미 가입된 이메일이면 identities가 빈 배열로 옴
+  if (data.user && data.user.identities?.length === 0) return { error: 'already-registered' }
+  return { ok: true }
+}
 
 const PAGE_SIZE = 20
 
@@ -33,6 +54,8 @@ export default function MembersAdmin() {
   const [page, setPage] = useState(1)
   const [adding, setAdding] = useState(false)
   const [draft, setDraft] = useState(EMPTY_DRAFT)
+  const [busy, setBusy] = useState(false)
+  const [notice, setNotice] = useState(null) // { type: 'ok' | 'warn', text }
 
   const filtered = useMemo(() => {
     const keyword = q.trim()
@@ -88,7 +111,7 @@ export default function MembersAdmin() {
   // ── 회원 수동 추가 ──
   const setD = (key) => (e) => setDraft((d) => ({ ...d, [key]: e.target.value }))
 
-  const addMember = (e) => {
+  const addMember = async (e) => {
     e.preventDefault()
     const email = draft.email.trim()
     if (members.some((m) => m.email === email)) {
@@ -106,6 +129,33 @@ export default function MembersAdmin() {
       joinedAt: new Date().toISOString().slice(0, 10),
       status: 'active',
     }
+
+    // 실제 로그인 계정 생성 — 기본 비밀번호 medifront2026
+    setBusy(true)
+    const account = await createLoginAccount(newMember)
+    setBusy(false)
+    if (account.ok) {
+      setNotice({
+        type: 'ok',
+        text: `회원 등록 완료 — ${email} 계정이 생성되었습니다. 기본 비밀번호는 ${DEFAULT_PASSWORD} 이며, 인증 메일 확인 후 로그인할 수 있습니다.`,
+      })
+    } else if (account.error === 'already-registered') {
+      setNotice({
+        type: 'warn',
+        text: '회원 목록에 추가했습니다 — 이미 가입된 이메일이라 로그인 계정은 새로 만들지 않았습니다.',
+      })
+    } else if (account.error === 'not-configured') {
+      setNotice({
+        type: 'warn',
+        text: '회원 목록에 추가했습니다 — 인증 서버 미연결로 로그인 계정은 생성되지 않았습니다.',
+      })
+    } else {
+      setNotice({
+        type: 'warn',
+        text: `회원 목록에 추가했습니다 — 로그인 계정 생성 실패: ${account.error}`,
+      })
+    }
+
     setMembers((ms) => [newMember, ...ms])
     // 새 회원이 바로 보이도록 검색/필터 초기화 후 첫 페이지로
     setQueryInput('')
@@ -167,6 +217,15 @@ export default function MembersAdmin() {
           {adding ? '추가 취소' : '+ 회원 추가'}
         </button>
       </div>
+
+      {notice && (
+        <div className={`admin-notice admin-notice--${notice.type}`}>
+          {notice.text}
+          <button className="admin-notice__close" onClick={() => setNotice(null)} aria-label="닫기">
+            ✕
+          </button>
+        </div>
+      )}
 
       {adding && (
         <form className="admin-add" onSubmit={addMember}>
@@ -235,8 +294,8 @@ export default function MembersAdmin() {
             </label>
           </div>
           <div className="admin-add__actions">
-            <button type="submit" className="btn btn--primary">
-              회원 추가
+            <button type="submit" className="btn btn--primary" disabled={busy}>
+              {busy ? '등록 중...' : '회원 추가'}
             </button>
             <button
               type="button"
@@ -249,6 +308,10 @@ export default function MembersAdmin() {
               취소
             </button>
           </div>
+          <p className="admin-add__hint">
+            등록 시 로그인 계정이 함께 생성됩니다 — 기본 비밀번호 {DEFAULT_PASSWORD} · 인증 메일
+            발송
+          </p>
         </form>
       )}
 
