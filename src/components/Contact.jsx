@@ -126,7 +126,11 @@ export default function Contact() {
             </ul>
 
             <div className="direct-consult">
-              <button type="button" className="btn btn--primary btn--lg" onClick={onDirectConsult}>
+              <button
+                type="button"
+                className="btn btn--lg direct-consult__btn"
+                onClick={onDirectConsult}
+              >
                 1:1 상담하기
               </button>
               {gateMsg && <p className="direct-consult__msg">{gateMsg}</p>}

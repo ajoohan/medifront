@@ -6,7 +6,7 @@ function FaqItem({ item, open, onToggle }) {
     <div className={`faq-item ${open ? 'open' : ''}`}>
       <button className="faq-item__q" onClick={onToggle} aria-expanded={open}>
         <span>{item.q}</span>
-        <span className="plus">+</span>
+        <span className="plus">{open ? '−' : '+'}</span>
       </button>
       <div className="faq-item__a">
         <p>{item.a}</p>

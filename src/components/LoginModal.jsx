@@ -291,7 +291,6 @@ export default function LoginModal({ open, onClose }) {
                   onChange={(e) => setAutoLogin(e.target.checked)}
                 />
                 <span>자동 로그인</span>
-                <small>체크 해제 시 브라우저 종료 후 로그아웃됩니다</small>
               </label>
 
               {!authReady && (
