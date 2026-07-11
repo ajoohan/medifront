@@ -1671,7 +1671,8 @@ ul {
 .footer {
   background: var(--navy-900);
   color: rgba(226, 233, 245, 0.7);
-  padding-block: 56px 30px;
+  /* 하단 고정 1:1 문의 바(약 58px)에 가리지 않도록 아래 여백 확보 */
+  padding: 56px 0 86px;
 }
 .footer__top {
   display: grid;
@@ -2103,51 +2104,32 @@ ul {
   border-color: var(--primary);
   color: var(--primary);
 }
-/* 화면에 떠다니는 1:1 문의 버튼 */
+/* 화면 하단에 고정되어 따라다니는 전체 폭 1:1 문의 바 */
 .floating-inquiry {
   position: fixed;
-  right: clamp(16px, 4vw, 40px);
-  bottom: clamp(16px, 4vw, 40px);
+  left: 0;
+  right: 0;
+  bottom: 0;
   z-index: 90;
-  display: inline-flex;
+  display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
-  padding: 14px 22px;
-  border-radius: 999px;
+  width: 100%;
+  padding: 16px;
+  border-radius: 0;
   background: linear-gradient(135deg, #f97316, #ea580c);
   color: #fff;
   font-weight: 800;
-  font-size: 0.98rem;
-  box-shadow: 0 12px 30px rgba(234, 88, 12, 0.4);
-  transition:
-    transform 0.15s,
-    box-shadow 0.15s;
+  font-size: 1.02rem;
+  box-shadow: 0 -6px 24px rgba(234, 88, 12, 0.28);
+  transition: background 0.15s;
 }
 .floating-inquiry:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 18px 40px rgba(234, 88, 12, 0.5);
+  background: linear-gradient(135deg, #fb8a3c, #f97316);
 }
 .floating-inquiry svg {
   flex-shrink: 0;
-}
-.floating-inquiry__toast {
-  position: fixed;
-  right: clamp(16px, 4vw, 40px);
-  bottom: calc(clamp(16px, 4vw, 40px) + 62px);
-  z-index: 90;
-  padding: 10px 16px;
-  border-radius: 10px;
-  background: rgba(15, 23, 42, 0.92);
-  color: #fff;
-  font-size: 0.86rem;
-  font-weight: 600;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
-}
-@media (max-width: 640px) {
-  .floating-inquiry {
-    padding: 13px 18px;
-    font-size: 0.92rem;
-  }
 }
 /* 1:1 문의 (비공개 게시판) */
 .inquiry-modal {
