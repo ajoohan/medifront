@@ -19,7 +19,7 @@ export default function Results() {
             <br />
             성공 개원의 결과
           </h2>
-          <p>진료과목을 가리지 않고, 데이터로 관리한 병원은 다르게 성장합니다.</p>
+          <p>메디프론트와 함께하는 병원은 다르게 성장합니다.</p>
         </div>
 
         <div className="results__grid reveal">
