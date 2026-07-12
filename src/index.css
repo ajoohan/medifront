@@ -1574,7 +1574,11 @@ ul {
   color: var(--muted);
   font-size: 0.92rem;
 }
+/* 폼 세로 간격은 flex gap 하나로 통일 (필드·행·동의·버튼 모두 동일 간격) */
 .form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
   background: var(--paper);
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
@@ -1584,10 +1588,10 @@ ul {
 .form__row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  gap: 18px;
 }
 .field {
-  margin-bottom: 16px;
+  margin-bottom: 0;
 }
 .field label {
   display: block;
@@ -1639,7 +1643,7 @@ ul {
   align-items: flex-start;
   font-size: 0.85rem;
   color: var(--muted);
-  margin: 6px 0 20px;
+  margin: 0;
 }
 .form__consent input {
   margin-top: 3px;
@@ -1653,7 +1657,6 @@ ul {
   color: #0f766e;
   font-weight: 600;
   text-align: center;
-  margin-bottom: 16px;
 }
 .form__error {
   padding: 14px 16px;
@@ -1664,7 +1667,6 @@ ul {
   font-size: 0.9rem;
   font-weight: 600;
   text-align: center;
-  margin-bottom: 14px;
 }
 
 /* ---------- Footer ---------- */
@@ -2151,6 +2153,11 @@ ul {
   margin: 6px 0 16px;
   font-size: 0.88rem;
   color: var(--muted);
+}
+.inquiry-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
 }
 .inquiry-form textarea {
   width: 100%;
