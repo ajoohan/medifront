@@ -46,9 +46,10 @@ export default function Header() {
   return (
     <header className={`header ${scrolled ? 'header--scrolled' : 'header--top'}`}>
       <div className="container header__inner">
-        <Link to="/" className="brand" onClick={closeMenu} aria-label="메디프론트 홈">
+        {/* 로고 클릭 시 기본 주소로 전체 새로고침 (SPA 이동 대신 페이지 리프레시) */}
+        <a href="/" className="brand" aria-label="메디프론트 홈">
           <Logo variant="light" />
-        </Link>
+        </a>
 
         <nav className="nav">
           {NAV.map((item) => (
