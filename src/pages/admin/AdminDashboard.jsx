@@ -8,10 +8,10 @@ import ConsultMeetingAdmin, { ConsultDirectAdmin } from './ConsultAdmin'
 
 const ADMIN_VERSION = 'Version 0.7'
 
-const VIEWS = [
-  { key: 'dashboard', label: '대시보드', component: DashboardAdmin },
-  { key: 'members', label: '회원관리', component: MembersAdmin },
-]
+// 대시보드는 사이드바 메뉴에 노출하지 않고, 로그인 기본 화면·로고 클릭 대상으로만 사용
+const DASHBOARD_VIEW = { key: 'dashboard', label: '대시보드', component: DashboardAdmin }
+
+const VIEWS = [{ key: 'members', label: '회원관리', component: MembersAdmin }]
 
 // 콘텐츠 관리 서브메뉴 (성과 관리 / 매거진 관리)
 const CONTENT_VIEWS = [
@@ -27,7 +27,7 @@ const CONSULT_VIEWS = [
 
 const SETTINGS_VIEW = { key: 'settings', label: '설정', component: SettingsAdmin }
 
-const ALL_VIEWS = [...VIEWS, ...CONTENT_VIEWS, ...CONSULT_VIEWS, SETTINGS_VIEW]
+const ALL_VIEWS = [DASHBOARD_VIEW, ...VIEWS, ...CONTENT_VIEWS, ...CONSULT_VIEWS, SETTINGS_VIEW]
 
 // 드롭다운 그룹 메뉴 — 상위 메뉴와 동일 스타일, 클릭 시 서브메뉴 펼침/접힘
 function NavGroup({ label, views, open, onToggle, view, setView }) {
