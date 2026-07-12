@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useUser } from '../context/UserContext'
 import { fetchMyInquiries, createInquiry } from '../lib/inquiriesDb'
-import { formatPhone } from '../lib/phone'
 
 function formatDateTime(iso) {
   const d = new Date(iso)
@@ -9,12 +8,17 @@ function formatDateTime(iso) {
   return `${d.getFullYear()}.${p(d.getMonth() + 1)}.${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`
 }
 
+// 제목란 없이 내용만 받으므로, 내용 앞부분으로 목록용 제목을 자동 생성
+function deriveTitle(content) {
+  const firstLine = content.trim().split('\n')[0].trim()
+  return firstLine.slice(0, 30) || '1:1 문의'
+}
+
 // 1:1 상담 — 비공개 문의. 로그인 회원은 본인 문의 내역·답변 확인 가능,
 // 비로그인 방문자는 이름·연락처를 남기고 문의만 접수(내역 확인 없음).
 export default function InquiryModal({ open, onClose }) {
   const { user } = useUser()
-  const [guest, setGuest] = useState({ name: '', phone: '', email: '' })
-  const [title, setTitle] = useState('')
+  const [guest, setGuest] = useState({ name: '', email: '' })
   const [content, setContent] = useState('')
   const [list, setList] = useState([])
   const [available, setAvailable] = useState(true) // inquiries 테이블 사용 가능 여부
@@ -33,9 +37,8 @@ export default function InquiryModal({ open, onClose }) {
 
   useEffect(() => {
     if (open) {
-      setTitle('')
       setContent('')
-      setGuest({ name: '', phone: '', email: '' })
+      setGuest({ name: '', email: '' })
       setInfo('')
       load()
     }
@@ -60,26 +63,27 @@ export default function InquiryModal({ open, onClose }) {
     e.preventDefault()
     setInfo('')
     setBusy(true)
-    // 로그인 회원은 계정 정보 사용, 비로그인은 입력한 이름·연락처를 기록
+    // 제목은 내용 앞부분으로 자동 생성 (관리자 목록 표시용)
+    const title = deriveTitle(content)
+    // 로그인 회원은 계정 정보 사용, 비로그인은 입력한 이름·이메일을 기록
     const payload = user
-      ? { email: user.email, name: user.name, title: title.trim(), content: content.trim() }
+      ? { email: user.email, name: user.name, title, content: content.trim() }
       : {
-          email: guest.email.trim() || '-',
-          name: `${guest.name.trim()} (${guest.phone.trim()})`,
-          title: title.trim(),
+          email: guest.email.trim(),
+          name: guest.name.trim(),
+          title,
           content: content.trim(),
         }
     const r = await createInquiry(payload)
     setBusy(false)
     if (r.ok) {
-      setTitle('')
       setContent('')
       if (user) {
         setInfo('문의가 접수되었습니다. 답변이 등록되면 이 창에서 확인할 수 있습니다.')
         load()
       } else {
-        setGuest({ name: '', phone: '', email: '' })
-        setInfo('문의가 접수되었습니다. 담당 컨설턴트가 남겨주신 연락처로 답변드리겠습니다.')
+        setGuest({ name: '', email: '' })
+        setInfo('문의가 접수되었습니다. 담당 컨설턴트가 남겨주신 이메일로 답변드리겠습니다.')
       }
     } else {
       setInfo(`접수에 실패했습니다: ${r.error}`)
@@ -125,42 +129,18 @@ export default function InquiryModal({ open, onClose }) {
                   </div>
                   <div className="field">
                     <label>
-                      연락처 <span className="req">*</span>
+                      이메일 <span className="req">*</span>
                     </label>
                     <input
-                      type="tel"
-                      inputMode="numeric"
-                      placeholder="010-0000-0000"
-                      value={guest.phone}
-                      onChange={(e) =>
-                        setGuest((g) => ({ ...g, phone: formatPhone(e.target.value) }))
-                      }
+                      type="email"
+                      placeholder="you@example.com"
+                      value={guest.email}
+                      onChange={(e) => setGuest((g) => ({ ...g, email: e.target.value }))}
                       required
                     />
                   </div>
                 </div>
               )}
-              {!user && (
-                <div className="field">
-                  <label>이메일 (선택)</label>
-                  <input
-                    type="email"
-                    placeholder="you@example.com"
-                    value={guest.email}
-                    onChange={(e) => setGuest((g) => ({ ...g, email: e.target.value }))}
-                  />
-                </div>
-              )}
-              <div className="field">
-                <label>제목</label>
-                <input
-                  type="text"
-                  placeholder="문의 제목을 입력하세요"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  required
-                />
-              </div>
               <div className="field">
                 <label>문의 내용</label>
                 <textarea
