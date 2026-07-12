@@ -2,10 +2,6 @@ import { useEffect, useState } from 'react'
 import Logo from './Logo'
 import { useUser } from '../context/UserContext'
 import { formatPhone } from '../lib/phone'
-import { isSupabaseMisconfigured } from '../lib/supabase'
-
-const MISCONFIG_MSG =
-  '인증 서버 설정 오류로 로그인할 수 없습니다. 관리자에게 문의해 주세요. (환경변수 손상)'
 
 // 회원유형 — 가입 2단계에서 선택 (매거진은 의사 회원 전용)
 const MEMBER_TYPES = [
@@ -33,40 +29,10 @@ function tr(err) {
   return err
 }
 
-const GoogleIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
-    <path
-      fill="#4285F4"
-      d="M23.5 12.27c0-.85-.08-1.66-.22-2.45H12v4.64h6.45a5.52 5.52 0 0 1-2.39 3.62v3h3.86c2.26-2.08 3.58-5.15 3.58-8.81Z"
-    />
-    <path
-      fill="#34A853"
-      d="M12 24c3.24 0 5.96-1.07 7.94-2.91l-3.86-3c-1.07.72-2.44 1.15-4.08 1.15-3.13 0-5.78-2.11-6.73-4.96H1.28v3.09A12 12 0 0 0 12 24Z"
-    />
-    <path
-      fill="#FBBC05"
-      d="M5.27 14.28A7.2 7.2 0 0 1 4.89 12c0-.79.14-1.56.38-2.28V6.63H1.28a12 12 0 0 0 0 10.74l3.99-3.09Z"
-    />
-    <path
-      fill="#EA4335"
-      d="M12 4.77c1.76 0 3.34.6 4.58 1.79l3.43-3.43A11.98 11.98 0 0 0 12 0 12 12 0 0 0 1.28 6.63l3.99 3.09C6.22 6.88 8.87 4.77 12 4.77Z"
-    />
-  </svg>
-)
-
-const AppleIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-    <path d="M16.36 12.79c.03 3.26 2.86 4.34 2.89 4.36-.02.08-.45 1.55-1.49 3.07-.9 1.31-1.83 2.62-3.3 2.65-1.44.03-1.9-.85-3.55-.85-1.65 0-2.16.82-3.52.88-1.42.05-2.5-1.42-3.4-2.73C2.14 17.5.73 12.62 2.62 9.4a5.27 5.27 0 0 1 4.45-2.7c1.39-.03 2.7.93 3.55.93.85 0 2.44-1.15 4.12-.98.7.03 2.66.28 3.92 2.13-.1.06-2.34 1.37-2.3 4.01ZM13.63 4.87c.75-.91 1.26-2.17 1.12-3.43-1.08.04-2.39.72-3.17 1.63-.7.8-1.3 2.09-1.14 3.32 1.2.1 2.44-.61 3.19-1.52Z" />
-  </svg>
-)
-
 export default function LoginModal({ open, onClose }) {
   const {
-    authReady,
-    demoLogin,
     signUpWithEmail,
     signInWithEmail,
-    signInWithProvider,
     resendVerification,
     requestPasswordReset,
     getLoginPrefs,
@@ -78,7 +44,7 @@ export default function LoginModal({ open, onClose }) {
   const [mode, setMode] = useState('login')
   const [form, setForm] = useState({ email: '', password: '', confirm: '', name: '', phone: '' })
   const [agree, setAgree] = useState(false)
-  const [grade, setGrade] = useState('일반') // 회원유형 (가입 2단계 선택 · 데모 로그인 공용)
+  const [grade, setGrade] = useState('일반') // 회원유형 (가입 2단계 선택)
   const [autoLogin, setAutoLogin] = useState(true) // 자동 로그인
   const [msg, setMsg] = useState('')
   const [info, setInfo] = useState('')
@@ -131,16 +97,6 @@ export default function LoginModal({ open, onClose }) {
   const submitLogin = async (e) => {
     e.preventDefault()
     setMsg('')
-    if (!authReady) {
-      if (isSupabaseMisconfigured) {
-        setMsg(MISCONFIG_MSG)
-        return
-      }
-      // 데모 모드: 선택한 등급으로 로그인
-      demoLogin({ name: form.email.trim() || '데모 회원', grade })
-      onClose()
-      return
-    }
     setBusy(true)
     const r = await signInWithEmail({
       email: form.email.trim(),
@@ -167,10 +123,6 @@ export default function LoginModal({ open, onClose }) {
   const submitSignup2 = async (e) => {
     e.preventDefault()
     setMsg('')
-    if (!authReady) {
-      setMsg(tr('not-configured'))
-      return
-    }
     setBusy(true)
     const r = await signUpWithEmail({
       email: form.email.trim(),
@@ -182,17 +134,6 @@ export default function LoginModal({ open, onClose }) {
     setBusy(false)
     if (r.error) setMsg(tr(r.error))
     else switchMode('verify')
-  }
-
-  const social = async (provider) => {
-    setMsg('')
-    if (!authReady) {
-      setMsg(tr('not-configured'))
-      return
-    }
-    const r = await signInWithProvider(provider)
-    if (r.error) setMsg(tr(r.error))
-    // 성공 시 OAuth 페이지로 리다이렉트됨
   }
 
   const resend = async () => {
@@ -211,43 +152,6 @@ export default function LoginModal({ open, onClose }) {
     if (r.error) setMsg(tr(r.error))
     else setInfo('비밀번호 재설정 메일을 보냈습니다. 메일의 링크에서 새 비밀번호를 설정하세요.')
   }
-
-  // 소셜 로그인: 각 제공자 설정 완료 후 true로 변경
-  // - Google: Supabase > Authentication > Providers 에 Google Cloud OAuth ID/Secret 등록 후
-  // - Apple: Apple Developer 계정($99/년) 등록 후
-  const ENABLE_GOOGLE = false
-  const ENABLE_APPLE = false
-  const hasSocial = ENABLE_GOOGLE || ENABLE_APPLE
-
-  const socialButtons = hasSocial && (
-    <>
-      <div className="login-modal__divider">
-        <span>또는</span>
-      </div>
-      <div className="auth-social">
-        {ENABLE_GOOGLE && (
-          <button
-            type="button"
-            className="auth-social__btn auth-social__btn--google"
-            onClick={() => social('google')}
-          >
-            <GoogleIcon />
-            Google로 계속하기
-          </button>
-        )}
-        {ENABLE_APPLE && (
-          <button
-            type="button"
-            className="auth-social__btn auth-social__btn--apple"
-            onClick={() => social('apple')}
-          >
-            <AppleIcon />
-            Apple로 계속하기
-          </button>
-        )}
-      </div>
-    </>
-  )
 
   return (
     <div className="modal-overlay" onClick={onClose} role="dialog" aria-modal="true">
@@ -301,26 +205,6 @@ export default function LoginModal({ open, onClose }) {
                 <span>자동 로그인</span>
               </label>
 
-              {!authReady && !isSupabaseMisconfigured && (
-                <div className="field login-modal__pw">
-                  <label>
-                    회원유형 <span className="login-modal__demo">데모</span>
-                  </label>
-                  <div className="login-modal__grades">
-                    {MEMBER_TYPES.map((t) => (
-                      <button
-                        key={t.value}
-                        type="button"
-                        className={grade === t.value ? 'is-active' : undefined}
-                        onClick={() => setGrade(t.value)}
-                      >
-                        {t.value}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
               <button
                 type="submit"
                 className="btn btn--primary btn--lg"
@@ -330,8 +214,6 @@ export default function LoginModal({ open, onClose }) {
                 {busy ? '로그인 중...' : '로그인'}
               </button>
             </form>
-
-            {socialButtons}
 
             <div className="login-modal__links">
               <button type="button" className="auth-strong" onClick={() => switchMode('signup')}>
@@ -383,9 +265,6 @@ export default function LoginModal({ open, onClose }) {
         {/* ── 회원가입 ── */}
         {mode === 'signup' && (
           <>
-            {!authReady && (
-              <div className="auth-notice">인증 서버(Supabase) 연결 후 가입이 활성화됩니다.</div>
-            )}
             <form onSubmit={submitSignup}>
               <div className="field">
                 <label>이메일</label>
@@ -430,8 +309,6 @@ export default function LoginModal({ open, onClose }) {
                 이메일로 가입하기
               </button>
             </form>
-
-            {socialButtons}
 
             <div className="login-modal__links">
               <span>이미 계정이 있으신가요?</span>
@@ -551,14 +428,6 @@ export default function LoginModal({ open, onClose }) {
               </button>
             </div>
           </div>
-        )}
-
-        {!authReady && mode !== 'verify' && (
-          <p className="login-modal__note">
-            {isSupabaseMisconfigured
-              ? '* 인증 서버 환경변수가 손상되어 로그인이 비활성화되었습니다.'
-              : '* 현재 데모 모드입니다. (인증 서버 연결 전)'}
-          </p>
         )}
       </div>
     </div>

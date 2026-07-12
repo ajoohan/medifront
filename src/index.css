@@ -1010,42 +1010,6 @@ ul {
 .login-modal__pw {
   margin-bottom: 20px;
 }
-.login-modal__demo {
-  font-size: 0.7rem;
-  font-weight: 700;
-  color: var(--primary);
-  background: var(--paper-blue);
-  padding: 2px 7px;
-  border-radius: 999px;
-  margin-left: 4px;
-}
-.login-modal__grades {
-  display: flex;
-  gap: 8px;
-}
-.login-modal__grades button {
-  flex: 1;
-  padding: 11px 0;
-  border-radius: 10px;
-  border: 1px solid var(--line);
-  background: #fff;
-  font-weight: 700;
-  font-size: 0.92rem;
-  color: var(--ink-700);
-  transition:
-    background 0.15s,
-    border-color 0.15s,
-    color 0.15s;
-}
-.login-modal__grades button:hover {
-  border-color: var(--primary);
-  color: var(--primary);
-}
-.login-modal__grades button.is-active {
-  background: var(--primary);
-  border-color: var(--primary);
-  color: #fff;
-}
 .login-modal__links {
   display: flex;
   align-items: center;
@@ -1065,62 +1029,7 @@ ul {
 .login-modal__links span {
   color: var(--line);
 }
-.login-modal__note {
-  text-align: center;
-  color: var(--ink-300);
-  font-size: 0.76rem;
-  margin-top: 18px;
-}
 /* ── 인증(로그인/회원가입) 공통 ── */
-.login-modal__divider {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin: 20px 0 14px;
-  color: var(--ink-300);
-  font-size: 0.8rem;
-}
-.login-modal__divider::before,
-.login-modal__divider::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: var(--line);
-}
-.auth-social {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.auth-social__btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  width: 100%;
-  padding: 13px 0;
-  border-radius: 10px;
-  font-weight: 700;
-  font-size: 0.95rem;
-  transition:
-    filter 0.15s,
-    background 0.15s;
-}
-.auth-social__btn--google {
-  background: #fff;
-  border: 1px solid var(--line);
-  color: #3c4043;
-}
-.auth-social__btn--google:hover {
-  background: var(--paper-soft);
-}
-.auth-social__btn--apple {
-  background: #000;
-  color: #fff;
-}
-.auth-social__btn--apple:hover {
-  filter: brightness(1.25);
-}
 .auth-error {
   background: rgba(239, 68, 68, 0.1);
   color: #dc2626;
@@ -1495,45 +1404,6 @@ ul {
   margin-top: 22px;
   font-size: 0.86rem;
   color: var(--blue-300);
-}
-
-/* 1:1 상담하기 — 로그인 회원 전용 */
-.direct-consult {
-  margin-top: 30px;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 10px;
-}
-.direct-consult .btn {
-  width: 100%;
-  max-width: 320px;
-}
-/* 직사각형(모서리 각짐) + 주황 그라데이션으로 강조 */
-.direct-consult__btn {
-  border-radius: 0;
-  background: linear-gradient(135deg, #f97316, #ea580c);
-  color: #fff;
-  font-weight: 800;
-  box-shadow: 0 10px 24px rgba(234, 88, 12, 0.35);
-}
-.direct-consult__btn:hover {
-  background: linear-gradient(135deg, #fb8a3c, #f97316);
-  box-shadow: 0 14px 30px rgba(234, 88, 12, 0.45);
-  transform: translateY(-2px);
-}
-.direct-consult__msg {
-  margin: 0;
-  padding: 10px 14px;
-  border-radius: 10px;
-  background: rgba(220, 38, 38, 0.08);
-  color: #dc2626;
-  font-size: 0.88rem;
-  font-weight: 600;
-}
-.direct-consult__hint {
-  font-size: 0.82rem;
-  color: var(--ink-300);
 }
 
 /* ---------- Contact form ---------- */

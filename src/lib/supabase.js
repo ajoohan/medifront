@@ -1,7 +1,6 @@
 // Supabase 인증 클라이언트
-// .env 에 VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY 를 설정하면 실제 인증이 활성화되고,
-// 없으면 null → 사이트는 데모 로그인 모드로 동작합니다.
-// (anon key는 프론트 공개용으로 설계된 키라 노출되어도 됩니다)
+// .env(VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY)가 있으면 그 값을,
+// 없거나 손상됐으면 아래 기본값을 사용한다. (anon key는 프론트 공개용 설계 키)
 import { createClient } from '@supabase/supabase-js'
 
 // 기본값 — anon key는 클라이언트 번들에 원래 포함되는 공개 설계 키라 코드에 두어도 안전.
@@ -27,6 +26,5 @@ const url = envUrl || FALLBACK_URL
 const anonKey = envKey && keyValid ? envKey : FALLBACK_ANON_KEY
 
 export const supabase = createClient(url, anonKey)
+// DB 모듈들의 방어 가드용 (항상 연결됨)
 export const isSupabaseConfigured = true
-// 환경변수가 있으나 값이 손상된 상태 (기본 키 폴백 중) — 화면 안내용 플래그
-export const isSupabaseMisconfigured = !!envKey && !keyValid

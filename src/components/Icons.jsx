@@ -52,21 +52,6 @@ export const IconCheck = (p) => (
   </svg>
 )
 
-export const IconShield = (p) => (
-  <svg {...base} {...p}>
-    <path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z" />
-    <path d="M9 12l2 2 4-4" />
-  </svg>
-)
-
-export const IconDatabase = (p) => (
-  <svg {...base} {...p}>
-    <ellipse cx="12" cy="5" rx="8" ry="3" />
-    <path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5" />
-    <path d="M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6" />
-  </svg>
-)
-
 export const IconSearch = (p) => (
   <svg {...base} {...p}>
     <circle cx="11" cy="11" r="7" />
