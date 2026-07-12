@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import DashboardAdmin from './DashboardAdmin'
 import MembersAdmin from './MembersAdmin'
 import MagazineAdmin from './MagazineAdmin'
 import SettingsAdmin from './SettingsAdmin'
@@ -7,7 +8,10 @@ import ConsultMeetingAdmin, { ConsultDirectAdmin } from './ConsultAdmin'
 
 const ADMIN_VERSION = 'Version 0.7'
 
-const VIEWS = [{ key: 'members', label: '회원관리', component: MembersAdmin }]
+const VIEWS = [
+  { key: 'dashboard', label: '대시보드', component: DashboardAdmin },
+  { key: 'members', label: '회원관리', component: MembersAdmin },
+]
 
 // 콘텐츠 관리 서브메뉴 (성과 관리 / 매거진 관리)
 const CONTENT_VIEWS = [
@@ -53,17 +57,17 @@ function NavGroup({ label, views, open, onToggle, view, setView }) {
 }
 
 export default function AdminDashboard({ onLogout }) {
-  const [view, setView] = useState('members')
+  const [view, setView] = useState('dashboard')
   const [contentOpen, setContentOpen] = useState(false) // 콘텐츠 관리 펼침
   const [consultOpen, setConsultOpen] = useState(false) // 상담 관리 펼침
-  const Current = ALL_VIEWS.find((v) => v.key === view)?.component ?? MembersAdmin
+  const Current = ALL_VIEWS.find((v) => v.key === view)?.component ?? DashboardAdmin
 
   return (
     <div className="admin">
       <aside className="admin__side">
         <button
           className="admin__brand"
-          onClick={() => setView('members')}
+          onClick={() => setView('dashboard')}
           aria-label="관리자 메인으로"
         >
           MEDIFRONT <span>ADMIN</span>
@@ -111,7 +115,7 @@ export default function AdminDashboard({ onLogout }) {
       </aside>
 
       <main className="admin__main">
-        <Current />
+        <Current onGo={setView} />
       </main>
     </div>
   )
