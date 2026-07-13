@@ -1,12 +1,16 @@
 import { useState } from 'react'
+import Logo from '../../components/Logo'
 
 const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL
 const ADMIN_PW = import.meta.env.VITE_ADMIN_PASSWORD
+const SAVED_ID_KEY = 'medifront_admin_saved_id' // 아이디 저장 체크 시 보관
 
 export default function AdminLogin({ onLogin }) {
-  // 편의: 설정된 관리자 이메일 자동입력 (비밀번호는 보안상 자동입력 안 함)
-  const [email, setEmail] = useState(ADMIN_EMAIL || '')
+  // 아이디 저장이 되어 있으면 이메일 자동 입력(비밀번호만 입력하면 로그인)
+  const savedId = localStorage.getItem(SAVED_ID_KEY) || ''
+  const [email, setEmail] = useState(savedId)
   const [pw, setPw] = useState('')
+  const [remember, setRemember] = useState(!!savedId)
   const [error, setError] = useState('')
 
   const submit = (e) => {
@@ -15,11 +19,14 @@ export default function AdminLogin({ onLogin }) {
       const missing = [!ADMIN_EMAIL && 'VITE_ADMIN_EMAIL', !ADMIN_PW && 'VITE_ADMIN_PASSWORD']
         .filter(Boolean)
         .join(', ')
-      setError(`관리자 환경변수 누락: ${missing} — Vercel 환경변수 확인 후 재배포하세요.`)
+      setError(`관리자 환경변수 누락: ${missing} — 환경변수 확인 후 재배포하세요.`)
       return
     }
     if (email.trim() === ADMIN_EMAIL && pw === ADMIN_PW) {
       setError('')
+      // 아이디 저장 처리
+      if (remember) localStorage.setItem(SAVED_ID_KEY, email.trim())
+      else localStorage.removeItem(SAVED_ID_KEY)
       onLogin()
     } else {
       setError('이메일 또는 비밀번호가 올바르지 않습니다.')
@@ -30,7 +37,8 @@ export default function AdminLogin({ onLogin }) {
     <div className="admin-login">
       <form className="admin-login__card" onSubmit={submit}>
         <div className="admin-login__brand">
-          MEDIFRONT <span>ADMIN</span>
+          <Logo variant="dark" className="admin-login__logo" />
+          <span>ADMIN</span>
         </div>
         <p className="admin-login__sub">관리자 로그인</p>
 
@@ -46,7 +54,7 @@ export default function AdminLogin({ onLogin }) {
             required
           />
         </div>
-        <div className="field" style={{ marginBottom: 20 }}>
+        <div className="field">
           <label>비밀번호</label>
           <input
             type="password"
@@ -63,6 +71,16 @@ export default function AdminLogin({ onLogin }) {
             required
           />
         </div>
+
+        <label className="admin-login__remember">
+          <input
+            type="checkbox"
+            checked={remember}
+            onChange={(e) => setRemember(e.target.checked)}
+          />
+          <span>아이디 저장</span>
+        </label>
+
         <button type="submit" className="btn btn--primary btn--lg" style={{ width: '100%' }}>
           로그인
         </button>
