@@ -67,44 +67,21 @@ export const SERVICES = [
   },
 ]
 
+// 성과 데이터 폴백 — performances 테이블 미생성 시 사용. 개원년차는 화면에서 자동 계산.
 export const RESULTS = [
-  {
-    tag: '강동*****의원',
-    metric: '약380',
-    unit: '평',
-    desc: '2023년 개원(개원4년차)',
-  },
-  {
-    tag: '하남*****의원',
-    metric: '약450',
-    unit: '평',
-    desc: '2022년 개원(개원5년차)',
-  },
-  {
-    tag: '세종*****의원',
-    metric: '약240',
-    unit: '평',
-    desc: '2024년 개원(개원3년차)',
-  },
-  {
-    tag: '검단*****의원',
-    metric: '약280',
-    unit: '평',
-    desc: '2023년 개원(개원4년차)',
-  },
-  {
-    tag: '제주*****의원',
-    metric: '약230',
-    unit: '평',
-    desc: '2024년 개원(개원3년차)',
-  },
-  {
-    tag: '화정********의원',
-    metric: '약450',
-    unit: '평',
-    desc: '2020년 개원(개원7년차)',
-  },
+  { hospital: '강동*****의원', size: '약380', openingYear: 2023 },
+  { hospital: '하남*****의원', size: '약450', openingYear: 2022 },
+  { hospital: '세종*****의원', size: '약240', openingYear: 2024 },
+  { hospital: '검단*****의원', size: '약280', openingYear: 2023 },
+  { hospital: '제주*****의원', size: '약230', openingYear: 2024 },
+  { hospital: '화정********의원', size: '약450', openingYear: 2020 },
 ]
+
+// 개원시기(연도) → "2023년 개원(개원4년차)" 형태. 올해 기준 자동 계산.
+export function openingLabel(openingYear) {
+  const nth = new Date().getFullYear() - openingYear + 1
+  return `${openingYear}년 개원(개원${nth}년차)`
+}
 
 export const PAINS = [
   {

@@ -1,13 +1,22 @@
-import { useState } from 'react'
-import { RESULTS } from '../data'
+import { useEffect, useState } from 'react'
+import { RESULTS, openingLabel } from '../data'
+import { fetchPerformances } from '../lib/performancesDb'
 
 const PAGE_SIZE = 6
 
 export default function Results() {
+  const [items, setItems] = useState(RESULTS) // 초기값: 폴백(테이블 미생성 시)
   const [page, setPage] = useState(1)
-  const totalPages = Math.max(1, Math.ceil(RESULTS.length / PAGE_SIZE))
+
+  useEffect(() => {
+    fetchPerformances().then((list) => {
+      if (list) setItems(list)
+    })
+  }, [])
+
+  const totalPages = Math.max(1, Math.ceil(items.length / PAGE_SIZE))
   const currentPage = Math.min(page, totalPages)
-  const items = RESULTS.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
+  const pageItems = items.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
 
   return (
     <section className="section section--gradient" id="results">
@@ -23,15 +32,14 @@ export default function Results() {
         </div>
 
         <div className="results__grid reveal">
-          {items.map((r) => (
-            <article className="result-card" key={r.tag}>
-              <span className="result-card__tag">{r.tag}</span>
+          {pageItems.map((r) => (
+            <article className="result-card" key={r.id ?? r.hospital}>
+              <span className="result-card__tag">{r.hospital}</span>
               <div className="result-card__metric">
-                {r.metric}
-                <small>{r.unit}</small>
+                {r.size}
+                <small>평</small>
               </div>
-              <p>{r.desc}</p>
-              {r.who && <div className="result-card__who">{r.who}</div>}
+              <p>{openingLabel(r.openingYear)}</p>
             </article>
           ))}
         </div>
