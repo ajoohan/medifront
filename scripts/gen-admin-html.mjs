@@ -28,7 +28,7 @@ const REPLACEMENTS = [
     true,
   ],
   // 공유 이미지 → 진한 그레이 관리자 카드
-  ['https://medifront.co.kr/og-image.png?v=3', 'https://medifront.co.kr/og-admin.png?v=1', true],
+  ['https://medifront.co.kr/og-image.png?v=3', 'https://medifront.co.kr/og-admin.png?v=2', true],
   // 정규 URL
   ['content="https://medifront.co.kr/"', 'content="https://medifront.co.kr/admin"', true],
   // og:image:alt
