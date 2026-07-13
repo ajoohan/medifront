@@ -108,15 +108,26 @@ export default function AdminDashboard({ onLogout }) {
             {SETTINGS_VIEW.label}
           </button>
         </nav>
-        <button className="admin__logout" onClick={onLogout}>
-          로그아웃
-        </button>
-        <div className="admin__version">{ADMIN_VERSION}</div>
+        {/* 데스크톱: 사이드바 하단에 로그아웃·버전 */}
+        <div className="admin__side-foot">
+          <button className="admin__logout" onClick={onLogout}>
+            로그아웃
+          </button>
+          <div className="admin__version">{ADMIN_VERSION}</div>
+        </div>
       </aside>
 
       <main className="admin__main">
         <Current onGo={setView} />
       </main>
+
+      {/* 모바일: 로그아웃·버전을 화면 하단 푸터에 표시 (CSS로 반응형 전환) */}
+      <footer className="admin__foot">
+        <button className="admin__logout" onClick={onLogout}>
+          로그아웃
+        </button>
+        <div className="admin__version">{ADMIN_VERSION}</div>
+      </footer>
     </div>
   )
 }

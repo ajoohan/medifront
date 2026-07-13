@@ -16,11 +16,16 @@ echo "1) 프로덕션 빌드..."
 npm run build
 
 echo "2) S3 업로드 (기존 파일과 동기화, 삭제 반영)..."
-# 정적 에셋은 오래 캐시, index.html 은 항상 최신
+# 정적 에셋은 오래 캐시, HTML(index.html·admin)은 항상 최신
 aws s3 sync dist/ "s3://${BUCKET}/" --delete \
   --exclude "index.html" \
+  --exclude "admin" \
   --cache-control "public,max-age=31536000,immutable"
 aws s3 cp dist/index.html "s3://${BUCKET}/index.html" \
+  --cache-control "no-cache"
+# /admin 전용 OG 카드 — 확장자 없는 오브젝트라 Content-Type 을 명시해야 브라우저가 렌더함
+aws s3 cp dist/admin "s3://${BUCKET}/admin" \
+  --content-type "text/html" \
   --cache-control "no-cache"
 
 echo "3) CloudFront 캐시 무효화..."

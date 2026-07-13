@@ -64,7 +64,9 @@ const EMPTY_DRAFT = {
 }
 
 export default function MembersAdmin() {
-  const [members, setMembers] = useState(() => loadLocalMembers() || MOCK_MEMBERS)
+  // 초기엔 빈 목록으로 시작 — DB 응답 전에 더미/임시 데이터가 잠깐 보이는 깜빡임 방지
+  const [members, setMembers] = useState([])
+  const [loaded, setLoaded] = useState(false) // 최초 로드(DB 또는 폴백) 완료 여부
   const [queryInput, setQueryInput] = useState('')
   const [q, setQ] = useState('')
   const [filter, setFilter] = useState('all')
@@ -79,30 +81,36 @@ export default function MembersAdmin() {
   const [dbReady, setDbReady] = useState(false) // members 테이블 사용 가능 여부
   const [detailId, setDetailId] = useState(null) // 상세 보기 중인 회원 id
 
-  // DB(members 테이블)에서 실목록 로드 — 테이블 미생성 시 목업 폴백
+  // DB(members 테이블)에서 실목록 로드 — 테이블 미생성 시에만 브라우저 저장분/목업 폴백
   useEffect(() => {
     fetchMembers().then((list) => {
       if (list) {
         setMembers(list)
         setDbReady(true)
-      } else if (isSupabaseConfigured) {
-        setNotice({
-          type: 'warn',
-          text: '회원 DB 테이블(members)이 아직 없어 이 브라우저에만 임시 저장됩니다. supabase/members-setup.sql 을 Supabase SQL Editor에서 실행하면 실데이터로 전환됩니다.',
-        })
+      } else {
+        // DB 미연결일 때만 폴백 — 이때 비로소 임시 데이터를 보여줌(깜빡임 없음)
+        setMembers(loadLocalMembers() || MOCK_MEMBERS)
+        if (isSupabaseConfigured) {
+          setNotice({
+            type: 'warn',
+            text: '회원 DB 테이블(members)이 아직 없어 이 브라우저에만 임시 저장됩니다. supabase/members-setup.sql 을 Supabase SQL Editor에서 실행하면 실데이터로 전환됩니다.',
+          })
+        }
       }
+      setLoaded(true)
     })
   }, [])
 
   // DB 미연결 동안에는 목록 변경을 브라우저에 보존 (새로고침 유지)
+  // 최초 로드 완료 전에는 저장하지 않음 — 빈 목록으로 기존 임시 데이터를 덮어쓰는 것 방지
   useEffect(() => {
-    if (dbReady) return
+    if (!loaded || dbReady) return
     try {
       localStorage.setItem(LOCAL_KEY, JSON.stringify(members))
     } catch {
       // 저장 공간 부족 시 보존 생략 (동작에는 영향 없음)
     }
-  }, [members, dbReady])
+  }, [members, loaded, dbReady])
 
   const filtered = useMemo(() => {
     const keyword = q.trim()
@@ -574,7 +582,11 @@ export default function MembersAdmin() {
             ))}
           </tbody>
         </table>
-        {filtered.length === 0 && <div className="admin-empty">조건에 맞는 회원이 없습니다.</div>}
+        {!loaded ? (
+          <div className="admin-empty">회원 목록을 불러오는 중…</div>
+        ) : (
+          filtered.length === 0 && <div className="admin-empty">조건에 맞는 회원이 없습니다.</div>
+        )}
       </div>
 
       {totalPages > 1 && (

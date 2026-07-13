@@ -6,7 +6,7 @@
   "description": "메디프론트(MEDIFRONT) 병원 컨설팅 랜딩 페이지",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && node scripts/gen-admin-html.mjs",
     "preview": "vite preview",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

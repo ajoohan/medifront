@@ -1676,8 +1676,16 @@ ul {
   font-size: 0.92rem;
   font-weight: 400;
 }
-.admin__logout {
+.admin__side-foot {
   margin-top: auto;
+  display: flex;
+  flex-direction: column;
+}
+/* 모바일 전용 하단 푸터 — 기본(데스크톱)에서는 숨김 */
+.admin__foot {
+  display: none;
+}
+.admin__logout {
   padding: 11px 14px;
   border-radius: 10px;
   border: 1px solid rgba(239, 68, 68, 0.55);
@@ -2890,8 +2898,24 @@ ul {
     flex-direction: row;
     flex-wrap: wrap;
   }
-  .admin__logout {
-    margin: 0 0 0 auto;
+  /* 로그아웃·버전은 상단바에서 빼고 화면 하단 푸터로 이동 */
+  .admin__side-foot {
+    display: none;
+  }
+  .admin__foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px;
+    background: var(--navy-900);
+    color: #fff;
+  }
+  .admin__foot .admin__logout {
+    margin: 0;
+  }
+  .admin__foot .admin__version {
+    margin: 0;
   }
   .admin-stats {
     grid-template-columns: 1fr;
