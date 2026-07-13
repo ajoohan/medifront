@@ -40,6 +40,15 @@ function touchAuth(force) {
 export default function AdminPage() {
   const [authed, setAuthed] = useState(readAuth)
 
+  // 관리자 화면 진입 시 브라우저 탭 제목 변경, 벗어나면 원복
+  useEffect(() => {
+    const prev = document.title
+    document.title = '메디프론트 MEDIFRONT | 관리자 화면'
+    return () => {
+      document.title = prev
+    }
+  }, [])
+
   const onLogin = () => {
     touchAuth(true)
     setAuthed(true)
