@@ -1,28 +1,24 @@
 import { useEffect, useMemo, useState } from 'react'
 import { MOCK_MEMBERS } from '../../mock/members'
 import { formatPhone } from '../../lib/phone'
-import { supabase, isSupabaseConfigured } from '../../lib/supabase'
+import { apiSend, isApiConfigured } from '../../lib/api'
 import { fetchMembers, upsertMember, updateMemberDb, deleteMemberDb } from '../../lib/membersDb'
 import MemberDetail from './MemberDetail'
 
 // 수동 추가 회원의 기본 비밀번호 (첫 로그인 후 아이디/비밀번호 찾기로 변경 안내)
 const DEFAULT_PASSWORD = 'medifront2026'
 
-// 수동 추가 회원의 실제 로그인 계정 생성 (인증 메일 자동 발송)
+// 수동 추가 회원의 실제 로그인 계정 생성 (Cognito — 인증 절차 없이 바로 로그인 가능)
 async function createLoginAccount({ email, name, phone, grade, password }) {
-  if (!isSupabaseConfigured) return { error: 'not-configured' }
-  const { data, error } = await supabase.auth.signUp({
+  if (!isApiConfigured) return { error: 'not-configured' }
+  const r = await apiSend('POST', '/auth/create-user', {
     email,
     password: password || DEFAULT_PASSWORD,
-    options: {
-      data: { name, phone, grade },
-      emailRedirectTo: window.location.origin,
-    },
+    name,
+    phone,
+    grade,
   })
-  if (error) return { error: error.message }
-  // 이미 가입된 이메일이면 identities가 빈 배열로 옴
-  if (data.user && data.user.identities?.length === 0) return { error: 'already-registered' }
-  return { ok: true }
+  return r.error ? { error: r.error } : { ok: true }
 }
 
 const PAGE_SIZE = 20
@@ -90,10 +86,10 @@ export default function MembersAdmin() {
       } else {
         // DB 미연결일 때만 폴백 — 이때 비로소 임시 데이터를 보여줌(깜빡임 없음)
         setMembers(loadLocalMembers() || MOCK_MEMBERS)
-        if (isSupabaseConfigured) {
+        if (isApiConfigured) {
           setNotice({
             type: 'warn',
-            text: '회원 DB 테이블(members)이 아직 없어 이 브라우저에만 임시 저장됩니다. supabase/members-setup.sql 을 Supabase SQL Editor에서 실행하면 실데이터로 전환됩니다.',
+            text: '회원 DB(members)에 연결되지 않아 이 브라우저에만 임시 저장됩니다. AWS 백엔드 배포와 환경변수 설정(docs/aws-backend.md)을 확인해 주세요.',
           })
         }
       }
@@ -202,7 +198,7 @@ export default function MembersAdmin() {
         type: 'ok',
         text: `회원 등록 완료 — ${email} 계정이 생성되었습니다. 비밀번호는 ${
           password ? '입력하신 비밀번호' : `기본 비밀번호(${DEFAULT_PASSWORD})`
-        }이며, 인증 메일 확인 후 로그인할 수 있습니다.`,
+        }이며, 별도 인증 절차 없이 바로 로그인할 수 있습니다.`,
       })
     } else if (account.error === 'already-registered') {
       setNotice({
@@ -399,8 +395,8 @@ export default function MembersAdmin() {
             </button>
           </div>
           <p className="admin-add__hint">
-            등록 시 로그인 계정이 함께 생성됩니다 — 기본 비밀번호 {DEFAULT_PASSWORD} · 인증 메일
-            발송
+            등록 시 로그인 계정이 함께 생성됩니다 — 기본 비밀번호 {DEFAULT_PASSWORD} · 즉시 로그인
+            가능
           </p>
         </form>
       )}

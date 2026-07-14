@@ -52,7 +52,7 @@ export default function PrivacyPage() {
 
           <h2>5. 개인정보 처리의 위탁</h2>
           <ul>
-            <li>Supabase Inc. — 회원 인증 및 회원 데이터 보관 (국외 이전: 미국 등)</li>
+            <li>Amazon Web Services, Inc. — 회원 인증 및 회원 데이터 보관 (국외 이전: 미국 등)</li>
             <li>Vercel Inc. — 웹사이트 호스팅 (국외 이전: 미국 등)</li>
           </ul>
           <p>회사는 위탁 계약 시 개인정보 보호 관련 법규의 준수를 명확히 규정하고 관리합니다.</p>

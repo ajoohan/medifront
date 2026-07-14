@@ -1,8 +1,7 @@
-// 성과 데이터 DB (Supabase public.performances 테이블)
-// 테이블 생성 SQL: supabase/setup-5.sql
-import { supabase, isSupabaseConfigured } from './supabase'
+// 성과 데이터 DB (AWS DynamoDB performances — Lambda API 경유)
+import { apiGet, apiSend, isApiConfigured } from './api'
 
-const TABLE = 'performances'
+const PATH = '/performances'
 
 function fromRow(r) {
   return {
@@ -13,24 +12,20 @@ function fromRow(r) {
   }
 }
 
-// 목록 (등록순) — 테이블 미생성 시 null (호출부에서 RESULTS 폴백)
+// 목록 (등록순) — API 미설정/오류 시 null (호출부에서 RESULTS 폴백)
 export async function fetchPerformances() {
-  if (!isSupabaseConfigured) return null
-  const { data, error } = await supabase.from(TABLE).select('*').order('id', { ascending: true })
-  if (error) return null
-  return data.map(fromRow)
+  if (!isApiConfigured) return null
+  const data = await apiGet(PATH)
+  if (!data) return null
+  return data.sort((a, b) => a.id - b.id).map(fromRow)
 }
 
 export async function insertPerformance({ hospital, size, openingYear }) {
-  const { data, error } = await supabase
-    .from(TABLE)
-    .insert({ hospital, size, opening_year: openingYear })
-    .select()
-    .single()
-  return error ? { error: error.message } : { ok: true, performance: fromRow(data) }
+  const r = await apiSend('POST', PATH, { hospital, size, opening_year: openingYear })
+  return r.error ? { error: r.error } : { ok: true, performance: fromRow(r.data) }
 }
 
 export async function deletePerformance(id) {
-  const { error } = await supabase.from(TABLE).delete().eq('id', id)
-  return error ? { error: error.message } : { ok: true }
+  const r = await apiSend('DELETE', `${PATH}/${id}`)
+  return r.error ? { error: r.error } : { ok: true }
 }

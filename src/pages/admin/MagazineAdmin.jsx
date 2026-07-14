@@ -244,8 +244,8 @@ export default function MagazineAdmin() {
 
       {checked && !dbReady && (
         <div className="admin-notice admin-notice--warn">
-          게시물 DB 테이블(articles)이 아직 없어 이 브라우저에만 저장됩니다. supabase/setup-2.sql 을
-          Supabase SQL Editor에서 실행하면 모든 방문자에게 게시물이 표시됩니다.
+          게시물 DB(articles)에 연결되지 않아 이 브라우저에만 저장됩니다. AWS 백엔드 배포와 환경변수
+          설정(docs/aws-backend.md)이 완료되면 모든 방문자에게 게시물이 표시됩니다.
         </div>
       )}
 

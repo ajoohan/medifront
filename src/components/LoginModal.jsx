@@ -14,17 +14,22 @@ const MEMBER_TYPES = [
   },
 ]
 
-// Supabase 에러 → 한국어 안내
+// Cognito 에러 → 한국어 안내
 function tr(err) {
   if (!err) return ''
   if (err === 'not-configured')
-    return '인증 서버가 아직 연결되지 않았습니다. (Supabase 설정 후 사용 가능)'
+    return '인증 서버가 아직 연결되지 않았습니다. (AWS 백엔드 배포 후 사용 가능)'
   if (err === 'already-registered') return '이미 가입된 이메일입니다. 로그인해 주세요.'
-  if (err.includes('Invalid login credentials')) return '이메일 또는 비밀번호가 올바르지 않습니다.'
-  if (err.includes('Email not confirmed'))
-    return '이메일 인증이 완료되지 않았습니다. 메일함의 인증 링크를 확인해 주세요.'
-  if (err.includes('at least 6 characters')) return '비밀번호는 6자 이상이어야 합니다.'
-  if (err.includes('rate limit') || err.includes('seconds'))
+  if (err.includes('NotAuthorizedException')) return '이메일 또는 비밀번호가 올바르지 않습니다.'
+  if (err.includes('UserNotFoundException')) return '가입되지 않은 이메일입니다.'
+  if (err.includes('UserNotConfirmedException'))
+    return '이메일 인증이 완료되지 않았습니다. 메일로 받은 인증 코드를 입력해 주세요.'
+  if (err.includes('CodeMismatchException')) return '인증 코드가 올바르지 않습니다.'
+  if (err.includes('ExpiredCodeException'))
+    return '인증 코드가 만료되었습니다. 코드를 다시 요청해 주세요.'
+  if (err.includes('InvalidPasswordException') || err.includes('previousPassword'))
+    return '비밀번호는 6자 이상이어야 합니다.'
+  if (err.includes('LimitExceededException') || err.includes('TooManyRequests'))
     return '요청이 너무 잦습니다. 잠시 후 다시 시도해 주세요.'
   return err
 }
@@ -32,17 +37,26 @@ function tr(err) {
 export default function LoginModal({ open, onClose }) {
   const {
     signUpWithEmail,
+    confirmSignUp,
     signInWithEmail,
     resendVerification,
     requestPasswordReset,
+    confirmPasswordReset,
     getLoginPrefs,
     loginNotice,
   } = useUser()
 
-  // mode: 'login' | 'signup' | 'verify'(인증 메일 안내) | 'recover'(아이디/비밀번호 찾기)
-  // mode 추가: 'signup2' = 가입 2단계(이름·휴대폰·약관 동의)
+  // mode: 'login' | 'signup' | 'verify'(인증 코드 입력) | 'recover'(아이디/비밀번호 찾기)
+  // mode 추가: 'signup2' = 가입 2단계(이름·휴대폰·약관 동의), 'recover2' = 재설정 코드 + 새 비밀번호
   const [mode, setMode] = useState('login')
-  const [form, setForm] = useState({ email: '', password: '', confirm: '', name: '', phone: '' })
+  const [form, setForm] = useState({
+    email: '',
+    password: '',
+    confirm: '',
+    name: '',
+    phone: '',
+    code: '',
+  })
   const [agree, setAgree] = useState(false)
   const [grade, setGrade] = useState('일반') // 회원유형 (가입 2단계 선택)
   const [autoLogin, setAutoLogin] = useState(true) // 자동 로그인
@@ -55,7 +69,7 @@ export default function LoginModal({ open, onClose }) {
       // 저장된 아이디(이메일)와 자동 로그인 설정 프리필
       const prefs = getLoginPrefs()
       setMode('login')
-      setForm({ email: prefs.savedEmail, password: '', confirm: '', name: '', phone: '' })
+      setForm({ email: prefs.savedEmail, password: '', confirm: '', name: '', phone: '', code: '' })
       setAutoLogin(prefs.autoLogin)
       setGrade('일반')
       setAgree(false)
@@ -85,6 +99,10 @@ export default function LoginModal({ open, onClose }) {
     setMsg('')
     setInfo('')
   }
+  const switchModeKeepInfo = (m) => {
+    setMode(m)
+    setMsg('')
+  }
 
   // 비밀번호 칸에서 엔터 → 로그인 버튼과 동일하게 제출 (IME 조합 중 엔터는 무시)
   const submitOnEnter = (e) => {
@@ -104,8 +122,15 @@ export default function LoginModal({ open, onClose }) {
       autoLogin,
     })
     setBusy(false)
-    if (r.error) setMsg(tr(r.error))
-    else onClose()
+    if (r.error) {
+      // 인증 미완료 계정이면 코드 입력 화면으로 안내
+      if (r.error.includes('UserNotConfirmedException')) {
+        setInfo(tr(r.error))
+        switchModeKeepInfo('verify')
+        return
+      }
+      setMsg(tr(r.error))
+    } else onClose()
   }
 
   // 가입 1단계: 이메일/비밀번호 검증 후 2단계로 이동 (서버 호출 없음)
@@ -119,7 +144,7 @@ export default function LoginModal({ open, onClose }) {
     switchMode('signup2')
   }
 
-  // 가입 2단계: 이름/휴대폰/약관 동의 수집 후 실제 가입 (인증 메일 발송)
+  // 가입 2단계: 이름/휴대폰/약관 동의 수집 후 실제 가입 (인증 코드 메일 발송)
   const submitSignup2 = async (e) => {
     e.preventDefault()
     setMsg('')
@@ -139,7 +164,36 @@ export default function LoginModal({ open, onClose }) {
   const resend = async () => {
     setInfo('')
     const r = await resendVerification(form.email.trim())
-    setInfo(r.ok ? '인증 메일을 다시 보냈습니다. 메일함을 확인해 주세요.' : tr(r.error))
+    setInfo(r.ok ? '인증 코드를 다시 보냈습니다. 메일함을 확인해 주세요.' : tr(r.error))
+  }
+
+  // 가입 인증 코드 확인 → 성공 시 입력해 둔 비밀번호로 자동 로그인
+  const submitVerify = async (e) => {
+    e.preventDefault()
+    setMsg('')
+    setBusy(true)
+    const r = await confirmSignUp({ email: form.email.trim(), code: form.code.trim() })
+    if (r.error) {
+      setBusy(false)
+      setMsg(tr(r.error))
+      return
+    }
+    if (form.password) {
+      const login = await signInWithEmail({
+        email: form.email.trim(),
+        password: form.password,
+        autoLogin,
+      })
+      setBusy(false)
+      if (!login.error) {
+        onClose()
+        return
+      }
+    } else {
+      setBusy(false)
+    }
+    setInfo('이메일 인증이 완료되었습니다. 로그인해 주세요.')
+    switchModeKeepInfo('login')
   }
 
   const submitRecover = async (e) => {
@@ -150,7 +204,33 @@ export default function LoginModal({ open, onClose }) {
     const r = await requestPasswordReset(form.email.trim())
     setBusy(false)
     if (r.error) setMsg(tr(r.error))
-    else setInfo('비밀번호 재설정 메일을 보냈습니다. 메일의 링크에서 새 비밀번호를 설정하세요.')
+    else {
+      setInfo('재설정 코드를 메일로 보냈습니다. 코드와 새 비밀번호를 입력해 주세요.')
+      switchModeKeepInfo('recover2')
+    }
+  }
+
+  // 재설정 코드 + 새 비밀번호 확정
+  const submitRecover2 = async (e) => {
+    e.preventDefault()
+    setMsg('')
+    if (form.password !== form.confirm) {
+      setMsg('비밀번호가 일치하지 않습니다.')
+      return
+    }
+    setBusy(true)
+    const r = await confirmPasswordReset({
+      email: form.email.trim(),
+      code: form.code.trim(),
+      password: form.password,
+    })
+    setBusy(false)
+    if (r.error) setMsg(tr(r.error))
+    else {
+      setInfo('비밀번호가 변경되었습니다. 새 비밀번호로 로그인해 주세요.')
+      setForm((f) => ({ ...f, password: '', confirm: '', code: '' }))
+      switchModeKeepInfo('login')
+    }
   }
 
   return (
@@ -251,7 +331,7 @@ export default function LoginModal({ open, onClose }) {
                 style={{ width: '100%' }}
                 disabled={busy}
               >
-                {busy ? '발송 중...' : '비밀번호 재설정 메일 발송'}
+                {busy ? '발송 중...' : '비밀번호 재설정 코드 발송'}
               </button>
             </form>
             <div className="login-modal__links">
@@ -408,26 +488,108 @@ export default function LoginModal({ open, onClose }) {
           </>
         )}
 
-        {/* ── 인증 메일 안내 ── */}
+        {/* ── 인증 코드 입력 (가입 확인) ── */}
         {mode === 'verify' && (
           <div className="auth-verify">
             <div className="auth-verify__icon">✉️</div>
-            <h3>인증 메일을 보냈습니다</h3>
+            <h3>인증 코드를 보냈습니다</h3>
             <p>
-              <b>{form.email}</b> 로 인증 메일을 발송했습니다.
+              <b>{form.email}</b> 로 인증 코드를 발송했습니다.
               <br />
-              메일함에서 <b>인증 링크를 클릭</b>하면 가입이 완료됩니다.
+              메일로 받은 <b>6자리 인증 코드</b>를 입력하면 가입이 완료됩니다.
             </p>
+            <form onSubmit={submitVerify}>
+              <div className="field login-modal__pw">
+                <label>인증 코드</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="123456"
+                  autoComplete="one-time-code"
+                  value={form.code}
+                  onChange={set('code')}
+                  required
+                />
+              </div>
+              <button
+                type="submit"
+                className="btn btn--primary btn--lg"
+                style={{ width: '100%' }}
+                disabled={busy}
+              >
+                {busy ? '확인 중...' : '인증 완료'}
+              </button>
+            </form>
             <p className="auth-verify__hint">메일이 보이지 않으면 스팸함을 확인해 주세요.</p>
             <div className="auth-verify__actions">
-              <button type="button" className="btn btn--primary" onClick={resend}>
-                인증 메일 재발송
+              <button type="button" onClick={resend}>
+                인증 코드 재발송
               </button>
               <button type="button" className="auth-strong" onClick={() => switchMode('login')}>
                 로그인으로
               </button>
             </div>
           </div>
+        )}
+
+        {/* ── 재설정 코드 + 새 비밀번호 ── */}
+        {mode === 'recover2' && (
+          <>
+            <form onSubmit={submitRecover2}>
+              <div className="field">
+                <label>인증 코드</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="메일로 받은 6자리"
+                  autoComplete="one-time-code"
+                  value={form.code}
+                  onChange={set('code')}
+                  required
+                />
+              </div>
+              <div className="field">
+                <label>새 비밀번호</label>
+                <input
+                  type="password"
+                  placeholder="6자 이상"
+                  minLength={6}
+                  autoComplete="new-password"
+                  value={form.password}
+                  onChange={set('password')}
+                  required
+                />
+              </div>
+              <div className="field login-modal__pw">
+                <label>새 비밀번호 확인</label>
+                <input
+                  type="password"
+                  placeholder="비밀번호 재입력"
+                  autoComplete="new-password"
+                  value={form.confirm}
+                  onChange={set('confirm')}
+                  required
+                />
+              </div>
+              <button
+                type="submit"
+                className="btn btn--primary btn--lg"
+                style={{ width: '100%' }}
+                disabled={busy}
+              >
+                {busy ? '변경 중...' : '비밀번호 변경'}
+              </button>
+            </form>
+            <div className="login-modal__links">
+              <button type="button" onClick={() => switchMode('recover')}>
+                ← 코드 다시 받기
+              </button>
+              <span>·</span>
+              <button type="button" className="auth-strong" onClick={() => switchMode('login')}>
+                로그인으로
+              </button>
+            </div>
+          </>
         )}
       </div>
     </div>

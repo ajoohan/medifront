@@ -443,8 +443,8 @@ export default function ConsultMeetingAdmin() {
 
       {checked && !dbReady && (
         <div className="admin-notice admin-notice--warn">
-          상담 기록 DB 테이블(consults)이 아직 없어 이 브라우저에만 저장됩니다. supabase/setup-3.sql
-          을 Supabase SQL Editor에서 실행해 주세요.
+          상담 기록 DB(consults)에 연결되지 않아 이 브라우저에만 저장됩니다. AWS 백엔드 배포와
+          환경변수 설정(docs/aws-backend.md)을 확인해 주세요.
         </div>
       )}
 
@@ -458,8 +458,8 @@ export default function ConsultMeetingAdmin() {
 
       {!reqAvailable ? (
         <div className="admin-notice admin-notice--warn">
-          상담 신청 테이블(consult_requests)이 아직 없습니다. supabase/setup-4.sql 을 Supabase SQL
-          Editor에서 실행해 주세요.
+          상담 신청 DB(consult_requests)에 연결되지 않았습니다. AWS 백엔드 배포와 환경변수
+          설정(docs/aws-backend.md)을 확인해 주세요.
         </div>
       ) : (
         <div className="admin-table-wrap" style={{ marginBottom: 28 }}>
@@ -622,8 +622,8 @@ export function ConsultDirectAdmin() {
 
       {!available ? (
         <div className="admin-notice admin-notice--warn">
-          1:1 문의 테이블(inquiries)이 아직 없습니다. supabase/setup-2.sql 을 Supabase SQL
-          Editor에서 실행해 주세요.
+          1:1 문의 DB(inquiries)에 연결되지 않았습니다. AWS 백엔드 배포와 환경변수
+          설정(docs/aws-backend.md)을 확인해 주세요.
         </div>
       ) : (
         <>

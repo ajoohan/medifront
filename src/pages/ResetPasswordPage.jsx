@@ -1,37 +1,58 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useUser } from '../context/UserContext'
 
-// 비밀번호 재설정 메일의 링크로 들어오는 페이지 (/reset-password)
-// Supabase가 URL의 복구 토큰으로 임시 세션을 만들어 주므로, 여기서 새 비밀번호를 저장한다.
+// 비밀번호 재설정 페이지 (/reset-password)
+// 메일로 받은 6자리 재설정 코드와 새 비밀번호를 입력해 변경한다.
+// (관리자가 재설정 코드를 발송한 경우에도 이 페이지에서 처리)
 function tr(err) {
   if (!err) return ''
   if (err === 'not-configured') return '인증 서버가 연결되지 않았습니다.'
-  if (err.includes('session') || err.includes('Session'))
-    return '링크가 만료되었거나 유효하지 않습니다. 로그인 창의 [아이디/비밀번호 찾기]에서 메일을 다시 요청해 주세요.'
-  if (err.includes('at least 6')) return '비밀번호는 6자 이상이어야 합니다.'
-  if (err.includes('different from the old')) return '이전과 다른 새 비밀번호를 입력해 주세요.'
+  if (err.includes('CodeMismatchException')) return '인증 코드가 올바르지 않습니다.'
+  if (err.includes('ExpiredCodeException'))
+    return '인증 코드가 만료되었습니다. 코드를 다시 요청해 주세요.'
+  if (err.includes('UserNotFoundException')) return '가입되지 않은 이메일입니다.'
+  if (err.includes('InvalidPasswordException')) return '비밀번호는 6자 이상이어야 합니다.'
+  if (err.includes('LimitExceededException'))
+    return '요청이 너무 잦습니다. 잠시 후 다시 시도해 주세요.'
   return err
 }
 
 export default function ResetPasswordPage() {
-  const { updatePassword } = useUser()
+  const { requestPasswordReset, confirmPasswordReset } = useUser()
   const navigate = useNavigate()
+  const [params] = useSearchParams()
+  const [email, setEmail] = useState(params.get('email') || '')
+  const [code, setCode] = useState('')
   const [pw, setPw] = useState('')
   const [confirm, setConfirm] = useState('')
   const [msg, setMsg] = useState('')
+  const [info, setInfo] = useState('')
   const [busy, setBusy] = useState(false)
   const [done, setDone] = useState(false)
+
+  const resend = async () => {
+    setMsg('')
+    setInfo('')
+    if (!email.trim()) {
+      setMsg('가입 이메일을 먼저 입력해 주세요.')
+      return
+    }
+    const r = await requestPasswordReset(email.trim())
+    if (r.error) setMsg(tr(r.error))
+    else setInfo('재설정 코드를 메일로 보냈습니다. 메일함을 확인해 주세요.')
+  }
 
   const submit = async (e) => {
     e.preventDefault()
     setMsg('')
+    setInfo('')
     if (pw !== confirm) {
       setMsg('비밀번호가 일치하지 않습니다.')
       return
     }
     setBusy(true)
-    const r = await updatePassword(pw)
+    const r = await confirmPasswordReset({ email: email.trim(), code: code.trim(), password: pw })
     setBusy(false)
     if (r.error) setMsg(tr(r.error))
     else setDone(true)
@@ -44,7 +65,7 @@ export default function ResetPasswordPage() {
           <div className="auth-verify">
             <div className="auth-verify__icon">✅</div>
             <h3>비밀번호가 변경되었습니다</h3>
-            <p>새 비밀번호로 로그인된 상태입니다. 홈으로 이동해 이용을 계속하세요.</p>
+            <p>새 비밀번호로 로그인해 이용을 계속하세요.</p>
             <div className="auth-verify__actions">
               <button className="btn btn--primary" onClick={() => navigate('/')}>
                 홈으로 이동
@@ -56,11 +77,36 @@ export default function ResetPasswordPage() {
             <div className="admin-login__brand">
               MEDIFRONT <span style={{ color: 'var(--primary)' }}>비밀번호 재설정</span>
             </div>
-            <p className="admin-login__sub">새로 사용할 비밀번호를 입력해 주세요.</p>
+            <p className="admin-login__sub">
+              메일로 받은 재설정 코드와 새 비밀번호를 입력해 주세요.
+            </p>
 
             {msg && <div className="admin-login__error">{msg}</div>}
+            {info && <div className="auth-info">{info}</div>}
 
             <form onSubmit={submit}>
+              <div className="field">
+                <label>가입 이메일</label>
+                <input
+                  type="email"
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="field">
+                <label>재설정 코드</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="메일로 받은 6자리"
+                  autoComplete="one-time-code"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  required
+                />
+              </div>
               <div className="field">
                 <label>새 비밀번호</label>
                 <input
@@ -91,6 +137,11 @@ export default function ResetPasswordPage() {
                 {busy ? '변경 중...' : '비밀번호 변경'}
               </button>
             </form>
+            <div className="login-modal__links" style={{ marginTop: 14 }}>
+              <button type="button" onClick={resend}>
+                재설정 코드 다시 받기
+              </button>
+            </div>
           </>
         )}
       </div>

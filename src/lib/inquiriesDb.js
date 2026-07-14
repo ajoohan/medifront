@@ -1,8 +1,7 @@
-// 1:1 문의 (비공개 게시판) — Supabase public.inquiries 테이블
-// 테이블 생성 SQL: supabase/setup-2.sql
-import { supabase, isSupabaseConfigured } from './supabase'
+// 1:1 문의 (비공개 게시판) — AWS DynamoDB inquiries (Lambda API 경유)
+import { apiGet, apiSend, isApiConfigured } from './api'
 
-const TABLE = 'inquiries'
+const PATH = '/inquiries'
 
 function fromRow(r) {
   return {
@@ -18,47 +17,39 @@ function fromRow(r) {
   }
 }
 
-// 내 문의 목록 (회원용) — 테이블 미생성 시 null
+const byNewest = (a, b) => (b.created_at || '').localeCompare(a.created_at || '')
+
+// 내 문의 목록 (회원용) — API 미설정/오류 시 null
 export async function fetchMyInquiries(email) {
-  if (!isSupabaseConfigured) return null
-  const { data, error } = await supabase
-    .from(TABLE)
-    .select('*')
-    .eq('email', email)
-    .order('created_at', { ascending: false })
-  if (error) return null
-  return data.map(fromRow)
+  if (!isApiConfigured) return null
+  const data = await apiGet(PATH, { email })
+  if (!data) return null
+  return data.sort(byNewest).map(fromRow)
 }
 
 // 전체 문의 목록 (관리자용)
 export async function fetchAllInquiries() {
-  if (!isSupabaseConfigured) return null
-  const { data, error } = await supabase
-    .from(TABLE)
-    .select('*')
-    .order('created_at', { ascending: false })
-  if (error) return null
-  return data.map(fromRow)
+  if (!isApiConfigured) return null
+  const data = await apiGet(PATH)
+  if (!data) return null
+  return data.sort(byNewest).map(fromRow)
 }
 
 export async function createInquiry({ email, name, title, content }) {
-  const { data, error } = await supabase
-    .from(TABLE)
-    .insert({ email, name, title, content })
-    .select()
-    .single()
-  return error ? { error: error.message } : { ok: true, inquiry: fromRow(data) }
+  const r = await apiSend('POST', PATH, { email, name, title, content })
+  return r.error ? { error: r.error } : { ok: true, inquiry: fromRow(r.data) }
 }
 
 export async function answerInquiry(id, answer) {
-  const { error } = await supabase
-    .from(TABLE)
-    .update({ answer, status: 'answered', answered_at: new Date().toISOString() })
-    .eq('id', id)
-  return error ? { error: error.message } : { ok: true }
+  const r = await apiSend('PATCH', `${PATH}/${id}`, {
+    answer,
+    status: 'answered',
+    answered_at: new Date().toISOString(),
+  })
+  return r.error ? { error: r.error } : { ok: true }
 }
 
 export async function deleteInquiry(id) {
-  const { error } = await supabase.from(TABLE).delete().eq('id', id)
-  return error ? { error: error.message } : { ok: true }
+  const r = await apiSend('DELETE', `${PATH}/${id}`)
+  return r.error ? { error: r.error } : { ok: true }
 }
