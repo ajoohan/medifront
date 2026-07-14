@@ -74,8 +74,8 @@ export default function PerformanceAdmin() {
 
       {checked && !available && (
         <div className="admin-notice admin-notice--warn">
-          성과 데이터 테이블(performances)이 아직 없습니다. supabase/setup-5.sql 을 Supabase SQL
-          Editor에서 실행하면 홈페이지 성과가 실데이터로 전환됩니다.
+          성과 데이터 DB(performances)에 연결되지 않았습니다. AWS 백엔드 배포와 환경변수
+          설정(docs/aws-backend.md)이 완료되면 홈페이지 성과가 실데이터로 전환됩니다.
         </div>
       )}
 

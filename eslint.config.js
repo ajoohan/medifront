@@ -35,6 +35,18 @@ export default [
       'no-unused-vars': ['warn', { varsIgnorePattern: '^[A-Z_]' }],
     },
   },
+  // Node 환경 파일 — 백엔드 Lambda, 빌드/배포/이전 스크립트
+  {
+    files: ['**/*.mjs', 'backend/**/*.js'],
+    languageOptions: {
+      ecmaVersion: 'latest',
+      sourceType: 'module',
+      globals: { ...globals.node },
+    },
+    rules: {
+      'no-unused-vars': ['warn', { varsIgnorePattern: '^_', argsIgnorePattern: '^_' }],
+    },
+  },
   // Prettier와 충돌하는 포매팅 규칙 비활성화 (반드시 마지막)
   prettier,
 ]

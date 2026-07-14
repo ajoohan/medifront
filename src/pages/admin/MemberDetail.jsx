@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { formatPhone } from '../../lib/phone'
-import { supabase, isSupabaseConfigured } from '../../lib/supabase'
+import { forgotPassword, isAuthConfigured } from '../../lib/authClient'
 import { fetchLogs, insertLog, deleteLogDb } from '../../lib/membersDb'
 
 const GRADES = ['의사', '병원', '일반']
@@ -83,23 +83,21 @@ export default function MemberDetail({ member, onBack, onSave }) {
     setNotice({ type: 'ok', text: '회원 정보를 저장했습니다.' })
   }
 
-  // 비밀번호 재설정 메일 — 회원이 메일의 링크에서 새 비밀번호를 직접 설정
+  // 비밀번호 재설정 코드 메일 — 회원이 /reset-password 페이지에서 코드로 새 비밀번호 설정
   const sendPasswordReset = async () => {
-    if (!isSupabaseConfigured) {
+    if (!isAuthConfigured) {
       setNotice({ type: 'warn', text: '인증 서버 미연결로 메일을 발송할 수 없습니다.' })
       return
     }
     setBusy(true)
-    const { error } = await supabase.auth.resetPasswordForEmail(member.email, {
-      redirectTo: `${window.location.origin}/reset-password`,
-    })
+    const r = await forgotPassword(member.email)
     setBusy(false)
     setNotice(
-      error
-        ? { type: 'warn', text: `비밀번호 재설정 메일 발송 실패: ${error.message}` }
+      r.error
+        ? { type: 'warn', text: `비밀번호 재설정 메일 발송 실패: ${r.error}` }
         : {
             type: 'ok',
-            text: `${member.email} 로 비밀번호 재설정 메일을 발송했습니다. 회원이 메일의 링크에서 새 비밀번호를 설정합니다.`,
+            text: `${member.email} 로 재설정 코드를 발송했습니다. 회원이 사이트의 [아이디/비밀번호 찾기] 또는 /reset-password 페이지에서 코드를 입력해 새 비밀번호를 설정합니다.`,
           },
     )
   }

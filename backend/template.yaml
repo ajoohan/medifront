@@ -1,0 +1,191 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  메디프론트 서버리스 백엔드 — Cognito(회원 인증) + DynamoDB(데이터) + Lambda/HTTP API.
+  배포: scripts/deploy-backend.sh (aws cloudformation package/deploy)
+
+Parameters:
+  SiteOrigin:
+    Type: String
+    Default: https://medifront.co.kr
+    Description: CORS 를 허용할 사이트 주소 (쉼표 없이 1개, www 는 자동 포함)
+
+Globals:
+  Function:
+    Runtime: nodejs22.x
+    MemorySize: 256
+    Timeout: 15
+    Environment:
+      Variables:
+        TABLE_NAME: !Ref DataTable
+
+Resources:
+  # ── 데이터 테이블 (모든 엔티티를 pk/sk 로 저장하는 단일 테이블) ──
+  DataTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: !Sub '${AWS::StackName}-data'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+        - AttributeName: sk
+          AttributeType: S
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+        - AttributeName: sk
+          KeyType: RANGE
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+
+  # ── 회원 인증 (기존 Supabase Auth 대체) ──
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      UserPoolName: !Sub '${AWS::StackName}-users'
+      UsernameAttributes:
+        - email
+      AutoVerifiedAttributes:
+        - email
+      # 기존 사이트 UX 유지: 비밀번호 6자 이상, 복잡도 제한 없음
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 6
+          RequireLowercase: false
+          RequireUppercase: false
+          RequireNumbers: false
+          RequireSymbols: false
+      Schema:
+        - Name: name
+          AttributeDataType: String
+          Mutable: true
+          Required: false
+        - Name: phone
+          AttributeDataType: String
+          Mutable: true
+        - Name: grade
+          AttributeDataType: String
+          Mutable: true
+      VerificationMessageTemplate:
+        DefaultEmailOption: CONFIRM_WITH_CODE
+        EmailSubject: '[메디프론트] 회원가입 인증 코드'
+        EmailMessage: >-
+          메디프론트 회원가입 인증 코드: {####}
+          <br><br>가입 화면의 인증 코드 입력란에 위 6자리 숫자를 입력해 주세요.
+      AdminCreateUserConfig:
+        AllowAdminCreateUserOnly: false
+        InviteMessageTemplate:
+          EmailSubject: '[메디프론트] 계정 등록 안내'
+          EmailMessage: >-
+            메디프론트 계정이 등록되었습니다.
+            <br>아이디(이메일): {username}
+            <br>임시 비밀번호: {####}
+            <br><br>https://medifront.co.kr 에서 로그인 후 비밀번호를 변경해 주세요.
+      LambdaConfig:
+        PostConfirmation: !GetAtt PostConfirmationFunction.Arn
+
+  UserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: web
+      UserPoolId: !Ref UserPool
+      GenerateSecret: false
+      ExplicitAuthFlows:
+        - ALLOW_USER_PASSWORD_AUTH
+        - ALLOW_USER_SRP_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+      RefreshTokenValidity: 30
+      AccessTokenValidity: 60
+      IdTokenValidity: 60
+      TokenValidityUnits:
+        AccessToken: minutes
+        IdToken: minutes
+        RefreshToken: days
+      PreventUserExistenceErrors: ENABLED
+
+  # ── 가입 완료 시 회원 목록(members)에 자동 등록 (기존 DB 트리거 대체) ──
+  PostConfirmationFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub '${AWS::StackName}-post-confirmation'
+      CodeUri: src/
+      Handler: index.postConfirmation
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref DataTable
+
+  PostConfirmationPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref PostConfirmationFunction
+      Action: lambda:InvokeFunction
+      Principal: cognito-idp.amazonaws.com
+      SourceArn: !GetAtt UserPool.Arn
+
+  # ── 데이터 API (기존 Supabase 테이블 REST 대체) ──
+  ApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub '${AWS::StackName}-api'
+      CodeUri: src/
+      Handler: index.handler
+      Environment:
+        Variables:
+          USER_POOL_ID: !Ref UserPool
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref DataTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - cognito-idp:AdminCreateUser
+                - cognito-idp:AdminSetUserPassword
+                - cognito-idp:AdminUpdateUserAttributes
+                - cognito-idp:AdminGetUser
+              Resource: !GetAtt UserPool.Arn
+      Events:
+        Proxy:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /{proxy+}
+            Method: ANY
+
+  HttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      CorsConfiguration:
+        AllowOrigins:
+          - !Ref SiteOrigin
+          - https://www.medifront.co.kr
+          - http://localhost:5173
+        AllowMethods:
+          - GET
+          - POST
+          - PATCH
+          - DELETE
+          - OPTIONS
+        AllowHeaders:
+          - content-type
+        MaxAge: 86400
+
+Outputs:
+  Region:
+    Value: !Ref AWS::Region
+  ApiBaseUrl:
+    Description: 프론트 VITE_API_BASE_URL 값
+    Value: !Sub 'https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com'
+  UserPoolId:
+    Description: 프론트 VITE_COGNITO_USER_POOL_ID 값
+    Value: !Ref UserPool
+  UserPoolClientId:
+    Description: 프론트 VITE_COGNITO_CLIENT_ID 값
+    Value: !Ref UserPoolClient
+  TableName:
+    Description: 데이터 이전(import-dynamodb.mjs)에 쓰는 TABLE_NAME 값
+    Value: !Ref DataTable

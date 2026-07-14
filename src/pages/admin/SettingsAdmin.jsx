@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { loadOperators, saveOperators } from '../../lib/operatorStore'
-import { supabase, isSupabaseConfigured } from '../../lib/supabase'
+import { apiSend, isApiConfigured } from '../../lib/api'
 import { formatPhone } from '../../lib/phone'
 import {
   fetchOperatorsDb,
@@ -20,15 +20,12 @@ function formatDate(iso) {
   return `${y}.${m}.${d}`
 }
 
-// 운영자 등록 안내 메일 — Supabase OTP(매직링크) 메일로 발송
-// ※ 메일 문구는 Supabase 대시보드 > Authentication > Email Templates > Magic Link 에서 수정
+// 운영자 등록 안내 메일 — Cognito 초대 메일(임시 비밀번호 포함)로 발송
+// ※ 메일 문구는 backend/template.yaml 의 InviteMessageTemplate 에서 수정
 async function sendOperatorMail({ email, name }) {
-  if (!isSupabaseConfigured) return { error: 'not-configured' }
-  const { error } = await supabase.auth.signInWithOtp({
-    email,
-    options: { shouldCreateUser: true, data: { name, grade: '일반' } },
-  })
-  return error ? { error: error.message } : { ok: true }
+  if (!isApiConfigured) return { error: 'not-configured' }
+  const r = await apiSend('POST', '/auth/invite', { email, name })
+  return r.error ? { error: r.error } : { ok: true }
 }
 
 export default function SettingsAdmin() {
@@ -150,8 +147,8 @@ export default function SettingsAdmin() {
 
       {checked && !dbReady && (
         <div className="admin-notice admin-notice--warn">
-          운영자 DB 테이블(operators)이 아직 없어 이 브라우저에만 저장됩니다. supabase/setup-3.sql
-          을 Supabase SQL Editor에서 실행해 주세요.
+          운영자 DB(operators)에 연결되지 않아 이 브라우저에만 저장됩니다. AWS 백엔드 배포와
+          환경변수 설정(docs/aws-backend.md)을 확인해 주세요.
         </div>
       )}
 

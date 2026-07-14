@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+# ─────────────────────────────────────────────────────────
+# 메디프론트 백엔드(Cognito + DynamoDB + Lambda API) 배포 스크립트
+# 사전 준비: AWS CLI 설치 + `aws configure`로 자격증명 등록 (프론트 배포와 동일 계정)
+# 사용:
+#   bash scripts/deploy-backend.sh
+# 배포가 끝나면 프론트 빌드에 필요한 값을 .env.production.local 에 자동 기록한다.
+# ─────────────────────────────────────────────────────────
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+STACK="medifront-backend"
+REGION="${AWS_REGION:-ap-northeast-2}"   # 서울
+
+ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+ARTIFACT_BUCKET="medifront-backend-artifacts-${ACCOUNT_ID}"
+
+echo "1) 배포 아티팩트 버킷 준비 (${ARTIFACT_BUCKET})..."
+if ! aws s3api head-bucket --bucket "${ARTIFACT_BUCKET}" 2>/dev/null; then
+  aws s3api create-bucket --bucket "${ARTIFACT_BUCKET}" --region "${REGION}" \
+    --create-bucket-configuration LocationConstraint="${REGION}" >/dev/null
+fi
+
+echo "2) Lambda 코드 패키징..."
+aws cloudformation package \
+  --template-file backend/template.yaml \
+  --s3-bucket "${ARTIFACT_BUCKET}" \
+  --output-template-file backend/.packaged.yaml \
+  --region "${REGION}" >/dev/null
+
+echo "3) CloudFormation 스택 배포 (${STACK})..."
+aws cloudformation deploy \
+  --template-file backend/.packaged.yaml \
+  --stack-name "${STACK}" \
+  --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND \
+  --region "${REGION}"
+
+echo "4) 스택 출력값 조회..."
+outputs=$(aws cloudformation describe-stacks --stack-name "${STACK}" --region "${REGION}" \
+  --query 'Stacks[0].Outputs' --output json)
+get() { echo "${outputs}" | grep -A1 "\"OutputKey\": \"$1\"" | grep OutputValue | sed 's/.*: "\(.*\)".*/\1/'; }
+
+API_URL=$(get ApiBaseUrl)
+POOL_ID=$(get UserPoolId)
+CLIENT_ID=$(get UserPoolClientId)
+TABLE=$(get TableName)
+
+# 프론트 빌드용 환경변수 파일 (git 에는 올라가지 않음 — *.local)
+cat > .env.production.local <<EOF
+VITE_AWS_REGION=${REGION}
+VITE_COGNITO_USER_POOL_ID=${POOL_ID}
+VITE_COGNITO_CLIENT_ID=${CLIENT_ID}
+VITE_API_BASE_URL=${API_URL}
+EOF
+
+echo
+echo "완료 — 프론트 환경변수를 .env.production.local 에 기록했습니다:"
+echo "  VITE_AWS_REGION=${REGION}"
+echo "  VITE_COGNITO_USER_POOL_ID=${POOL_ID}"
+echo "  VITE_COGNITO_CLIENT_ID=${CLIENT_ID}"
+echo "  VITE_API_BASE_URL=${API_URL}"
+echo "  (데이터 이전용 TABLE_NAME=${TABLE})"
+echo
+echo "다음 단계: bash scripts/deploy-aws.sh 로 프론트를 다시 빌드/배포하세요."

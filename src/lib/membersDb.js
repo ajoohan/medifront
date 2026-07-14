@@ -1,8 +1,8 @@
-// 회원 목록 DB (Supabase public.members 테이블)
-// 테이블 생성 SQL: supabase/members-setup.sql (Supabase 대시보드 > SQL Editor 에서 1회 실행)
-import { supabase, isSupabaseConfigured } from './supabase'
+// 회원 목록 DB (AWS DynamoDB members — Lambda API 경유)
+// 백엔드 배포: scripts/deploy-backend.sh (docs/aws-backend.md 참고)
+import { apiGet, apiSend, isApiConfigured } from './api'
 
-const TABLE = 'members'
+const PATH = '/members'
 
 function toRow(m) {
   return {
@@ -31,26 +31,20 @@ function fromRow(r) {
   }
 }
 
-// 목록 조회 — 테이블 미생성 등으로 사용 불가하면 null 반환 (호출부에서 목업 폴백)
+// 목록 조회 — API 미설정/오류 시 null 반환 (호출부에서 목업 폴백)
 export async function fetchMembers() {
-  if (!isSupabaseConfigured) return null
-  const { data, error } = await supabase
-    .from(TABLE)
-    .select('*')
-    .order('joined_at', { ascending: false })
-    .order('id', { ascending: false })
-  if (error) return null
-  return data.map(fromRow)
+  if (!isApiConfigured) return null
+  const data = await apiGet(PATH)
+  if (!data) return null
+  return data
+    .sort((a, b) => (b.joined_at || '').localeCompare(a.joined_at || '') || b.id - a.id)
+    .map(fromRow)
 }
 
 // 추가/갱신 — 가입 트리거가 먼저 넣은 행이 있으면 이메일 기준으로 병합
 export async function upsertMember(member) {
-  const { data, error } = await supabase
-    .from(TABLE)
-    .upsert(toRow(member), { onConflict: 'email' })
-    .select()
-    .single()
-  return error ? { error: error.message } : { ok: true, member: fromRow(data) }
+  const r = await apiSend('POST', PATH, toRow(member))
+  return r.error ? { error: r.error } : { ok: true, member: fromRow(r.data) }
 }
 
 // 회원 정보 변경 (등급/상태/기본 정보)
@@ -59,42 +53,36 @@ export async function updateMemberDb(id, patch) {
   for (const k of ['grade', 'status', 'name', 'phone', 'hospital', 'specialty']) {
     if (patch[k] !== undefined) row[k] = patch[k]
   }
-  const { error } = await supabase.from(TABLE).update(row).eq('id', id)
-  return error ? { error: error.message } : { ok: true }
+  const r = await apiSend('PATCH', `${PATH}/${id}`, row)
+  return r.error ? { error: r.error } : { ok: true }
 }
 
 export async function deleteMemberDb(id) {
-  const { error } = await supabase.from(TABLE).delete().eq('id', id)
-  return error ? { error: error.message } : { ok: true }
+  const r = await apiSend('DELETE', `${PATH}/${id}`)
+  return r.error ? { error: r.error } : { ok: true }
 }
 
-// ── 회원 전화 로그 (member_logs 테이블 — supabase/setup-2.sql) ──
+// ── 회원 전화 로그 (DynamoDB member_logs) ──
 
-const LOGS_TABLE = 'member_logs'
+const LOGS_PATH = '/member-logs'
 
-// 테이블 미생성 시 null 반환 (호출부에서 브라우저 저장 폴백)
+// API 미설정/오류 시 null 반환 (호출부에서 브라우저 저장 폴백)
 export async function fetchLogs(memberId) {
-  if (!isSupabaseConfigured) return null
-  const { data, error } = await supabase
-    .from(LOGS_TABLE)
-    .select('*')
-    .eq('member_id', memberId)
-    .order('logged_at', { ascending: false })
-  if (error) return null
-  return data.map((r) => ({ id: r.id, at: r.logged_at, content: r.content }))
+  if (!isApiConfigured) return null
+  const data = await apiGet(LOGS_PATH, { member_id: memberId })
+  if (!data) return null
+  return data
+    .sort((a, b) => (b.logged_at || '').localeCompare(a.logged_at || ''))
+    .map((r) => ({ id: r.id, at: r.logged_at, content: r.content }))
 }
 
 export async function insertLog(memberId, content) {
-  const { data, error } = await supabase
-    .from(LOGS_TABLE)
-    .insert({ member_id: memberId, content })
-    .select()
-    .single()
-  if (error) return { error: error.message }
-  return { ok: true, log: { id: data.id, at: data.logged_at, content: data.content } }
+  const r = await apiSend('POST', LOGS_PATH, { member_id: memberId, content })
+  if (r.error) return { error: r.error }
+  return { ok: true, log: { id: r.data.id, at: r.data.logged_at, content: r.data.content } }
 }
 
 export async function deleteLogDb(id) {
-  const { error } = await supabase.from(LOGS_TABLE).delete().eq('id', id)
-  return error ? { error: error.message } : { ok: true }
+  const r = await apiSend('DELETE', `${LOGS_PATH}/${id}`)
+  return r.error ? { error: r.error } : { ok: true }
 }

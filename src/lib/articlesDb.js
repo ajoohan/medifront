@@ -1,8 +1,7 @@
-// 매거진 게시물 DB (Supabase public.articles 테이블)
-// 테이블 생성 SQL: supabase/setup-2.sql
-import { supabase, isSupabaseConfigured } from './supabase'
+// 매거진 게시물 DB (AWS DynamoDB articles — Lambda API 경유)
+import { apiGet, apiSend, isApiConfigured } from './api'
 
-const TABLE = 'articles'
+const PATH = '/articles'
 
 function fromRow(r) {
   return {
@@ -30,17 +29,17 @@ function toRow(a) {
   }
 }
 
-// 전체 목록 (최신순) — 테이블 미생성 시 null (호출부에서 localStorage 폴백)
+// 전체 목록 (최신순) — API 미설정/오류 시 null (호출부에서 localStorage 폴백)
 export async function fetchArticlesDb() {
-  if (!isSupabaseConfigured) return null
-  const { data, error } = await supabase.from(TABLE).select('*').order('id', { ascending: false })
-  if (error) return null
-  return data.map(fromRow)
+  if (!isApiConfigured) return null
+  const data = await apiGet(PATH)
+  if (!data) return null
+  return data.sort((a, b) => b.id - a.id).map(fromRow)
 }
 
 export async function insertArticleDb(a) {
-  const { data, error } = await supabase.from(TABLE).insert(toRow(a)).select().single()
-  return error ? { error: error.message } : { ok: true, article: fromRow(data) }
+  const r = await apiSend('POST', PATH, toRow(a))
+  return r.error ? { error: r.error } : { ok: true, article: fromRow(r.data) }
 }
 
 export async function updateArticleDb(id, patch) {
@@ -48,11 +47,11 @@ export async function updateArticleDb(id, patch) {
   for (const k of ['title', 'content', 'thumbnail', 'excerpt', 'read', 'status']) {
     if (patch[k] !== undefined) row[k] = patch[k]
   }
-  const { error } = await supabase.from(TABLE).update(row).eq('id', id)
-  return error ? { error: error.message } : { ok: true }
+  const r = await apiSend('PATCH', `${PATH}/${id}`, row)
+  return r.error ? { error: r.error } : { ok: true }
 }
 
 export async function deleteArticleDb(id) {
-  const { error } = await supabase.from(TABLE).delete().eq('id', id)
-  return error ? { error: error.message } : { ok: true }
+  const r = await apiSend('DELETE', `${PATH}/${id}`)
+  return r.error ? { error: r.error } : { ok: true }
 }

@@ -21,3 +21,9 @@ npm-debug.log*
 # env
 .env
 .env.*
+
+# 데이터 이전 산출물 (회원 개인정보 포함 — 절대 커밋 금지)
+scripts/migrate/out/
+
+# CloudFormation 패키징 산출물
+backend/.packaged.yaml

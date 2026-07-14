@@ -1,8 +1,7 @@
-// 상담 신청 접수 DB (Supabase public.consult_requests 테이블)
-// 테이블 생성 SQL: supabase/setup-4.sql
-import { supabase, isSupabaseConfigured } from './supabase'
+// 상담 신청 접수 DB (AWS DynamoDB consult_requests — Lambda API 경유)
+import { apiGet, apiSend, isApiConfigured } from './api'
 
-const TABLE = 'consult_requests'
+const PATH = '/consult-requests'
 
 function fromRow(r) {
   return {
@@ -20,8 +19,8 @@ function fromRow(r) {
 
 // 접수 (메인 페이지 상담 신청 폼)
 export async function insertRequest(form) {
-  if (!isSupabaseConfigured) return { error: 'not-configured' }
-  const { error } = await supabase.from(TABLE).insert({
+  if (!isApiConfigured) return { error: 'not-configured' }
+  const r = await apiSend('POST', PATH, {
     name: form.name,
     phone: form.phone,
     specialty: form.specialty,
@@ -29,23 +28,23 @@ export async function insertRequest(form) {
     opening_region: form.openingRegion,
     message: form.message,
   })
-  return error ? { error: error.message } : { ok: true }
+  return r.error ? { error: r.error } : { ok: true }
 }
 
-// 접수 목록 (관리자) — 테이블 미생성 시 null
+// 접수 목록 (관리자) — API 미설정/오류 시 null
 export async function fetchRequests() {
-  if (!isSupabaseConfigured) return null
-  const { data, error } = await supabase.from(TABLE).select('*').order('id', { ascending: false })
-  if (error) return null
-  return data.map(fromRow)
+  if (!isApiConfigured) return null
+  const data = await apiGet(PATH)
+  if (!data) return null
+  return data.sort((a, b) => b.id - a.id).map(fromRow)
 }
 
 export async function updateRequestStatus(id, status) {
-  const { error } = await supabase.from(TABLE).update({ status }).eq('id', id)
-  return error ? { error: error.message } : { ok: true }
+  const r = await apiSend('PATCH', `${PATH}/${id}`, { status })
+  return r.error ? { error: r.error } : { ok: true }
 }
 
 export async function deleteRequest(id) {
-  const { error } = await supabase.from(TABLE).delete().eq('id', id)
-  return error ? { error: error.message } : { ok: true }
+  const r = await apiSend('DELETE', `${PATH}/${id}`)
+  return r.error ? { error: r.error } : { ok: true }
 }
