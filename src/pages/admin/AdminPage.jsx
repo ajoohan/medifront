@@ -1,46 +1,23 @@
-import { useCallback, useEffect, useState } from 'react'
-import AdminLogin from './AdminLogin'
-import AdminDashboard from './AdminDashboard'
+import { useEffect } from 'react'
 
-// ⚠️ 프론트엔드 전용 목업 인증(프로토타입). 실제 보안은 서버 검증이 필요합니다.
-// 세션 정책:
-// - sessionStorage 사용 → 브라우저 종료·재부팅 시 세션이 사라져 재로그인 필요
-// - 마지막 활동 후 30분(유휴) 초과 시 자동 로그아웃
-const AUTH_KEY = 'medifront_admin_auth'
-const IDLE_LIMIT = 30 * 60 * 1000 // 30분
-const CHECK_INTERVAL = 30 * 1000 // 30초마다 유휴 검사
-const WRITE_THROTTLE = 20 * 1000 // 활동 저장은 최대 20초에 한 번
-
-let lastWrite = 0
-
-// 유효한(만료 전) 세션이면 true. 유휴 초과 시 세션 제거 후 false.
-function readAuth() {
-  try {
-    const raw = sessionStorage.getItem(AUTH_KEY)
-    if (!raw) return false
-    const { lastActivity } = JSON.parse(raw)
-    if (!lastActivity || Date.now() - lastActivity > IDLE_LIMIT) {
-      sessionStorage.removeItem(AUTH_KEY)
-      return false
-    }
-    return true
-  } catch {
-    return false
-  }
-}
-
-// 활동 시각 갱신 (잦은 쓰기 방지를 위해 스로틀)
-function touchAuth(force) {
-  const now = Date.now()
-  if (!force && now - lastWrite < WRITE_THROTTLE) return
-  lastWrite = now
-  sessionStorage.setItem(AUTH_KEY, JSON.stringify({ lastActivity: now }))
-}
+// ─────────────────────────────────────────────────────────────
+// 🔒 관리자 화면 일시 비활성화 (보안 조치)
+//
+// 배경: 이전 구현은 VITE_ADMIN_EMAIL / VITE_ADMIN_PASSWORD 를 브라우저에서
+//       문자열 비교하는 프론트엔드 전용 인증이었습니다. Vite 는 VITE_ 접두사
+//       변수를 설계상 클라이언트 번들에 그대로 삽입하므로, 관리자 비밀번호가
+//       공개 JS 파일에 평문으로 노출됐습니다. 비밀번호를 바꿔도 새 값이 즉시
+//       다시 공개되므로 이 구조로는 어떤 비밀번호도 안전할 수 없습니다.
+//
+// 조치: 자격증명을 코드에서 완전히 제거하고, 서버 검증(AWS Cognito) 전환
+//       전까지 /admin 로그인을 닫습니다. AdminLogin/AdminDashboard 를
+//       import 하지 않으므로 관리자 화면 코드 자체도 번들에서 제외됩니다.
+//
+// 그동안 관리 작업은 Supabase 대시보드에서 수행하세요.
+// 전환 후 이 파일은 Cognito 인증(서버 검증 JWT)으로 다시 열립니다.
+// ─────────────────────────────────────────────────────────────
 
 export default function AdminPage() {
-  const [authed, setAuthed] = useState(readAuth)
-
-  // 관리자 화면 진입 시 브라우저 탭 제목 변경, 벗어나면 원복
   useEffect(() => {
     const prev = document.title
     document.title = '메디프론트 MEDIFRONT | 관리자 화면'
@@ -49,30 +26,19 @@ export default function AdminPage() {
     }
   }, [])
 
-  const onLogin = () => {
-    touchAuth(true)
-    setAuthed(true)
-  }
-  const onLogout = useCallback(() => {
-    sessionStorage.removeItem(AUTH_KEY)
-    setAuthed(false)
-  }, [])
-
-  // 로그인 상태에서 활동 감지 + 유휴 자동 로그아웃
-  useEffect(() => {
-    if (!authed) return
-    const bump = () => touchAuth()
-    const events = ['mousemove', 'keydown', 'click', 'scroll', 'touchstart']
-    events.forEach((e) => window.addEventListener(e, bump, { passive: true }))
-    const timer = setInterval(() => {
-      if (!readAuth()) onLogout()
-    }, CHECK_INTERVAL)
-    return () => {
-      events.forEach((e) => window.removeEventListener(e, bump))
-      clearInterval(timer)
-    }
-  }, [authed, onLogout])
-
-  if (!authed) return <AdminLogin onLogin={onLogin} />
-  return <AdminDashboard onLogout={onLogout} />
+  return (
+    <div className="admin-login">
+      <div className="admin-login__card">
+        <div className="admin-login__brand">
+          <span>ADMIN</span>
+        </div>
+        <p className="admin-login__sub">관리자 화면 점검 중</p>
+        <div className="admin-login__error" style={{ textAlign: 'left', lineHeight: 1.7 }}>
+          보안 강화 작업(서버 인증 전환)으로 관리자 로그인을 일시적으로 닫았습니다.
+          <br />
+          작업이 완료되면 다시 열립니다.
+        </div>
+      </div>
+    </div>
+  )
 }
