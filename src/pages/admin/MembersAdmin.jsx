@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react'
-import { MOCK_MEMBERS } from '../../mock/members'
 import { formatPhone } from '../../lib/phone'
 import { apiSend, isApiConfigured } from '../../lib/api'
 import { fetchMembers, upsertMember, updateMemberDb, deleteMemberDb } from '../../lib/membersDb'
@@ -42,16 +41,6 @@ function formatDate(iso) {
   return `${y}.${m}.${d}`
 }
 
-// DB 테이블 생성 전 임시 보존(브라우저 저장) — 새로고침해도 추가/변경이 유지되도록
-const LOCAL_KEY = 'medifront_members_local'
-function loadLocalMembers() {
-  try {
-    return JSON.parse(localStorage.getItem(LOCAL_KEY))
-  } catch {
-    return null
-  }
-}
-
 // 수동 추가 폼 초기값 — password 는 등록하는 관리자가 매번 직접 지정한다(필수)
 const EMPTY_DRAFT = {
   name: '',
@@ -81,36 +70,24 @@ export default function MembersAdmin() {
   const [dbReady, setDbReady] = useState(false) // members 테이블 사용 가능 여부
   const [detailId, setDetailId] = useState(null) // 상세 보기 중인 회원 id
 
-  // DB(members 테이블)에서 실목록 로드 — 테이블 미생성 시에만 브라우저 저장분/목업 폴백
+  // DB(members 테이블)에서 실목록 로드.
+  // 조회 실패 시 예전에는 목업 회원 28명을 대신 보여줬는데, 관리자가 이를 실제 회원으로
+  // 오해할 수 있어 제거했다. 실패는 빈 목록 + 오류 안내로 정직하게 드러낸다.
   useEffect(() => {
     fetchMembers().then((list) => {
       if (list) {
         setMembers(list)
         setDbReady(true)
       } else {
-        // DB 미연결일 때만 폴백 — 이때 비로소 임시 데이터를 보여줌(깜빡임 없음)
-        setMembers(loadLocalMembers() || MOCK_MEMBERS)
-        if (isApiConfigured) {
-          setNotice({
-            type: 'warn',
-            text: '회원 DB(members)에 연결되지 않아 이 브라우저에만 임시 저장됩니다. AWS 백엔드 배포와 환경변수 설정(docs/aws-backend.md)을 확인해 주세요.',
-          })
-        }
+        setMembers([])
+        setNotice({
+          type: 'warn',
+          text: '회원 DB(members)를 불러오지 못했습니다. 잠시 후 새로고침해 주세요. 계속되면 관리자에게 문의해 주세요.',
+        })
       }
       setLoaded(true)
     })
   }, [])
-
-  // DB 미연결 동안에는 목록 변경을 브라우저에 보존 (새로고침 유지)
-  // 최초 로드 완료 전에는 저장하지 않음 — 빈 목록으로 기존 임시 데이터를 덮어쓰는 것 방지
-  useEffect(() => {
-    if (!loaded || dbReady) return
-    try {
-      localStorage.setItem(LOCAL_KEY, JSON.stringify(members))
-    } catch {
-      // 저장 공간 부족 시 보존 생략 (동작에는 영향 없음)
-    }
-  }, [members, loaded, dbReady])
 
   const filtered = useMemo(() => {
     const keyword = q.trim()

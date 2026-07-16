@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { loadOperators, saveOperators } from '../../lib/operatorStore'
 import { apiSend, isApiConfigured } from '../../lib/api'
 import { formatPhone } from '../../lib/phone'
 import {
@@ -41,28 +40,16 @@ export default function SettingsAdmin() {
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState(null) // { type: 'ok' | 'warn', text }
 
-  // DB 로드 — 테이블 미생성 시 브라우저 저장 폴백.
-  // DB가 비어 있고 브라우저 저장분이 있으면 1회 자동 이전한다.
+  // DB 로드. 조회 실패 시 예전에는 브라우저 저장분으로 폴백했는데, 그 상태에서 운영자를
+  // 추가하면 목록에는 보이지만 Cognito 계정도 역할 그룹도 만들어지지 않아 관리자가
+  // 등록됐다고 오해하게 된다. 실패는 빈 목록 + 오류 안내로 정직하게 드러낸다.
   useEffect(() => {
-    fetchOperatorsDb().then(async (list) => {
+    fetchOperatorsDb().then((list) => {
       if (list) {
         setDbReady(true)
-        const local = loadOperators()
-        if (list.length === 0 && local.length > 0) {
-          const uploaded = []
-          let allOk = true
-          for (const op of local) {
-            const r = await insertOperatorDb(op)
-            if (r.ok) uploaded.push(r.operator)
-            else allOk = false
-          }
-          if (allOk) saveOperators([])
-          setOperators(uploaded)
-        } else {
-          setOperators(list)
-        }
+        setOperators(list)
       } else {
-        setOperators(loadOperators())
+        setOperators([])
       }
       setChecked(true)
     })
@@ -70,13 +57,14 @@ export default function SettingsAdmin() {
 
   const setD = (key) => (e) => setDraft((d) => ({ ...d, [key]: e.target.value }))
 
-  const persist = (next) => {
-    setOperators(next)
-    if (!dbReady) saveOperators(next)
-  }
+  const persist = (next) => setOperators(next)
 
   const addOperator = async (e) => {
     e.preventDefault()
+    if (!dbReady) {
+      setNotice({ type: 'warn', text: '운영자 DB에 연결되지 않아 등록할 수 없습니다.' })
+      return
+    }
     const email = draft.email.trim()
     if (operators.some((o) => o.email === email)) {
       window.alert('이미 등록된 이메일입니다.')
@@ -91,16 +79,17 @@ export default function SettingsAdmin() {
       createdAt: new Date().toISOString().slice(0, 10),
     }
     setBusy(true)
-    const mail = await sendOperatorMail(newOp)
-    if (dbReady) {
-      const res = await insertOperatorDb({ ...newOp, createdAt: undefined })
-      if (res.ok) newOp = res.operator
-      else {
-        setBusy(false)
-        setNotice({ type: 'warn', text: `운영자 DB 저장 실패: ${res.error}` })
-        return
-      }
+    // 목록(DB) 저장을 먼저 한다. 초대 메일(sendOperatorMail)이 Cognito 계정을 만들고 역할
+    // 그룹에 넣으므로, 메일을 먼저 보내면 저장 실패 시 '관리 권한은 있는데 목록에 없는'
+    // 계정이 남아 회수할 수 없게 된다.
+    const res = await insertOperatorDb({ ...newOp, createdAt: undefined })
+    if (!res.ok) {
+      setBusy(false)
+      setNotice({ type: 'warn', text: `운영자 DB 저장 실패: ${res.error}` })
+      return
     }
+    newOp = res.operator
+    const mail = await sendOperatorMail({ ...newOp, grade: draft.grade })
     setBusy(false)
 
     persist([newOp, ...operators])
@@ -121,16 +110,26 @@ export default function SettingsAdmin() {
     }
   }
 
+  // 등급 변경·삭제는 DB 에 반영돼야 Cognito 역할 그룹도 함께 바뀐다(backend patchItem/deleteItem).
+  // DB 미연결 시 화면만 바꾸면 실제 권한은 그대로여서 오해를 부르므로 막는다.
   const changeGrade = (id, grade) => {
+    if (!dbReady) {
+      setNotice({ type: 'warn', text: '운영자 DB에 연결되지 않아 등급을 변경할 수 없습니다.' })
+      return
+    }
     persist(operators.map((o) => (o.id === id ? { ...o, grade } : o)))
-    if (dbReady) updateOperatorDb(id, { grade })
+    updateOperatorDb(id, { grade })
   }
 
   const removeOperator = (id) => {
+    if (!dbReady) {
+      setNotice({ type: 'warn', text: '운영자 DB에 연결되지 않아 삭제할 수 없습니다.' })
+      return
+    }
     const target = operators.find((o) => o.id === id)
     if (window.confirm(`'${target?.name}' 운영자를 삭제하시겠습니까?`)) {
       persist(operators.filter((o) => o.id !== id))
-      if (dbReady) deleteOperatorDb(id)
+      deleteOperatorDb(id)
     }
   }
 
@@ -151,8 +150,8 @@ export default function SettingsAdmin() {
 
       {checked && !dbReady && (
         <div className="admin-notice admin-notice--warn">
-          운영자 DB(operators)에 연결되지 않아 이 브라우저에만 저장됩니다. AWS 백엔드 배포와
-          환경변수 설정(docs/aws-backend.md)을 확인해 주세요.
+          운영자 DB(operators)를 불러오지 못했습니다. 이 상태에서는 운영자를 등록·수정할 수
+          없습니다. 잠시 후 새로고침해 주세요.
         </div>
       )}
 
