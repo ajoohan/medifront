@@ -66,7 +66,11 @@ Resources:
           RequireUppercase: false
           RequireSymbols: false
           TemporaryPasswordValidityDays: 7
-      # 유출된 비밀번호 사용 차단 + 비정상 로그인 탐지
+      # 유출된 비밀번호 사용 차단 + 비정상 로그인 탐지(Threat Protection).
+      # 이 기능은 PLUS 요금제에서만 동작하므로 UserPoolTier 를 함께 지정해야 한다.
+      # (ESSENTIALS 로 두면 배포가 400 에러로 실패한다)
+      # 비용: MAU 당 약 $0.015(ESSENTIALS) → $0.020(PLUS)
+      UserPoolTier: PLUS
       UserPoolAddOns:
         AdvancedSecurityMode: ENFORCED
       Schema:
