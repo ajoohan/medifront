@@ -6,6 +6,7 @@ import {
   ConfirmSignUpCommand,
   ResendConfirmationCodeCommand,
   InitiateAuthCommand,
+  RespondToAuthChallengeCommand,
   ForgotPasswordCommand,
   ConfirmForgotPasswordCommand,
   GlobalSignOutCommand,
@@ -42,13 +43,37 @@ function decode(jwt) {
   }
 }
 
+// 관리자 역할 — backend/src/index.mjs 의 ROLE_BY_GROUP 과 반드시 같아야 한다.
+// 세 등급의 권한은 현재 동일하며, 화면에서 등급별로 나눌 때 user.adminRole 로 분기한다.
+const ROLE_BY_GROUP = {
+  'super-admin': '최고관리자',
+  admin: '일반관리자',
+  operator: '운영자',
+}
+
 function claimsToUser(claims) {
   if (!claims?.email) return null
+  // cognito:groups 는 배열 또는 "[admin operator]" 형태 문자열로 올 수 있다.
+  // (Lambda 인가(getAuth)와 동일한 규칙 — 양쪽이 같은 기준으로 역할을 판정해야 한다)
+  const raw = claims['cognito:groups']
+  const groups = Array.isArray(raw)
+    ? raw
+    : typeof raw === 'string'
+      ? raw
+          .replace(/^\[|\]$/g, '')
+          .split(/[\s,]+/)
+          .filter(Boolean)
+      : []
+  // 한 사람은 한 역할 그룹에만 속한다(백엔드 setRoleGroup)
+  const roleGroup = Object.keys(ROLE_BY_GROUP).find((g) => groups.includes(g))
   return {
     email: claims.email,
     name: claims.name || claims.email.split('@')[0],
     phone: claims['custom:phone'] || '-',
     grade: claims['custom:grade'] || '일반',
+    // 역할은 서버가 서명한 JWT 의 그룹으로만 정해진다(가입자가 조작 불가)
+    isAdmin: !!roleGroup,
+    adminRole: roleGroup ? ROLE_BY_GROUP[roleGroup] : null,
   }
 }
 
@@ -165,8 +190,39 @@ export async function signIn({ email, password }) {
         AuthParameters: { USERNAME: email, PASSWORD: password },
       }),
     )
+    // 관리자가 초대한 계정은 임시 비밀번호로 첫 로그인 시 새 비밀번호를 요구한다.
+    // 토큰이 아직 없으므로 Session 을 넘겨 completeNewPassword 로 이어받는다.
+    if (r.ChallengeName === 'NEW_PASSWORD_REQUIRED') {
+      return { challenge: 'NEW_PASSWORD_REQUIRED', session: r.Session }
+    }
     const a = r.AuthenticationResult
-    if (!a?.IdToken) return { error: 'NotAuthorizedException: unexpected challenge' }
+    if (!a?.IdToken)
+      return { error: `NotAuthorizedException: unexpected challenge ${r.ChallengeName || ''}` }
+    saveTokens({ idToken: a.IdToken, accessToken: a.AccessToken, refreshToken: a.RefreshToken })
+    const user = claimsToUser(decode(a.IdToken))
+    emit(user)
+    return { ok: true, user }
+  } catch (e) {
+    return { error: errStr(e) }
+  }
+}
+
+// 임시 비밀번호 첫 로그인 마무리 — 새 비밀번호를 설정하면서 로그인까지 완료한다.
+// signIn 이 돌려준 session 을 그대로 넘겨야 한다(수 분 내 만료).
+export async function completeNewPassword({ email, password, session }) {
+  if (!isAuthConfigured) return { error: 'not-configured' }
+  try {
+    const r = await client.send(
+      new RespondToAuthChallengeCommand({
+        ClientId: awsConfig.clientId,
+        ChallengeName: 'NEW_PASSWORD_REQUIRED',
+        Session: session,
+        ChallengeResponses: { USERNAME: email, NEW_PASSWORD: password },
+      }),
+    )
+    const a = r.AuthenticationResult
+    if (!a?.IdToken)
+      return { error: `NotAuthorizedException: unexpected challenge ${r.ChallengeName || ''}` }
     saveTokens({ idToken: a.IdToken, accessToken: a.AccessToken, refreshToken: a.RefreshToken })
     const user = claimsToUser(decode(a.IdToken))
     emit(user)

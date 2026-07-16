@@ -4,6 +4,10 @@ import { NAV } from '../data'
 import Logo from './Logo'
 import { useUser } from '../context/UserContext'
 
+// 관리자·운영자는 회원등급 대신 역할(최고관리자/일반관리자/운영자)을 표시한다.
+// 권한은 회원등급이 아니라 JWT 의 역할 그룹으로 정해진다.
+const roleLabel = (user) => user.adminRole || `${user.grade} 회원`
+
 // 네비 항목 렌더: to(라우트)면 Link, href(홈 앵커)면 '/#앵커' 링크로
 function NavItem({ item, onClick }) {
   const className = item.highlight ? 'nav-highlight' : undefined
@@ -61,7 +65,7 @@ export default function Header() {
           {user ? (
             <>
               <span className="header__user">
-                <b>{user.name}</b> 님 ({user.grade} 회원)
+                <b>{user.name}</b> 님 ({roleLabel(user)})
               </span>
               <button className="btn btn--login" onClick={handleLogout}>
                 로그아웃
@@ -89,7 +93,7 @@ export default function Header() {
         {user ? (
           <>
             <div className="mobile-user">
-              <b>{user.name}</b> 님 ({user.grade} 회원)
+              <b>{user.name}</b> 님 ({roleLabel(user)})
             </div>
             <button className="mobile-login" onClick={handleLogout}>
               로그아웃

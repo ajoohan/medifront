@@ -2440,7 +2440,11 @@ ul {
   background: rgba(59, 130, 246, 0.14);
   color: #2563eb;
 }
-/* 운영자 등급 (설정 > 운영자 관리) */
+/* 관리자 등급 (설정 > 운영자 관리) — 최고관리자 / 일반관리자 / 운영자 */
+.grade--super {
+  background: rgba(190, 24, 93, 0.14);
+  color: #be185d;
+}
 .grade--master {
   background: rgba(184, 134, 11, 0.16);
   color: #b8860b;

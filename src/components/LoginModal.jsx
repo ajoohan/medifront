@@ -28,7 +28,7 @@ function tr(err) {
   if (err.includes('ExpiredCodeException'))
     return '인증 코드가 만료되었습니다. 코드를 다시 요청해 주세요.'
   if (err.includes('InvalidPasswordException') || err.includes('previousPassword'))
-    return '비밀번호는 6자 이상이어야 합니다.'
+    return '비밀번호는 8자 이상이며 영문과 숫자를 모두 포함해야 합니다.'
   if (err.includes('LimitExceededException') || err.includes('TooManyRequests'))
     return '요청이 너무 잦습니다. 잠시 후 다시 시도해 주세요.'
   return err
@@ -39,6 +39,7 @@ export default function LoginModal({ open, onClose }) {
     signUpWithEmail,
     confirmSignUp,
     signInWithEmail,
+    completeNewPassword,
     resendVerification,
     requestPasswordReset,
     confirmPasswordReset,
@@ -48,6 +49,7 @@ export default function LoginModal({ open, onClose }) {
 
   // mode: 'login' | 'signup' | 'verify'(인증 코드 입력) | 'recover'(아이디/비밀번호 찾기)
   // mode 추가: 'signup2' = 가입 2단계(이름·휴대폰·약관 동의), 'recover2' = 재설정 코드 + 새 비밀번호
+  //           'newpw' = 관리자 초대 계정의 임시 비밀번호 첫 로그인 (새 비밀번호 설정)
   const [mode, setMode] = useState('login')
   const [form, setForm] = useState({
     email: '',
@@ -61,6 +63,7 @@ export default function LoginModal({ open, onClose }) {
   const [agree, setAgree] = useState(false)
   const [grade, setGrade] = useState('일반') // 회원유형 (가입 2단계 선택)
   const [autoLogin, setAutoLogin] = useState(true) // 자동 로그인
+  const [newPwSession, setNewPwSession] = useState('') // 임시 비밀번호 챌린지 세션
   const [msg, setMsg] = useState('')
   const [info, setInfo] = useState('')
   const [busy, setBusy] = useState(false)
@@ -123,6 +126,14 @@ export default function LoginModal({ open, onClose }) {
       autoLogin,
     })
     setBusy(false)
+    // 관리자 초대 계정 — 임시 비밀번호이므로 새 비밀번호 설정 화면으로 넘긴다
+    if (r.challenge === 'NEW_PASSWORD_REQUIRED') {
+      setNewPwSession(r.session)
+      setForm((f) => ({ ...f, password: '', confirm: '' }))
+      setInfo('임시 비밀번호로 로그인했습니다. 사용할 새 비밀번호를 설정해 주세요.')
+      switchModeKeepInfo('newpw')
+      return
+    }
     if (r.error) {
       // 인증 미완료 계정이면 코드 입력 화면으로 안내
       if (r.error.includes('UserNotConfirmedException')) {
@@ -132,6 +143,37 @@ export default function LoginModal({ open, onClose }) {
       }
       setMsg(tr(r.error))
     } else onClose()
+  }
+
+  // 임시 비밀번호 첫 로그인 마무리 — 새 비밀번호를 설정하면 그대로 로그인된다
+  const submitNewPw = async (e) => {
+    e.preventDefault()
+    setMsg('')
+    if (form.password !== form.confirm) {
+      setMsg('비밀번호가 일치하지 않습니다.')
+      return
+    }
+    setBusy(true)
+    const r = await completeNewPassword({
+      email: form.email.trim(),
+      password: form.password,
+      session: newPwSession,
+      autoLogin,
+    })
+    setBusy(false)
+    if (r.error) {
+      // 세션은 수 분 내 만료된다 — 만료 시 임시 비밀번호로 다시 로그인해야 한다
+      if (r.error.includes('NotAuthorizedException')) {
+        setNewPwSession('')
+        setInfo('시간이 초과되었습니다. 임시 비밀번호로 다시 로그인해 주세요.')
+        switchModeKeepInfo('login')
+        return
+      }
+      setMsg(tr(r.error))
+      return
+    }
+    setNewPwSession('')
+    onClose()
   }
 
   // 가입 1단계: 이메일/비밀번호 검증 후 2단계로 이동 (서버 호출 없음)
@@ -363,8 +405,8 @@ export default function LoginModal({ open, onClose }) {
                 <label>비밀번호</label>
                 <input
                   type="password"
-                  placeholder="6자 이상"
-                  minLength={6}
+                  placeholder="8자 이상, 영문+숫자"
+                  minLength={8}
                   autoComplete="new-password"
                   value={form.password}
                   onChange={set('password')}
@@ -554,6 +596,50 @@ export default function LoginModal({ open, onClose }) {
         )}
 
         {/* ── 재설정 코드 + 새 비밀번호 ── */}
+        {mode === 'newpw' && (
+          <>
+            <form onSubmit={submitNewPw}>
+              <div className="field">
+                <label>새 비밀번호</label>
+                <input
+                  type="password"
+                  placeholder="8자 이상, 영문+숫자"
+                  minLength={8}
+                  autoComplete="new-password"
+                  value={form.password}
+                  onChange={set('password')}
+                  required
+                  autoFocus
+                />
+              </div>
+              <div className="field login-modal__pw">
+                <label>새 비밀번호 확인</label>
+                <input
+                  type="password"
+                  placeholder="비밀번호 재입력"
+                  autoComplete="new-password"
+                  value={form.confirm}
+                  onChange={set('confirm')}
+                  required
+                />
+              </div>
+              <button
+                type="submit"
+                className="btn btn--primary btn--lg"
+                style={{ width: '100%' }}
+                disabled={busy}
+              >
+                {busy ? '설정 중...' : '비밀번호 설정하고 로그인'}
+              </button>
+            </form>
+            <div className="login-modal__links">
+              <button type="button" onClick={() => switchMode('login')}>
+                ← 로그인으로
+              </button>
+            </div>
+          </>
+        )}
+
         {mode === 'recover2' && (
           <>
             <form onSubmit={submitRecover2}>
@@ -573,8 +659,8 @@ export default function LoginModal({ open, onClose }) {
                 <label>새 비밀번호</label>
                 <input
                   type="password"
-                  placeholder="6자 이상"
-                  minLength={6}
+                  placeholder="8자 이상, 영문+숫자"
+                  minLength={8}
                   autoComplete="new-password"
                   value={form.password}
                   onChange={set('password')}

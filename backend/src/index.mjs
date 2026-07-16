@@ -14,6 +14,8 @@ import {
   AdminCreateUserCommand,
   AdminSetUserPasswordCommand,
   AdminUpdateUserAttributesCommand,
+  AdminAddUserToGroupCommand,
+  AdminRemoveUserFromGroupCommand,
 } from '@aws-sdk/client-cognito-identity-provider'
 
 const TABLE = process.env.TABLE_NAME
@@ -84,7 +86,7 @@ const RESOURCES = {
   operators: {
     entity: 'operators',
     fields: ['name', 'email', 'phone', 'grade', 'created_at'],
-    defaults: () => ({ name: '', phone: '-', grade: '매니저' }),
+    defaults: () => ({ name: '', phone: '-', grade: '운영자' }),
   },
   'consult-requests': {
     entity: 'consult_requests',
@@ -204,6 +206,62 @@ async function createItem(cfg, body) {
   return toPublic(item)
 }
 
+// ── 관리자 역할 ──
+// 세 등급의 권한은 현재 모두 동일하다. 등급별로 권한을 나눌 때는 getAuth 가 돌려주는
+// role 로 분기하면 되고, 이 표가 그 시작점이다.
+//
+// 역할은 Cognito 그룹으로만 정한다. 앱 클라이언트는 그룹을 쓸 수 없으므로(속성과 달리
+// WriteAttributes 같은 설정이 아예 존재하지 않음) 가입자가 스스로 승격할 수 없다.
+// 한 사람은 항상 한 역할 그룹에만 속한다.
+const ROLE_BY_GROUP = {
+  'super-admin': '최고관리자',
+  admin: '일반관리자',
+  operator: '운영자',
+}
+const GROUP_BY_ROLE = Object.fromEntries(Object.entries(ROLE_BY_GROUP).map(([g, r]) => [r, g]))
+const ADMIN_GROUPS = Object.keys(ROLE_BY_GROUP)
+const DEFAULT_ROLE = '운영자'
+
+// 지정한 역할 그룹에만 속하게 한다 (다른 역할 그룹에서는 빼서 한 역할만 유지)
+async function setRoleGroup(email, role) {
+  const target = GROUP_BY_ROLE[role]
+  if (!email || !target) return
+  for (const g of ADMIN_GROUPS) {
+    const cmd =
+      g === target
+        ? new AdminAddUserToGroupCommand({ UserPoolId: USER_POOL_ID, Username: email, GroupName: g })
+        : new AdminRemoveUserFromGroupCommand({
+            UserPoolId: USER_POOL_ID,
+            Username: email,
+            GroupName: g,
+          })
+    try {
+      await cognito.send(cmd)
+    } catch (e) {
+      // 계정이 아직 없거나(수동 등록) 이미 그 그룹이 아닌 경우는 무시
+      if (e.name !== 'UserNotFoundException') throw e
+    }
+  }
+}
+
+// 관리 권한 전체 회수 — 계정 자체는 남겨 일반 회원으로 계속 쓸 수 있게 한다
+async function clearRoleGroups(email) {
+  if (!email) return
+  for (const g of ADMIN_GROUPS) {
+    try {
+      await cognito.send(
+        new AdminRemoveUserFromGroupCommand({
+          UserPoolId: USER_POOL_ID,
+          Username: email,
+          GroupName: g,
+        }),
+      )
+    } catch (e) {
+      if (e.name !== 'UserNotFoundException') throw e
+    }
+  }
+}
+
 async function patchItem(cfg, id, body) {
   const fields = pickFields(cfg, body)
   const names = Object.keys(fields)
@@ -239,11 +297,24 @@ async function patchItem(cfg, id, body) {
       }
     }
   }
+
+  // 운영자 역할 변경도 같은 이유로 Cognito 그룹에 반영해야 한다 —
+  // 행만 고치면 JWT 의 그룹은 그대로라 실권한이 바뀌지 않는다.
+  if (cfg.entity === 'operators' && fields.grade) {
+    const row = await getItem(cfg.entity, id)
+    await setRoleGroup(row?.email, fields.grade)
+  }
   return { ok: true }
 }
 
 async function deleteItem(cfg, id) {
+  // 운영자는 역할 그룹 소속으로 관리 권한을 갖는다(inviteUser 참고). 행만 지우면
+  // 계정이 그룹에 남아 관리자 권한이 그대로 유지되므로, 지우기 전에 이메일을 확보한다.
+  const operatorEmail = cfg.entity === 'operators' ? (await getItem(cfg.entity, id))?.email : null
+
   await ddb.send(new DeleteCommand({ TableName: TABLE, Key: { pk: cfg.entity, sk: skOf(id) } }))
+  await clearRoleGroups(operatorEmail)
+
   // 회원 삭제 시 전화 로그도 함께 삭제 (기존 FK cascade 동작 유지)
   if (cfg.entity === 'members') {
     const logs = (await listAll('member_logs')).filter((l) => String(l.member_id) === String(id))
@@ -292,8 +363,11 @@ async function createUser({ email, password, name, phone, grade }) {
 }
 
 // 운영자 등록 안내 메일: 임시 비밀번호가 담긴 초대 메일 발송 (기존 매직링크 메일 대체)
-async function inviteUser({ email, name }) {
+// 초대와 동시에 역할 그룹에 넣는다 — 관리 API 접근과 매거진 등 회원 메뉴 열람이
+// 모두 이 그룹(JWT 의 cognito:groups)으로 판정된다.
+async function inviteUser({ email, name, grade }) {
   if (!email) return json(400, { error: 'email required' })
+  const role = GROUP_BY_ROLE[grade] ? grade : DEFAULT_ROLE
   const params = {
     UserPoolId: USER_POOL_ID,
     Username: email,
@@ -315,6 +389,8 @@ async function inviteUser({ email, name }) {
       throw e
     }
   }
+  // 재발송 경로에서도 실행된다 — 그룹 지정은 멱등이라 이미 같은 역할이면 무해하다
+  await setRoleGroup(email, role)
   return json(200, { ok: true })
 }
 
@@ -362,9 +438,13 @@ function getAuth(event) {
     : typeof raw === 'string'
       ? raw.replace(/^\[|\]$/g, '').split(/[\s,]+/).filter(Boolean)
       : []
+  // 한 사람은 한 역할 그룹에만 속한다(setRoleGroup). 세 등급의 권한은 현재 동일하므로
+  // 인가는 isAdmin 만 본다 — 등급별로 나눌 때 role 로 분기하면 된다.
+  const adminGroup = ADMIN_GROUPS.find((g) => groups.includes(g))
   return {
     authenticated: true,
-    isAdmin: groups.includes('admin'),
+    isAdmin: !!adminGroup,
+    role: adminGroup ? ROLE_BY_GROUP[adminGroup] : null,
     email: claims.email || null,
   }
 }

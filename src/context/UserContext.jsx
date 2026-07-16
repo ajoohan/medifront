@@ -9,13 +9,17 @@ const AUTOLOGIN_KEY = 'medifront_autologin' // '0'이면 브라우저 종료 시
 const TAB_KEY = 'medifront_tab' // sessionStorage — 브라우저(탭 세션) 생존 마커
 const SAVED_EMAIL_KEY = 'medifront_saved_email' // 아이디(이메일) 기억
 
-// Cognito user → 사이트 공용 user 형태 { name, email, grade }
+// Cognito user → 사이트 공용 user 형태 { name, email, grade, isAdmin, adminRole }
 function mapAuthUser(u) {
   if (!u) return null
   return {
     name: u.name || u.email?.split('@')[0] || '회원',
     email: u.email,
     grade: u.grade || '일반',
+    // 역할은 서명된 JWT 의 그룹에서만 온다 — 아래 withDbGrade 가 DB 의 회원등급을
+    // 덮어써도 이 두 값은 유지되어야 한다.
+    isAdmin: !!u.isAdmin,
+    adminRole: u.adminRole || null, // 최고관리자 | 일반관리자 | 운영자
   }
 }
 
@@ -33,6 +37,9 @@ export function UserProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loginOpen, setLoginOpen] = useState(false)
   const [loginNotice, setLoginNotice] = useState('') // 로그인 창 상단 안내 문구
+  // 저장된 세션 복원이 끝났는지. 이 값이 false 인 동안 user 가 null 인 것은
+  // '비로그인'이 아니라 '아직 모름'이다 — 권한 화면이 이를 구분해야 깜빡임이 없다.
+  const [authReady, setAuthReady] = useState(false)
 
   // 저장된 세션 복원 (자동 로그인 꺼진 상태에서 브라우저를 새로 연 경우에는 세션 종료)
   useEffect(() => {
@@ -55,9 +62,11 @@ export function UserProvider({ children }) {
       }
       const session = await auth.getSession()
       applyUser(mapAuthUser(session))
+      setAuthReady(true)
       unsub = auth.onAuthChange((u) => applyUser(mapAuthUser(u)))
     }
-    init()
+    // 세션 복원이 실패해도 화면이 로딩에 갇히면 안 된다
+    init().finally(() => setAuthReady(true))
     return () => unsub?.()
   }, [])
 
@@ -74,15 +83,35 @@ export function UserProvider({ children }) {
   }, [])
 
   // ── 이메일 로그인 (autoLogin: 체크 시 브라우저 재시작 후에도 로그인 유지 + 아이디 기억) ──
-  const signInWithEmail = useCallback(async ({ email, password, autoLogin = true }) => {
-    const r = await auth.signIn({ email, password })
-    if (r.error) return { error: r.error }
+  const applyLoginPrefs = useCallback((email, autoLogin) => {
     localStorage.setItem(AUTOLOGIN_KEY, autoLogin ? '1' : '0')
     sessionStorage.setItem(TAB_KEY, '1')
     if (autoLogin) localStorage.setItem(SAVED_EMAIL_KEY, email)
     else localStorage.removeItem(SAVED_EMAIL_KEY)
-    return { ok: true }
   }, [])
+
+  const signInWithEmail = useCallback(
+    async ({ email, password, autoLogin = true }) => {
+      const r = await auth.signIn({ email, password })
+      if (r.error) return { error: r.error }
+      // 임시 비밀번호 계정 — 아직 로그인 전이므로 설정을 저장하지 않고 챌린지를 그대로 넘긴다
+      if (r.challenge) return r
+      applyLoginPrefs(email, autoLogin)
+      return { ok: true }
+    },
+    [applyLoginPrefs],
+  )
+
+  // ── 임시 비밀번호 첫 로그인 마무리 (새 비밀번호 설정 + 로그인 완료) ──
+  const completeNewPassword = useCallback(
+    async ({ email, password, session, autoLogin = true }) => {
+      const r = await auth.completeNewPassword({ email, password, session })
+      if (r.error) return { error: r.error }
+      applyLoginPrefs(email, autoLogin)
+      return { ok: true }
+    },
+    [applyLoginPrefs],
+  )
 
   // 저장된 아이디(이메일)/자동 로그인 설정 조회 — 로그인 폼 프리필용
   const getLoginPrefs = useCallback(
@@ -127,6 +156,7 @@ export function UserProvider({ children }) {
     <UserContext.Provider
       value={{
         user,
+        authReady,
         loginOpen,
         loginNotice,
         openLogin,
@@ -135,6 +165,7 @@ export function UserProvider({ children }) {
         signUpWithEmail,
         confirmSignUp,
         signInWithEmail,
+        completeNewPassword,
         resendVerification,
         requestPasswordReset,
         confirmPasswordReset,
@@ -151,7 +182,8 @@ export function useUser() {
 }
 
 // 회원유형: 의사(의사면허 보유자·모든 서비스) / 병원(병원·의원 소속 관계자) / 일반
-// 매거진 열람 권한 판정 — 의사 회원 전용
+// 매거진 열람 권한 판정 — 의사 회원 + 관리자/운영자(admin 그룹)
+// 관리자·운영자는 등급과 무관하게 모든 회원 메뉴에 진입할 수 있어야 한다.
 export function canReadMagazine(user) {
-  return !!user && user.grade === '의사'
+  return !!user && (user.isAdmin || user.grade === '의사')
 }

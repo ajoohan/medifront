@@ -1,5 +1,5 @@
 // 운영자 목록 저장소 (localStorage) — 실제 DB 연동 전 임시
-// 등급: 마스터(전체 권한) / 매니저
+// 등급: 최고관리자 / 일반관리자 / 운영자 (현재 셋 다 권한 동일 — SettingsAdmin 참고)
 const KEY = 'medifront_operators'
 
 export function loadOperators() {

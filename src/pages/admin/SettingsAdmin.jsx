@@ -9,11 +9,14 @@ import {
   deleteOperatorDb,
 } from '../../lib/operatorsDb'
 
-// 운영자 등급: 마스터(전체 권한) / 매니저
-const OPERATOR_GRADES = ['마스터', '매니저']
-const GRADE_CLASS = { 마스터: 'master', 매니저: 'manager' }
+// 관리자 등급: 최고관리자 / 일반관리자 / 운영자
+// 세 등급의 권한은 현재 모두 동일하다 — 등급별 권한 분리는 이후 작업이며,
+// 백엔드는 이미 등급을 JWT 역할 그룹으로 반영해 두었다(backend/src/index.mjs 의 ROLE_BY_GROUP).
+// 값을 바꾸면 백엔드의 ROLE_BY_GROUP 도 함께 바꿔야 한다.
+const OPERATOR_GRADES = ['최고관리자', '일반관리자', '운영자']
+const GRADE_CLASS = { 최고관리자: 'super', 일반관리자: 'master', 운영자: 'manager' }
 
-const EMPTY_DRAFT = { name: '', email: '', phone: '', grade: '매니저' }
+const EMPTY_DRAFT = { name: '', email: '', phone: '', grade: '운영자' }
 
 function formatDate(iso) {
   const [y, m, d] = iso.split('-')
@@ -22,9 +25,10 @@ function formatDate(iso) {
 
 // 운영자 등록 안내 메일 — Cognito 초대 메일(임시 비밀번호 포함)로 발송
 // ※ 메일 문구는 backend/template.yaml 의 InviteMessageTemplate 에서 수정
-async function sendOperatorMail({ email, name }) {
+// grade 를 함께 보내야 백엔드가 해당 역할 그룹에 넣는다 (누락 시 '운영자' 로 기본 처리)
+async function sendOperatorMail({ email, name, grade }) {
   if (!isApiConfigured) return { error: 'not-configured' }
-  const r = await apiSend('POST', '/auth/invite', { email, name })
+  const r = await apiSend('POST', '/auth/invite', { email, name, grade })
   return r.error ? { error: r.error } : { ok: true }
 }
 

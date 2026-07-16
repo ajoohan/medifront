@@ -107,16 +107,40 @@ Resources:
       LambdaConfig:
         PostConfirmation: !GetAtt PostConfirmationFunction.Arn
 
-  # ── 관리자 그룹 ──
-  # Lambda(backend/src/index.mjs)가 JWT 의 cognito:groups 에 'admin' 이 있는지로
-  # 관리자 권한을 판정합니다. 사용자를 관리자로 만들려면 이 그룹에 추가하세요:
+  # ── 관리자 역할 그룹 (최고관리자 / 일반관리자 / 운영자) ──
+  # Lambda(backend/src/index.mjs)가 JWT 의 cognito:groups 로 역할을 판정합니다.
+  # 세 등급의 권한은 현재 모두 동일하며, 등급별 권한 분리는 index.mjs 의
+  # ROLE_BY_GROUP 과 getAuth 가 돌려주는 role 로 분기해 구현하면 됩니다.
+  # 한 사람은 항상 한 역할 그룹에만 속합니다(setRoleGroup).
+  #
+  # 운영자 초대(POST /auth/invite)가 자동으로 그룹에 넣으므로 보통은 수동 작업이
+  # 필요 없습니다. 최초 최고관리자만 아래처럼 직접 추가하세요:
   #   aws cognito-idp admin-add-user-to-group \
-  #     --user-pool-id <UserPoolId> --username <email> --group-name admin
+  #     --user-pool-id <UserPoolId> --username <email> --group-name super-admin
+  #
+  # Precedence: 낮을수록 상위 (권한 분리 시 우선순위 판정에 사용)
+  SuperAdminGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    Properties:
+      GroupName: super-admin
+      Description: 최고관리자 — 전체 권한
+      Precedence: 1
+      UserPoolId: !Ref UserPool
+
   AdminGroup:
     Type: AWS::Cognito::UserPoolGroup
     Properties:
       GroupName: admin
-      Description: 메디프론트 관리자 — 회원·상담·운영자 데이터 접근 권한
+      Description: 일반관리자 — 회원·상담·운영자 데이터 접근 권한
+      Precedence: 2
+      UserPoolId: !Ref UserPool
+
+  OperatorGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    Properties:
+      GroupName: operator
+      Description: 운영자 — 현재 일반관리자와 동일 권한
+      Precedence: 3
       UserPoolId: !Ref UserPool
 
   UserPoolClient:
@@ -193,6 +217,10 @@ Resources:
                 - cognito-idp:AdminSetUserPassword
                 - cognito-idp:AdminUpdateUserAttributes
                 - cognito-idp:AdminGetUser
+                # 운영자 초대(/auth/invite) 시 admin 그룹에 넣고,
+                # 운영자 삭제 시 그룹에서 빼 관리 권한을 회수하기 위해 필요
+                - cognito-idp:AdminAddUserToGroup
+                - cognito-idp:AdminRemoveUserFromGroup
               Resource: !GetAtt UserPool.Arn
       Events:
         # 기본: Cognito 로그인 필수 (DefaultAuthorizer 상속)

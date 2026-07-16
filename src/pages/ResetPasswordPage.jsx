@@ -12,7 +12,8 @@ function tr(err) {
   if (err.includes('ExpiredCodeException'))
     return '인증 코드가 만료되었습니다. 코드를 다시 요청해 주세요.'
   if (err.includes('UserNotFoundException')) return '가입되지 않은 이메일입니다.'
-  if (err.includes('InvalidPasswordException')) return '비밀번호는 6자 이상이어야 합니다.'
+  if (err.includes('InvalidPasswordException'))
+    return '비밀번호는 8자 이상이며 영문과 숫자를 모두 포함해야 합니다.'
   if (err.includes('LimitExceededException'))
     return '요청이 너무 잦습니다. 잠시 후 다시 시도해 주세요.'
   return err
@@ -111,8 +112,8 @@ export default function ResetPasswordPage() {
                 <label>새 비밀번호</label>
                 <input
                   type="password"
-                  placeholder="6자 이상"
-                  minLength={6}
+                  placeholder="8자 이상, 영문+숫자"
+                  minLength={8}
                   value={pw}
                   onChange={(e) => setPw(e.target.value)}
                   required

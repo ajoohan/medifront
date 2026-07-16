@@ -5,15 +5,19 @@ import { apiSend, isApiConfigured } from '../../lib/api'
 import { fetchMembers, upsertMember, updateMemberDb, deleteMemberDb } from '../../lib/membersDb'
 import MemberDetail from './MemberDetail'
 
-// 수동 추가 회원의 기본 비밀번호 (첫 로그인 후 아이디/비밀번호 찾기로 변경 안내)
-const DEFAULT_PASSWORD = 'medifront2026'
+// ⚠️ 공용 기본 비밀번호를 두지 마세요.
+// 이 파일은 클라이언트 번들에 그대로 실리므로, 여기에 기본값을 두면 그 문자열이
+// 공개 JS 에 노출되어 수동 추가된 모든 계정의 비밀번호가 함께 공개됩니다.
+// (값을 바꿔도 새 값이 다시 공개되므로 어떤 기본값도 안전할 수 없습니다.)
+// 비밀번호는 등록하는 관리자가 매번 직접 지정합니다.
 
 // 수동 추가 회원의 실제 로그인 계정 생성 (Cognito — 인증 절차 없이 바로 로그인 가능)
 async function createLoginAccount({ email, name, phone, grade, password }) {
   if (!isApiConfigured) return { error: 'not-configured' }
+  if (!password) return { error: 'password-required' }
   const r = await apiSend('POST', '/auth/create-user', {
     email,
-    password: password || DEFAULT_PASSWORD,
+    password,
     name,
     phone,
     grade,
@@ -48,7 +52,7 @@ function loadLocalMembers() {
   }
 }
 
-// 수동 추가 폼 초기값 — password 미입력 시 기본 비밀번호(medifront2026) 사용
+// 수동 추가 폼 초기값 — password 는 등록하는 관리자가 매번 직접 지정한다(필수)
 const EMPTY_DRAFT = {
   name: '',
   email: '',
@@ -196,9 +200,7 @@ export default function MembersAdmin() {
     if (account.ok) {
       setNotice({
         type: 'ok',
-        text: `회원 등록 완료 — ${email} 계정이 생성되었습니다. 비밀번호는 ${
-          password ? '입력하신 비밀번호' : `기본 비밀번호(${DEFAULT_PASSWORD})`
-        }이며, 별도 인증 절차 없이 바로 로그인할 수 있습니다.`,
+        text: `회원 등록 완료 — ${email} 계정이 생성되었습니다. 입력하신 비밀번호로 별도 인증 절차 없이 바로 로그인할 수 있습니다.`,
       })
     } else if (account.error === 'already-registered') {
       setNotice({
@@ -371,11 +373,12 @@ export default function MembersAdmin() {
               <span>비밀번호</span>
               <input
                 type="password"
-                minLength={6}
+                minLength={8}
                 autoComplete="new-password"
-                placeholder={`미입력 시 ${DEFAULT_PASSWORD}`}
+                placeholder="8자 이상, 영문+숫자"
                 value={draft.password}
                 onChange={setD('password')}
+                required
               />
             </label>
           </div>
@@ -395,8 +398,8 @@ export default function MembersAdmin() {
             </button>
           </div>
           <p className="admin-add__hint">
-            등록 시 로그인 계정이 함께 생성됩니다 — 기본 비밀번호 {DEFAULT_PASSWORD} · 즉시 로그인
-            가능
+            등록 시 로그인 계정이 함께 생성됩니다 — 지정한 비밀번호로 인증 절차 없이 즉시 로그인
+            가능. 비밀번호는 회원에게 직접 전달하고, 첫 로그인 후 변경하도록 안내해 주세요.
           </p>
         </form>
       )}

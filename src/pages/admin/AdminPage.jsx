@@ -1,23 +1,25 @@
 import { useEffect } from 'react'
+import { useUser } from '../../context/UserContext'
+import AdminLogin from './AdminLogin'
+import AdminDashboard from './AdminDashboard'
 
 // ─────────────────────────────────────────────────────────────
-// 🔒 관리자 화면 일시 비활성화 (보안 조치)
+// 관리자 화면 진입점
 //
-// 배경: 이전 구현은 VITE_ADMIN_EMAIL / VITE_ADMIN_PASSWORD 를 브라우저에서
-//       문자열 비교하는 프론트엔드 전용 인증이었습니다. Vite 는 VITE_ 접두사
-//       변수를 설계상 클라이언트 번들에 그대로 삽입하므로, 관리자 비밀번호가
-//       공개 JS 파일에 평문으로 노출됐습니다. 비밀번호를 바꿔도 새 값이 즉시
-//       다시 공개되므로 이 구조로는 어떤 비밀번호도 안전할 수 없습니다.
+// 이전 구현은 VITE_ADMIN_EMAIL / VITE_ADMIN_PASSWORD 를 브라우저에서 문자열
+// 비교하는 프론트엔드 전용 인증이었고, 그 값이 공개 JS 에 평문 노출됐습니다.
+// 이제는 AWS Cognito 가 인증하고, 관리자 권한은 서버가 서명한 JWT 의 역할
+// 그룹(super-admin / admin / operator)으로만 판정합니다.
 //
-// 조치: 자격증명을 코드에서 완전히 제거하고, 서버 검증(AWS Cognito) 전환
-//       전까지 /admin 로그인을 닫습니다. AdminLogin/AdminDashboard 를
-//       import 하지 않으므로 관리자 화면 코드 자체도 번들에서 제외됩니다.
-//
-// 그동안 관리 작업은 Supabase 대시보드에서 수행하세요.
-// 전환 후 이 파일은 Cognito 인증(서버 검증 JWT)으로 다시 열립니다.
+// ⚠️ 이 화면의 가드는 편의용입니다 — 실제 방어선은 서버입니다.
+//    Lambda 가 모든 관리 API 요청마다 JWT 의 그룹을 다시 검증하므로
+//    (backend/src/index.mjs 의 getAuth), 이 컴포넌트를 우회해도
+//    데이터에는 접근할 수 없습니다.
 // ─────────────────────────────────────────────────────────────
 
 export default function AdminPage() {
+  const { user, authReady, logout } = useUser()
+
   useEffect(() => {
     const prev = document.title
     document.title = '메디프론트 MEDIFRONT | 관리자 화면'
@@ -26,19 +28,41 @@ export default function AdminPage() {
     }
   }, [])
 
-  return (
-    <div className="admin-login">
-      <div className="admin-login__card">
-        <div className="admin-login__brand">
-          <span>ADMIN</span>
-        </div>
-        <p className="admin-login__sub">관리자 화면 점검 중</p>
-        <div className="admin-login__error" style={{ textAlign: 'left', lineHeight: 1.7 }}>
-          보안 강화 작업(서버 인증 전환)으로 관리자 로그인을 일시적으로 닫았습니다.
-          <br />
-          작업이 완료되면 다시 열립니다.
+  // 세션 복원 전에는 user 가 null 이어도 '비로그인'이 아니라 '아직 모름' —
+  // 여기서 구분하지 않으면 새로고침 때 로그인 화면이 깜빡인다.
+  if (!authReady) {
+    return (
+      <div className="admin-login">
+        <div className="admin-login__card">
+          <div className="admin-login__brand">
+            <span>ADMIN</span>
+          </div>
+          <p className="admin-login__sub">확인 중...</p>
         </div>
       </div>
-    </div>
-  )
+    )
+  }
+
+  if (!user) return <AdminLogin />
+
+  // 로그인은 됐지만 관리자가 아닌 경우 (일반 회원이 /admin 을 직접 연 상황)
+  if (!user.isAdmin) {
+    return (
+      <div className="admin-login">
+        <div className="admin-login__card">
+          <div className="admin-login__brand">
+            <span>ADMIN</span>
+          </div>
+          <p className="admin-login__sub">접근 권한 없음</p>
+          <div className="admin-login__error" style={{ textAlign: 'left', lineHeight: 1.7 }}>
+            <b>{user.name}</b> 님({user.email})은 관리자 권한이 없습니다.
+            <br />
+            관리자 계정으로 로그인해 주세요.
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return <AdminDashboard onLogout={logout} />
 }

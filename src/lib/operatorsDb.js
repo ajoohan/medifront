@@ -9,7 +9,7 @@ function fromRow(r) {
     name: r.name || '',
     email: r.email,
     phone: r.phone || '-',
-    grade: r.grade || '매니저',
+    grade: r.grade || '운영자',
     createdAt: (r.created_at || '').slice(0, 10),
   }
 }
