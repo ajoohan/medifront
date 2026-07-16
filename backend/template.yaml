@@ -230,6 +230,18 @@ Resources:
             ApiId: !Ref HttpApi
             Path: /{proxy+}
             Method: ANY
+        # CORS preflight — OPTIONS 는 인증에서 제외한다.
+        # ANY 가 OPTIONS 까지 잡아 authorizer 를 적용하면, 브라우저의 preflight(토큰 없음)가
+        # 401 이 되어 Authorization 헤더가 붙는 모든 관리자 요청이 CORS 로 차단된다.
+        # 더 구체적인 이 라우트가 ANY 보다 우선하며, Lambda 는 OPTIONS 에 204 를 반환한다.
+        CorsPreflight:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /{proxy+}
+            Method: OPTIONS
+            Auth:
+              Authorizer: NONE
         # ── 공개 경로만 인증 예외 (더 구체적인 라우트가 catch-all 보다 우선함) ──
         # 홈 '성과' 섹션
         PublicPerformances:

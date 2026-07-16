@@ -88,12 +88,15 @@ const emit = (user) => listeners.forEach((cb) => cb(user))
 
 // ── 세션 조회 (필요 시 자동 갱신) ──
 
-export async function getSession() {
+// 유효한 ID 토큰을 반환한다. 만료 임박 시 refresh 로 갱신하며, 실패하면 null.
+// API 인증 헤더(api.js)와 세션 복원(getSession)이 공용으로 쓴다 —
+// 백엔드 authorizer 가 Authorization 헤더의 ID 토큰을 검증한다(template.yaml).
+export async function getValidIdToken() {
   const tokens = loadTokens()
   if (!tokens?.idToken) return null
   const claims = decode(tokens.idToken)
-  // 만료 1분 전부터는 갱신 시도
-  if (claims?.exp && claims.exp * 1000 > Date.now() + 60_000) return claimsToUser(claims)
+  // 만료 1분 전까지는 그대로 사용
+  if (claims?.exp && claims.exp * 1000 > Date.now() + 60_000) return tokens.idToken
   if (!tokens.refreshToken) {
     clearTokens()
     return null
@@ -112,11 +115,16 @@ export async function getSession() {
       accessToken: a.AccessToken,
       refreshToken: tokens.refreshToken,
     })
-    return claimsToUser(decode(a.IdToken))
+    return a.IdToken
   } catch {
     clearTokens()
     return null
   }
+}
+
+export async function getSession() {
+  const idToken = await getValidIdToken()
+  return idToken ? claimsToUser(decode(idToken)) : null
 }
 
 // ── 가입/로그인/복구 ──

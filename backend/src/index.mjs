@@ -455,6 +455,12 @@ export async function handler(event) {
   const path = (event.rawPath || '/').replace(/\/+$/, '') || '/'
   const [, seg1, seg2] = path.split('/')
 
+  // CORS preflight — 브라우저는 Authorization 헤더가 붙은 요청 전에 토큰 없이 OPTIONS 를
+  // 보낸다. 이 요청이 authorizer 에 막혀 401 이 되면 실제 요청까지 차단되므로, OPTIONS 는
+  // authorizer 를 우회(template.yaml 의 CorsPreflight 라우트)시키고 여기서 바로 200 을
+  // 돌려준다. CORS 응답 헤더는 API Gateway 가 CorsConfiguration 대로 주입한다.
+  if (method === 'OPTIONS') return { statusCode: 204, body: '' }
+
   try {
     const auth = getAuth(event)
     const isPublic =
