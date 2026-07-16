@@ -2,15 +2,19 @@
 # ─────────────────────────────────────────────────────────
 # 메디프론트 프론트엔드 → AWS S3 + CloudFront 배포 스크립트
 # 사전 준비: AWS CLI 설치 + `aws configure`로 자격증명 등록
-# 사용: BUCKET / DISTRIBUTION_ID 를 본인 값으로 채운 뒤 실행
-#   bash scripts/deploy-aws.sh
+# 사용: bash scripts/deploy-aws.sh
+#
+# ⚠️ 이 스크립트는 운영 중인 medifront.co.kr 을 덮어씁니다.
+#    버킷 버저닝이 꺼져 있어 S3 자체 롤백이 불가능하므로, 되돌릴 일이 있으면
+#    이전 배포본 백업에서 복구하세요:
+#      aws s3 sync s3://medifront-backend-artifacts-156183795080/live-backup-20260716-supabase-version/ \
+#                  s3://www.medifront.co.kr/ --delete
 # ─────────────────────────────────────────────────────────
 set -euo pipefail
 
-# ▼▼▼ 본인 리소스 값으로 교체 ▼▼▼
-BUCKET="medifront-co-kr-web"          # 새로 만든 S3 버킷명 (기존 사이트 버킷과 달라야 함)
-DISTRIBUTION_ID="XXXXXXXXXXXXXX"      # 새로 만든 CloudFront 배포 ID
-# ▲▲▲ 여기까지 ▲▲▲
+# 운영 리소스 (CloudFront E28RDEJMWF0QSJ → 별칭 medifront.co.kr / www.medifront.co.kr)
+BUCKET="www.medifront.co.kr"           # 배포 원본 S3 버킷 (us-east-1)
+DISTRIBUTION_ID="E28RDEJMWF0QSJ"       # 운영 CloudFront 배포 ID
 
 echo "1) 프로덕션 빌드..."
 npm run build
