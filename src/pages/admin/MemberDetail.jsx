@@ -189,6 +189,16 @@ export default function MemberDetail({ member, onBack, onSave }) {
               onChange={set('specialty')}
             />
           </label>
+          {/* 의사 회원 신청자가 가입 시 입력한 면허번호 — 확인 후 회원유형을 '의사'로 승인 */}
+          <label className="admin-add__field">
+            <span>의사면허번호 {member.licenseNo && member.grade !== '의사' && '(승인 대기)'}</span>
+            <input
+              type="text"
+              value={member.licenseNo || '— 신청 없음'}
+              readOnly
+              style={{ background: 'var(--ink-50, #f5f6f8)' }}
+            />
+          </label>
           <label className="admin-add__field">
             <span>회원유형</span>
             <select value={form.grade} onChange={set('grade')}>
@@ -198,6 +208,11 @@ export default function MemberDetail({ member, onBack, onSave }) {
                 </option>
               ))}
             </select>
+            {member.licenseNo && member.grade !== '의사' && (
+              <small className="admin-add__hint">
+                면허번호 확인 후 &apos;의사&apos;로 변경하면 매거진 열람이 허용됩니다.
+              </small>
+            )}
           </label>
           <label className="admin-add__field">
             <span>상태</span>

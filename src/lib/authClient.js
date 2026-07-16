@@ -96,7 +96,13 @@ export async function getSession() {
 
 // ── 가입/로그인/복구 ──
 
-export async function signUp({ email, password, name, phone, grade }) {
+// ⚠️ grade(회원등급)는 여기서 보내지 않습니다.
+// 매거진 접근이 grade === '의사' 로 결정되므로, 가입자가 등급을 직접 지정하면
+// 누구나 면허 확인 없이 의사 전용 콘텐츠를 볼 수 있게 됩니다.
+// 신규 가입은 항상 '일반'으로 시작하고, '의사' 승격은 관리자가 면허번호를
+// 확인한 뒤에만 수행합니다. (Cognito UserPoolClient 의 WriteAttributes 에서도
+// custom:grade 를 제외해 서버 차원에서 막고 있습니다.)
+export async function signUp({ email, password, name, phone, licenseNo }) {
   if (!isAuthConfigured) return { error: 'not-configured' }
   try {
     await client.send(
@@ -108,7 +114,8 @@ export async function signUp({ email, password, name, phone, grade }) {
           { Name: 'email', Value: email },
           { Name: 'name', Value: name || email.split('@')[0] },
           { Name: 'custom:phone', Value: phone || '-' },
-          { Name: 'custom:grade', Value: grade || '일반' },
+          // 의사 회원 신청 시에만 입력 — 관리자 승인 심사용
+          { Name: 'custom:license_no', Value: licenseNo || '' },
         ],
       }),
     )

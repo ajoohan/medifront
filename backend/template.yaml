@@ -40,6 +40,10 @@ Resources:
           KeyType: RANGE
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled: true
+      # 실수/악의적 테이블 삭제 방지 (지우려면 콘솔에서 명시적으로 해제해야 함)
+      DeletionProtectionEnabled: true
+      SSESpecification:
+        SSEEnabled: true
 
   # ── 회원 인증 (기존 Supabase Auth 대체) ──
   UserPool:
@@ -52,14 +56,19 @@ Resources:
         - email
       AutoVerifiedAttributes:
         - email
-      # 기존 사이트 UX 유지: 비밀번호 6자 이상, 복잡도 제한 없음
+      # 개인정보(회원·상담 내역)를 다루므로 최소한의 강도를 강제한다.
+      # 대문자·특수문자까지 요구하면 이탈이 커지므로 길이 8 + 영문 + 숫자로 균형을 잡음.
       Policies:
         PasswordPolicy:
-          MinimumLength: 6
-          RequireLowercase: false
+          MinimumLength: 8
+          RequireLowercase: true
+          RequireNumbers: true
           RequireUppercase: false
-          RequireNumbers: false
           RequireSymbols: false
+          TemporaryPasswordValidityDays: 7
+      # 유출된 비밀번호 사용 차단 + 비정상 로그인 탐지
+      UserPoolAddOns:
+        AdvancedSecurityMode: ENFORCED
       Schema:
         - Name: name
           AttributeDataType: String
@@ -69,6 +78,11 @@ Resources:
           AttributeDataType: String
           Mutable: true
         - Name: grade
+          AttributeDataType: String
+          Mutable: true
+        # 의사면허번호 — 가입자가 입력, 관리자가 확인 후 grade 를 '의사'로 승인.
+        # 관리자/본인만 조회 가능(Lambda 인가에서 제한).
+        - Name: license_no
           AttributeDataType: String
           Mutable: true
       VerificationMessageTemplate:
@@ -107,6 +121,22 @@ Resources:
       ClientName: web
       UserPoolId: !Ref UserPool
       GenerateSecret: false
+      # ⚠️ 권한 상승 방지 — custom:grade 를 절대 넣지 마세요.
+      # 매거진 접근이 grade === '의사' 로 결정되는데, 이 목록에 custom:grade 가
+      # 있으면 가입자가 스스로 '의사'를 지정해 면허 확인을 우회할 수 있습니다.
+      # 등급은 관리자만 변경합니다(Lambda 의 AdminUpdateUserAttributes).
+      WriteAttributes:
+        - email
+        - name
+        - custom:phone
+        - custom:license_no
+      ReadAttributes:
+        - email
+        - email_verified
+        - name
+        - custom:phone
+        - custom:grade
+        - custom:license_no
       ExplicitAuthFlows:
         - ALLOW_USER_PASSWORD_AUTH
         - ALLOW_USER_SRP_AUTH
@@ -220,11 +250,16 @@ Resources:
               audience:
                 - !Ref UserPoolClient
         DefaultAuthorizer: CognitoAuth
+      # 공개 POST(문의·상담신청)가 무제한 호출되면 스팸·비용 폭탄이 되므로 제한
+      DefaultRouteSettings:
+        ThrottlingRateLimit: 20 # 평상시 초당 20건
+        ThrottlingBurstLimit: 40 # 순간 최대 40건
       CorsConfiguration:
         AllowOrigins:
+          # ⚠️ localhost 를 다시 넣지 마세요 — 운영 API 를 로컬 페이지가 호출할 수 있게 됩니다.
+          # 로컬 개발은 별도 스택(SiteOrigin 파라미터)으로 배포해 사용하세요.
           - !Ref SiteOrigin
           - https://www.medifront.co.kr
-          - http://localhost:5173
         AllowMethods:
           - GET
           - POST

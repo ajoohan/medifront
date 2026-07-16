@@ -56,6 +56,7 @@ export default function LoginModal({ open, onClose }) {
     name: '',
     phone: '',
     code: '',
+    licenseNo: '', // 의사 회원 신청 시 입력 — 관리자 승인 심사용
   })
   const [agree, setAgree] = useState(false)
   const [grade, setGrade] = useState('일반') // 회원유형 (가입 2단계 선택)
@@ -149,12 +150,14 @@ export default function LoginModal({ open, onClose }) {
     e.preventDefault()
     setMsg('')
     setBusy(true)
+    // grade 는 보내지 않는다 — 신규 가입은 항상 '일반'으로 시작하고,
+    // '의사' 승격은 관리자가 면허번호를 확인한 뒤에만 수행한다.
     const r = await signUpWithEmail({
       email: form.email.trim(),
       password: form.password,
       name: form.name.trim(),
       phone: form.phone.trim(),
-      grade,
+      licenseNo: grade === '의사' ? form.licenseNo.trim() : '',
     })
     setBusy(false)
     if (r.error) setMsg(tr(r.error))
@@ -430,6 +433,24 @@ export default function LoginModal({ open, onClose }) {
                   ))}
                 </div>
               </div>
+              {/* 의사 회원은 면허 확인 후 관리자가 승인 — 가입 즉시 부여되지 않는다 */}
+              {grade === '의사' && (
+                <div className="field">
+                  <label>의사면허번호</label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="면허번호를 입력해 주세요"
+                    value={form.licenseNo}
+                    onChange={set('licenseNo')}
+                    required
+                  />
+                  <small className="login-modal__hint">
+                    입력하신 면허번호 확인 후 의사 회원으로 승인되며, 승인 전까지는 일반 회원으로
+                    이용하실 수 있습니다. 매거진은 승인 후 열람 가능합니다.
+                  </small>
+                </div>
+              )}
               <div className="field">
                 <label>이름</label>
                 <input

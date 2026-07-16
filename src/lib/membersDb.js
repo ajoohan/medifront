@@ -14,6 +14,7 @@ function toRow(m) {
     grade: m.grade,
     status: m.status,
     joined_at: m.joinedAt,
+    license_no: m.licenseNo,
   }
 }
 
@@ -28,6 +29,8 @@ function fromRow(r) {
     grade: r.grade || '일반',
     joinedAt: r.joined_at,
     status: r.status || 'active',
+    // 의사 회원 신청 시 입력한 면허번호 — 관리자 승인 심사용
+    licenseNo: r.license_no || '',
   }
 }
 

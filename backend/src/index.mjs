@@ -7,11 +7,13 @@ import {
   PutCommand,
   UpdateCommand,
   DeleteCommand,
+  GetCommand,
 } from '@aws-sdk/lib-dynamodb'
 import {
   CognitoIdentityProviderClient,
   AdminCreateUserCommand,
   AdminSetUserPasswordCommand,
+  AdminUpdateUserAttributesCommand,
 } from '@aws-sdk/client-cognito-identity-provider'
 
 const TABLE = process.env.TABLE_NAME
@@ -25,7 +27,19 @@ const cognito = new CognitoIdentityProviderClient({})
 const RESOURCES = {
   members: {
     entity: 'members',
-    fields: ['name', 'email', 'phone', 'hospital', 'specialty', 'grade', 'status', 'joined_at'],
+    // license_no = 의사면허번호. 가입자가 '의사' 등급을 신청할 때 입력하고,
+    // 관리자가 확인 후 grade 를 '의사'로 승인한다. 관리자/본인만 조회 가능(인가 참고).
+    fields: [
+      'name',
+      'email',
+      'phone',
+      'hospital',
+      'specialty',
+      'grade',
+      'status',
+      'joined_at',
+      'license_no',
+    ],
     defaults: () => ({
       name: '',
       phone: '-',
@@ -130,6 +144,14 @@ async function nextId(entity) {
   return r.Attributes.n
 }
 
+// 단건 조회 (등급 변경 시 대상 회원의 이메일을 찾는 데 사용)
+async function getItem(entity, id) {
+  const r = await ddb.send(
+    new GetCommand({ TableName: TABLE, Key: { pk: entity, sk: skOf(id) } }),
+  )
+  return r.Item || null
+}
+
 async function listAll(entity) {
   const items = []
   let cursor
@@ -196,6 +218,27 @@ async function patchItem(cfg, id, body) {
       ExpressionAttributeValues: Object.fromEntries(names.map((n, i) => [`:v${i}`, fields[n]])),
     }),
   )
+
+  // 등급 변경은 Cognito 에도 반영해야 실제 권한이 바뀐다.
+  // 매거진 접근은 JWT 의 custom:grade 로 판정되므로, DynamoDB 만 고치면
+  // 관리자가 '의사'로 승인해도 해당 회원은 계속 접근하지 못한다(그 반대도 마찬가지).
+  if (cfg.entity === 'members' && fields.grade) {
+    const row = await getItem(cfg.entity, id)
+    if (row?.email) {
+      try {
+        await cognito.send(
+          new AdminUpdateUserAttributesCommand({
+            UserPoolId: USER_POOL_ID,
+            Username: row.email,
+            UserAttributes: [{ Name: 'custom:grade', Value: fields.grade }],
+          }),
+        )
+      } catch (e) {
+        // Cognito 계정이 없는 수동 등록 회원 등은 무시 (목록상의 등급은 이미 반영됨)
+        if (e.name !== 'UserNotFoundException') throw e
+      }
+    }
+  }
   return { ok: true }
 }
 
@@ -407,7 +450,13 @@ export async function postConfirmation(event) {
               phone: attrs['custom:phone'] || '-',
               hospital: '-',
               specialty: '-',
-              grade: attrs['custom:grade'] || '일반',
+              // ⚠️ 신규 가입은 항상 '일반'으로 시작한다.
+              // custom:grade 는 UserPoolClient WriteAttributes 에서 제외돼 있어
+              // 가입자가 설정할 수 없지만, 여기서도 신뢰하지 않는다(다중 방어).
+              // '의사' 승격은 관리자가 면허번호(license_no)를 확인한 뒤에만 수행한다.
+              grade: '일반',
+              // 가입 시 신청한 의사면허번호 — 관리자 승인 심사용
+              license_no: attrs['custom:license_no'] || '',
               status: 'active',
               joined_at: today(),
               created_at: now(),
