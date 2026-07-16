@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
 import Header from './components/Header'
 import Footer from './components/Footer'
@@ -10,8 +11,11 @@ import MagazineDetailPage from './pages/MagazineDetailPage'
 import ResetPasswordPage from './pages/ResetPasswordPage'
 import TermsPage from './pages/TermsPage'
 import PrivacyPage from './pages/PrivacyPage'
-import AdminPage from './pages/admin/AdminPage'
 import { useUser } from './context/UserContext'
+
+// 관리자 화면(회원·상담·매거진·설정)은 운영자만 쓰는데 정적 import 하면 모든 방문자의
+// 번들에 함께 실린다. lazy 로 분리해 /admin 에 들어갈 때만 내려받는다.
+const AdminPage = lazy(() => import('./pages/admin/AdminPage'))
 
 function Shell() {
   const { pathname } = useLocation()
@@ -31,7 +35,14 @@ function Shell() {
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/terms" element={<TermsPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
-          <Route path="/admin" element={<AdminPage />} />
+          <Route
+            path="/admin"
+            element={
+              <Suspense fallback={null}>
+                <AdminPage />
+              </Suspense>
+            }
+          />
         </Routes>
       </main>
       {!isAdmin && <Footer />}

@@ -36,8 +36,15 @@
     />
     <meta name="twitter:image" content="https://medifront.co.kr/og-image.png?v=3" />
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+    <!--
+      가변 폰트 + 다이나믹 서브셋으로 로드한다.
+      - 가변(variable): 굵기 45~920 을 파일 하나가 커버 → 굵기별 파일 6개를 받던 것이 사라진다.
+      - 다이나믹 서브셋: 한글 글리프를 92 조각으로 쪼개고 unicode-range 로 선언해,
+        브라우저가 페이지에 실제 쓰인 글자의 조각만 내려받는다.
+      정적(static) 버전은 굵기 6종 × 780KB = 약 4.7MB 를 전부 받는다. 되돌리지 말 것.
+    -->
     <link
-      href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css"
+      href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
       rel="stylesheet"
     />
     <title>메디프론트 MEDIFRONT | 병원 성장의 모든 것, 병원 컨설팅 파트너</title>
