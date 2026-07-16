@@ -89,6 +89,18 @@ Resources:
       LambdaConfig:
         PostConfirmation: !GetAtt PostConfirmationFunction.Arn
 
+  # ── 관리자 그룹 ──
+  # Lambda(backend/src/index.mjs)가 JWT 의 cognito:groups 에 'admin' 이 있는지로
+  # 관리자 권한을 판정합니다. 사용자를 관리자로 만들려면 이 그룹에 추가하세요:
+  #   aws cognito-idp admin-add-user-to-group \
+  #     --user-pool-id <UserPoolId> --username <email> --group-name admin
+  AdminGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    Properties:
+      GroupName: admin
+      Description: 메디프론트 관리자 — 회원·상담·운영자 데이터 접근 권한
+      UserPoolId: !Ref UserPool
+
   UserPoolClient:
     Type: AWS::Cognito::UserPoolClient
     Properties:
@@ -149,16 +161,65 @@ Resources:
                 - cognito-idp:AdminGetUser
               Resource: !GetAtt UserPool.Arn
       Events:
+        # 기본: Cognito 로그인 필수 (DefaultAuthorizer 상속)
         Proxy:
           Type: HttpApi
           Properties:
             ApiId: !Ref HttpApi
             Path: /{proxy+}
             Method: ANY
+        # ── 공개 경로만 인증 예외 (더 구체적인 라우트가 catch-all 보다 우선함) ──
+        # 홈 '성과' 섹션
+        PublicPerformances:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /performances
+            Method: GET
+            Auth:
+              Authorizer: NONE
+        # 매거진 목록·상세
+        PublicArticles:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /articles
+            Method: GET
+            Auth:
+              Authorizer: NONE
+        # 무료 상담 신청 (제출만, 열람은 관리자)
+        PublicConsultRequests:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /consult-requests
+            Method: POST
+            Auth:
+              Authorizer: NONE
+        # 1:1 문의 (비회원 제출 허용, 열람은 관리자)
+        PublicInquiries:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /inquiries
+            Method: POST
+            Auth:
+              Authorizer: NONE
 
   HttpApi:
     Type: AWS::Serverless::HttpApi
     Properties:
+      # ⚠️ 인증 계층 — 제거하면 API 가 전면 개방됩니다.
+      # 공개 경로(위 Auth: NONE)를 제외한 모든 요청은 Cognito ID 토큰이 있어야 합니다.
+      Auth:
+        Authorizers:
+          CognitoAuth:
+            IdentitySource: $request.header.Authorization
+            JwtConfiguration:
+              issuer: !Sub 'https://cognito-idp.${AWS::Region}.amazonaws.com/${UserPool}'
+              audience:
+                - !Ref UserPoolClient
+        DefaultAuthorizer: CognitoAuth
       CorsConfiguration:
         AllowOrigins:
           - !Ref SiteOrigin
@@ -172,6 +233,8 @@ Resources:
           - OPTIONS
         AllowHeaders:
           - content-type
+          # JWT 를 담아 보내려면 반드시 허용해야 함
+          - authorization
         MaxAge: 86400
 
 Outputs:

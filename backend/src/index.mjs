@@ -275,6 +275,57 @@ async function inviteUser({ email, name }) {
   return json(200, { ok: true })
 }
 
+// ─────────────────────────────────────────────────────────────
+// 인가(authorization)
+//
+// 인증(JWT 서명·만료 검증)은 API Gateway 의 Cognito authorizer 가 담당한다.
+// 여기서는 "인증된 사람이 무엇을 할 수 있는지"만 결정한다.
+// 기존 Postgres RLS(supabase/setup-6-lockdown.sql)와 동일한 권한 모델:
+//
+//   읽기  articles / performances        → 공개
+//         members                        → 관리자는 전체, 회원은 본인 행만
+//         그 외(상담·문의·운영자·로그)   → 관리자만
+//   쓰기  inquiries / consult-requests   → 공개(제출만, 열람 불가)
+//         그 외                          → 관리자만
+//   auth/* (계정 생성·초대)              → 관리자만
+//
+// ⚠️ 이 검사를 제거하면 API 가 전면 개방됩니다. 반드시 유지하세요.
+// ─────────────────────────────────────────────────────────────
+
+// 인증 없이 허용되는 (method, resource) 조합 — 이 목록에 없으면 로그인 필요
+const PUBLIC_ROUTES = [
+  { method: 'GET', resource: 'articles' },
+  { method: 'GET', resource: 'performances' },
+  { method: 'POST', resource: 'inquiries' },
+  { method: 'POST', resource: 'consult-requests' },
+]
+
+// 관리자만 읽을 수 있는 리소스 (개인정보·내부 데이터)
+const ADMIN_READ_ONLY_RESOURCES = [
+  'consults',
+  'operators',
+  'member-logs',
+  'inquiries',
+  'consult-requests',
+]
+
+function getAuth(event) {
+  const claims = event.requestContext?.authorizer?.jwt?.claims
+  if (!claims) return { authenticated: false, isAdmin: false, email: null }
+  // cognito:groups 는 배열 또는 "[admin manager]" 형태 문자열로 올 수 있다
+  const raw = claims['cognito:groups']
+  const groups = Array.isArray(raw)
+    ? raw
+    : typeof raw === 'string'
+      ? raw.replace(/^\[|\]$/g, '').split(/[\s,]+/).filter(Boolean)
+      : []
+  return {
+    authenticated: true,
+    isAdmin: groups.includes('admin'),
+    email: claims.email || null,
+  }
+}
+
 // ── HTTP API 라우터 ──
 export async function handler(event) {
   const method = event.requestContext?.http?.method || 'GET'
@@ -282,18 +333,39 @@ export async function handler(event) {
   const [, seg1, seg2] = path.split('/')
 
   try {
-    if (method === 'POST' && seg1 === 'auth') {
+    const auth = getAuth(event)
+    const isPublic =
+      !seg2 && PUBLIC_ROUTES.some((p) => p.method === method && p.resource === seg1)
+
+    // 공개 경로가 아니면 로그인 필수 (API Gateway 가 이미 막지만 이중 방어)
+    if (!isPublic && !auth.authenticated) return json(401, { error: 'unauthorized' })
+
+    // 계정 생성·초대는 관리자만
+    if (seg1 === 'auth') {
+      if (!auth.isAdmin) return json(403, { error: 'forbidden' })
       const body = parseBody(event)
-      if (seg2 === 'create-user') return await createUser(body)
-      if (seg2 === 'invite') return await inviteUser(body)
+      if (method === 'POST' && seg2 === 'create-user') return await createUser(body)
+      if (method === 'POST' && seg2 === 'invite') return await inviteUser(body)
       return json(404, { error: 'not found' })
     }
 
     const cfg = RESOURCES[seg1]
     if (!cfg) return json(404, { error: 'not found' })
 
+    // 공개 제출(POST) 외의 모든 쓰기는 관리자만
+    if (method !== 'GET' && !isPublic && !auth.isAdmin) return json(403, { error: 'forbidden' })
+
+    // 관리자 전용 리소스 읽기 차단
+    if (method === 'GET' && ADMIN_READ_ONLY_RESOURCES.includes(seg1) && !auth.isAdmin) {
+      return json(403, { error: 'forbidden' })
+    }
+
     if (method === 'GET' && !seg2) {
       let items = (await listAll(cfg.entity)).sort((a, b) => a.id - b.id)
+      // members 는 관리자가 아니면 본인 행만 볼 수 있다
+      if (seg1 === 'members' && !auth.isAdmin) {
+        items = items.filter((it) => auth.email && it.email === auth.email)
+      }
       // ?email= / ?member_id= 등 단순 동등 필터 지원
       const q = event.queryStringParameters || {}
       for (const [k, v] of Object.entries(q)) {
