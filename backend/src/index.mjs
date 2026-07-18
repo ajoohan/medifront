@@ -12,6 +12,7 @@ import {
 import {
   CognitoIdentityProviderClient,
   AdminCreateUserCommand,
+  AdminGetUserCommand,
   AdminSetUserPasswordCommand,
   AdminUpdateUserAttributesCommand,
   AdminAddUserToGroupCommand,
@@ -362,34 +363,24 @@ async function createUser({ email, password, name, phone, grade }) {
   return json(200, { ok: true })
 }
 
-// 운영자 등록 안내 메일: 임시 비밀번호가 담긴 초대 메일 발송 (기존 매직링크 메일 대체)
-// 초대와 동시에 역할 그룹에 넣는다 — 관리 API 접근과 매거진 등 회원 메뉴 열람이
-// 모두 이 그룹(JWT 의 cognito:groups)으로 판정된다.
-async function inviteUser({ email, name, grade }) {
+// 등록된 회원을 운영자로 지정한다.
+// 회원은 회원가입 때 만든 Cognito 계정과 비밀번호가 이미 있으므로, 새 계정이나 임시
+// 비밀번호를 만들지 않고 역할 그룹만 부여한다(setRoleGroup). 관리 API 접근과 매거진 등
+// 회원 메뉴 열람이 모두 이 그룹(JWT 의 cognito:groups)으로 판정된다.
+// 프론트는 회원 목록에서만 선택하게 하지만, 백엔드도 계정 존재를 확인해 임의 이메일로
+// 권한이 부여되는 것을 막는다(방어).
+// TODO(SES): 지정 후 '운영자로 지정되었습니다' 안내 메일. Cognito 기본 발송기로는 임의
+//   알림 메일을 보낼 수 없어 SES 연동이 선행돼야 한다. 연동 후 여기서 발송한다.
+async function inviteUser({ email, grade }) {
   if (!email) return json(400, { error: 'email required' })
   const role = GROUP_BY_ROLE[grade] ? grade : DEFAULT_ROLE
-  const params = {
-    UserPoolId: USER_POOL_ID,
-    Username: email,
-    DesiredDeliveryMediums: ['EMAIL'],
-    UserAttributes: [
-      { Name: 'email', Value: email },
-      { Name: 'email_verified', Value: 'true' },
-      { Name: 'name', Value: name || email.split('@')[0] },
-      { Name: 'custom:grade', Value: '일반' },
-    ],
-  }
   try {
-    await cognito.send(new AdminCreateUserCommand(params))
+    await cognito.send(new AdminGetUserCommand({ UserPoolId: USER_POOL_ID, Username: email }))
   } catch (e) {
-    if (e.name === 'UsernameExistsException') {
-      // 이미 계정이 있으면 초대 메일 재발송
-      await cognito.send(new AdminCreateUserCommand({ ...params, MessageAction: 'RESEND' }))
-    } else {
-      throw e
-    }
+    // 가입하지 않은 이메일이면 운영자로 지정하지 않는다
+    if (e.name === 'UserNotFoundException') return json(404, { error: 'member-not-found' })
+    throw e
   }
-  // 재발송 경로에서도 실행된다 — 그룹 지정은 멱등이라 이미 같은 역할이면 무해하다
   await setRoleGroup(email, role)
   return json(200, { ok: true })
 }
