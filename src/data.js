@@ -224,5 +224,7 @@ export const REGIONS = [
   '제주',
 ]
 
-// 매거진 — 카테고리 필터 + 아티클 카드
-export const MAGAZINE_CATEGORIES = ['전체', '마케팅', '경영', '개원', 'AI·트렌드']
+// 매거진 카테고리 — 콘텐츠 등록 시 선택하는 실제 분류(4종)
+export const MAGAZINE_CATEGORIES = ['매물', '운영', '마케팅', '기타']
+// 방문자 매거진의 필터 탭 — '전체' + 위 4종
+export const MAGAZINE_FILTERS = ['전체', ...MAGAZINE_CATEGORIES]

@@ -1,16 +1,16 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { MAGAZINE_CATEGORIES } from '../data'
+import { MAGAZINE_FILTERS } from '../data'
 import { IconArrowRight } from './Icons'
 import { loadArticles } from '../lib/magazineStore'
 import { fetchArticlesDb } from '../lib/articlesDb'
 
 // 카테고리별 썸네일 그라디언트 (브랜드 청록 계열) — 첨부 이미지가 없을 때 사용
 const THUMB = {
-  마케팅: 'linear-gradient(135deg, #0f524b, #23c3b1)',
-  경영: 'linear-gradient(135deg, #072e2b, #10a696)',
-  개원: 'linear-gradient(135deg, #0b3f3a, #2ed9c6)',
-  'AI·트렌드': 'linear-gradient(135deg, #04211f, #1eb5a6)',
+  매물: 'linear-gradient(135deg, #0f524b, #23c3b1)',
+  운영: 'linear-gradient(135deg, #072e2b, #10a696)',
+  마케팅: 'linear-gradient(135deg, #0b3f3a, #2ed9c6)',
+  기타: 'linear-gradient(135deg, #04211f, #1eb5a6)',
 }
 const FALLBACK_THUMB = 'linear-gradient(135deg, #0b3f3a, #1eb5a6)'
 
@@ -47,24 +47,31 @@ export default function Magazine() {
 
   const visible = articles.filter((a) => a.status !== 'hidden')
   const items = active === '전체' ? visible : visible.filter((a) => a.category === active)
+  const hasArticles = visible.length > 0
 
   return (
     <section className="section">
       <div className="container">
-        <div className="magazine__filter reveal">
-          {MAGAZINE_CATEGORIES.map((c) => (
-            <button
-              key={c}
-              className={`mag-chip ${active === c ? 'is-active' : ''}`}
-              onClick={() => setActive(c)}
-            >
-              {c}
-            </button>
-          ))}
-        </div>
+        {/* 게시물이 하나도 없으면 카테고리 필터를 숨긴다 (선택할 대상이 없으므로) */}
+        {hasArticles && (
+          <div className="magazine__filter reveal">
+            {MAGAZINE_FILTERS.map((c) => (
+              <button
+                key={c}
+                className={`mag-chip ${active === c ? 'is-active' : ''}`}
+                onClick={() => setActive(c)}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
+        )}
 
-        {loaded && items.length === 0 && (
-          <p className="magazine__note reveal">등록된 게시물이 없습니다.</p>
+        {loaded && !hasArticles && (
+          <p className="magazine__note reveal">아직 등록된 게시물이 없습니다.</p>
+        )}
+        {loaded && hasArticles && items.length === 0 && (
+          <p className="magazine__note reveal">이 카테고리에 등록된 게시물이 없습니다.</p>
         )}
 
         <div className="magazine__grid">

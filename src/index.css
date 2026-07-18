@@ -2706,8 +2706,32 @@ ul {
 .mag-editor__back:hover {
   color: var(--primary);
 }
+/* 카테고리 select + 제목을 한 줄에 (좁은 화면에선 세로로 쌓임) */
+.mag-editor__head {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.mag-editor__cat {
+  flex: 0 0 auto;
+  align-self: center;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--paper-soft);
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--primary);
+  padding: 9px 16px;
+  cursor: pointer;
+}
+.mag-editor__cat:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(16, 166, 150, 0.3);
+}
 .mag-editor__title {
-  width: 100%;
+  flex: 1 1 240px;
   border: none;
   border-bottom: 1px solid var(--line);
   outline: none;

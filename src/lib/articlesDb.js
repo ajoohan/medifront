@@ -26,6 +26,7 @@ function toRow(a) {
     read: a.read,
     status: a.status,
     date: a.date,
+    category: a.category,
   }
 }
 
@@ -44,7 +45,7 @@ export async function insertArticleDb(a) {
 
 export async function updateArticleDb(id, patch) {
   const row = {}
-  for (const k of ['title', 'content', 'thumbnail', 'excerpt', 'read', 'status']) {
+  for (const k of ['title', 'content', 'thumbnail', 'excerpt', 'read', 'status', 'category']) {
     if (patch[k] !== undefined) row[k] = patch[k]
   }
   const r = await apiSend('PATCH', `${PATH}/${id}`, row)

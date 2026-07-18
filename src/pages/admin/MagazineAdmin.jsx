@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { MAGAZINE_CATEGORIES } from '../../data'
 import { loadArticles, saveArticles } from '../../lib/magazineStore'
 import { fileToDataUrl } from '../../lib/imageUtils'
 import {
@@ -41,6 +42,8 @@ function extractYoutubeId(url) {
 // ─────────────────────────────────────────────────────────
 function MagazineEditor({ article, onSave, onCancel }) {
   const [title, setTitle] = useState(article?.title || '')
+  // 카테고리는 필수 — 기존 글 편집 시 값이 없으면 첫 카테고리로 시작
+  const [category, setCategory] = useState(article?.category || MAGAZINE_CATEGORIES[0])
   const bodyRef = useRef(null)
   const fileRef = useRef(null)
   const initialHtml = article?.content || (article?.excerpt ? `<p>${article.excerpt}</p>` : '')
@@ -87,7 +90,7 @@ function MagazineEditor({ article, onSave, onCancel }) {
       window.alert('제목을 입력해 주세요.')
       return
     }
-    onSave({ title: t, content: bodyRef.current?.innerHTML || '' })
+    onSave({ title: t, content: bodyRef.current?.innerHTML || '', category })
   }
 
   // 툴바 버튼은 onMouseDown preventDefault로 에디터 선택 영역을 유지
@@ -104,12 +107,26 @@ function MagazineEditor({ article, onSave, onCancel }) {
         </button>
       </div>
 
-      <input
-        className="mag-editor__title"
-        placeholder="제목을 입력하세요"
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-      />
+      <div className="mag-editor__head">
+        <select
+          className="mag-editor__cat"
+          value={category}
+          onChange={(e) => setCategory(e.target.value)}
+          aria-label="카테고리"
+        >
+          {MAGAZINE_CATEGORIES.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </select>
+        <input
+          className="mag-editor__title"
+          placeholder="제목을 입력하세요"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+        />
+      </div>
 
       <div className="mag-editor__toolbar">
         <button onMouseDown={keep} onClick={() => exec('fontSize', 6)}>
@@ -179,10 +196,10 @@ export default function MagazineAdmin() {
     }
   }
 
-  const handleSave = async ({ title, content }) => {
+  const handleSave = async ({ title, content, category }) => {
     const meta = parseContent(content)
     if (writing.mode === 'new') {
-      const article = { status: 'visible', date: todayStr(), title, content, ...meta }
+      const article = { status: 'visible', date: todayStr(), title, content, category, ...meta }
       if (dbReady) {
         const res = await insertArticleDb(article)
         if (res.ok) {
@@ -195,7 +212,7 @@ export default function MagazineAdmin() {
         update([{ id: Date.now(), ...article }, ...articles])
       }
     } else {
-      const patch = { title, content, ...meta }
+      const patch = { title, content, category, ...meta }
       update(articles.map((a) => (a.id === writing.article.id ? { ...a, ...patch } : a)))
       if (dbReady) updateArticleDb(writing.article.id, patch)
     }
