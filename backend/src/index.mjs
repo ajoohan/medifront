@@ -18,6 +18,7 @@ import {
   AdminAddUserToGroupCommand,
   AdminRemoveUserFromGroupCommand,
 } from '@aws-sdk/client-cognito-identity-provider'
+import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses'
 
 const TABLE = process.env.TABLE_NAME
 const USER_POOL_ID = process.env.USER_POOL_ID
@@ -25,6 +26,75 @@ const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({}), {
   marshallOptions: { removeUndefinedValues: true },
 })
 const cognito = new CognitoIdentityProviderClient({})
+const ses = new SESClient({})
+const MAIL_FROM = 'MEDIFRONT <no-reply@medifront.co.kr>'
+
+// HTML 특수문자 이스케이프 — 메일에 사용자 이름을 넣기 전 주입 방지
+const escapeHtml = (s) =>
+  String(s).replace(
+    /[&<>"']/g,
+    (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c],
+  )
+
+// 운영자 지정 안내 메일 본문(HTML). {{name}}/{{role}} 은 발송 시 치환한다.
+const GRANT_EMAIL_HTML = `<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light only" />
+    <title>메디프론트 운영자 지정 안내</title>
+  </head>
+  <body style="margin:0;padding:0;background-color:#f4f6f6;">
+    <div style="display:none;max-height:0;overflow:hidden;opacity:0;">메디프론트 운영자로 지정되었습니다.</div>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f6f6;">
+      <tr>
+        <td align="center" style="padding:32px 16px;">
+          <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:600px;max-width:600px;background-color:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(4,33,31,0.08);">
+            <!-- 헤더 -->
+            <tr>
+              <td align="center" style="background-color:#04211f;padding:28px 32px;">
+                <img src="https://medifront.co.kr/logo-light.png" alt="MEDIFRONT" height="26" style="height:26px;width:auto;display:block;border:0;color:#ffffff;font-size:18px;font-weight:800;" />
+              </td>
+            </tr>
+            <!-- 본문 -->
+            <tr>
+              <td style="padding:40px 40px 8px 40px;font-family:-apple-system,'Apple SD Gothic Neo','Malgun Gothic','맑은 고딕',Roboto,sans-serif;">
+                <h1 style="margin:0 0 12px 0;font-size:20px;line-height:1.4;color:#0b1a18;font-weight:700;">운영자로 지정되었습니다</h1>
+                <p style="margin:0;font-size:15px;line-height:1.7;color:#33504b;">{{name}} 님, 관리자가 회원님을 메디프론트 <b style="color:#0b6b60;">{{role}}</b>(으)로 지정했습니다. 기존에 사용하시던 계정으로 로그인하면 관리자 화면을 이용하실 수 있습니다. <b>새 비밀번호는 필요하지 않습니다.</b></p>
+              </td>
+            </tr>
+            <!-- 버튼 -->
+            <tr>
+              <td align="center" style="padding:28px 40px 16px 40px;">
+                <table role="presentation" cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td align="center" style="background-color:#10a696;border-radius:10px;">
+                      <a href="https://medifront.co.kr/admin" style="display:inline-block;padding:15px 40px;font-family:-apple-system,'Apple SD Gothic Neo','Malgun Gothic','맑은 고딕',Roboto,sans-serif;font-size:15px;font-weight:700;color:#ffffff;text-decoration:none;">관리자 화면 열기</a>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <!-- 안내 -->
+            <tr>
+              <td style="padding:8px 40px 40px 40px;font-family:-apple-system,'Apple SD Gothic Neo','Malgun Gothic','맑은 고딕',Roboto,sans-serif;">
+                <p style="margin:0;font-size:13px;line-height:1.7;color:#5c7871;">버튼이 열리지 않으면 <a href="https://medifront.co.kr/admin" style="color:#10a696;text-decoration:none;">medifront.co.kr/admin</a> 에 직접 접속해 주세요. 비밀번호를 잊으셨다면 로그인 화면의 '아이디/비밀번호 찾기'를 이용해 주세요.</p>
+              </td>
+            </tr>
+            <!-- 푸터 -->
+            <tr>
+              <td style="background-color:#f4f6f6;padding:24px 40px;font-family:-apple-system,'Apple SD Gothic Neo','Malgun Gothic','맑은 고딕',Roboto,sans-serif;border-top:1px solid #e6ebea;">
+                <p style="margin:0 0 4px 0;font-size:13px;font-weight:700;color:#33504b;">메디프론트 MEDIFRONT</p>
+                <p style="margin:0;font-size:12px;line-height:1.6;color:#93aaa4;">병원 성장의 파트너 · <a href="https://medifront.co.kr" style="color:#10a696;text-decoration:none;">medifront.co.kr</a><br />본 메일은 발신 전용입니다.</p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`
 
 // URL 경로 → 엔티티. fields = 쓰기 허용 컬럼(기존 Postgres 스키마와 동일)
 const RESOURCES = {
@@ -368,21 +438,49 @@ async function createUser({ email, password, name, phone, grade }) {
 // (2) 신규(미가입)        → inviteUser: 새 계정 생성 + 임시 비밀번호 초대 메일 + 역할 부여
 // 두 경우 모두 관리 API 접근과 매거진 등 회원 메뉴 열람이 이 그룹(JWT cognito:groups)으로 판정된다.
 
+// '운영자로 지정' 안내 메일 발송(SES). 회원은 이미 비밀번호가 있으므로 임시비번이 아닌
+// 안내형이다. {{name}}/{{role}} 은 발송 시 치환한다. (템플릿: scratchpad/email-grant.html)
+async function sendGrantEmail(email, name, role) {
+  const html = GRANT_EMAIL_HTML.replaceAll('{{name}}', escapeHtml(name)).replaceAll(
+    '{{role}}',
+    escapeHtml(role),
+  )
+  await ses.send(
+    new SendEmailCommand({
+      Source: MAIL_FROM,
+      Destination: { ToAddresses: [email] },
+      Message: {
+        Subject: { Data: '[메디프론트] 운영자로 지정되었습니다', Charset: 'UTF-8' },
+        Body: { Html: { Data: html, Charset: 'UTF-8' } },
+      },
+    }),
+  )
+}
+
 // (1) 기존 회원을 운영자로 지정 — 회원은 회원가입 때 만든 계정·비밀번호가 이미 있으므로
 // 새 계정/임시 비밀번호 없이 역할 그룹만 부여한다. 계정 존재를 확인해 미가입 이메일에는
 // 권한을 주지 않는다(그 경우는 신규 초대 경로를 써야 한다).
-// TODO(SES): '운영자로 지정되었습니다' 안내 메일. Cognito 기본 발송기로는 임의 알림 메일을
-//   보낼 수 없어 SES 연동이 선행돼야 한다. 연동 후 여기서 발송한다.
 async function grantRole({ email, grade }) {
   if (!email) return json(400, { error: 'email required' })
   const role = GROUP_BY_ROLE[grade] ? grade : DEFAULT_ROLE
+  let name = email.split('@')[0]
   try {
-    await cognito.send(new AdminGetUserCommand({ UserPoolId: USER_POOL_ID, Username: email }))
+    const u = await cognito.send(
+      new AdminGetUserCommand({ UserPoolId: USER_POOL_ID, Username: email }),
+    )
+    const nameAttr = (u.UserAttributes || []).find((a) => a.Name === 'name')
+    if (nameAttr?.Value) name = nameAttr.Value
   } catch (e) {
     if (e.name === 'UserNotFoundException') return json(404, { error: 'member-not-found' })
     throw e
   }
   await setRoleGroup(email, role)
+  // 안내 메일 발송이 실패해도 권한 부여 자체는 완료된 것으로 둔다(메일은 부가).
+  try {
+    await sendGrantEmail(email, name, role)
+  } catch (e) {
+    console.error('grant notification email failed', e)
+  }
   return json(200, { ok: true })
 }
 
