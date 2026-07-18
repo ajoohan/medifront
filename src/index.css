@@ -2048,6 +2048,36 @@ ul {
   margin-bottom: 16px;
   box-shadow: 0 1px 3px rgba(11, 26, 24, 0.04);
 }
+/* 운영자 추가 모드 전환 (기존 회원 지정 / 신규 초대) */
+.admin-add__modes {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  margin-bottom: 16px;
+  background: var(--paper-soft);
+  border-radius: 999px;
+}
+.admin-mode {
+  border: none;
+  background: transparent;
+  border-radius: 999px;
+  padding: 8px 18px;
+  font-family: inherit;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--ink-500);
+  cursor: pointer;
+}
+.admin-mode.is-active {
+  background: var(--primary);
+  color: #fff;
+}
+.admin-add__nomember {
+  margin: 0;
+  padding: 11px 0;
+  font-size: 0.85rem;
+  color: var(--ink-500);
+}
 .admin-add__grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

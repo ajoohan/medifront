@@ -363,22 +363,51 @@ async function createUser({ email, password, name, phone, grade }) {
   return json(200, { ok: true })
 }
 
-// 등록된 회원을 운영자로 지정한다.
-// 회원은 회원가입 때 만든 Cognito 계정과 비밀번호가 이미 있으므로, 새 계정이나 임시
-// 비밀번호를 만들지 않고 역할 그룹만 부여한다(setRoleGroup). 관리 API 접근과 매거진 등
-// 회원 메뉴 열람이 모두 이 그룹(JWT 의 cognito:groups)으로 판정된다.
-// 프론트는 회원 목록에서만 선택하게 하지만, 백엔드도 계정 존재를 확인해 임의 이메일로
-// 권한이 부여되는 것을 막는다(방어).
-// TODO(SES): 지정 후 '운영자로 지정되었습니다' 안내 메일. Cognito 기본 발송기로는 임의
-//   알림 메일을 보낼 수 없어 SES 연동이 선행돼야 한다. 연동 후 여기서 발송한다.
-async function inviteUser({ email, grade }) {
+// ── 운영자 지정: 두 경로 ──
+// (1) 기존 회원(이미 가입) → grantRole:  새 계정 없이 역할 그룹만 부여
+// (2) 신규(미가입)        → inviteUser: 새 계정 생성 + 임시 비밀번호 초대 메일 + 역할 부여
+// 두 경우 모두 관리 API 접근과 매거진 등 회원 메뉴 열람이 이 그룹(JWT cognito:groups)으로 판정된다.
+
+// (1) 기존 회원을 운영자로 지정 — 회원은 회원가입 때 만든 계정·비밀번호가 이미 있으므로
+// 새 계정/임시 비밀번호 없이 역할 그룹만 부여한다. 계정 존재를 확인해 미가입 이메일에는
+// 권한을 주지 않는다(그 경우는 신규 초대 경로를 써야 한다).
+// TODO(SES): '운영자로 지정되었습니다' 안내 메일. Cognito 기본 발송기로는 임의 알림 메일을
+//   보낼 수 없어 SES 연동이 선행돼야 한다. 연동 후 여기서 발송한다.
+async function grantRole({ email, grade }) {
   if (!email) return json(400, { error: 'email required' })
   const role = GROUP_BY_ROLE[grade] ? grade : DEFAULT_ROLE
   try {
     await cognito.send(new AdminGetUserCommand({ UserPoolId: USER_POOL_ID, Username: email }))
   } catch (e) {
-    // 가입하지 않은 이메일이면 운영자로 지정하지 않는다
     if (e.name === 'UserNotFoundException') return json(404, { error: 'member-not-found' })
+    throw e
+  }
+  await setRoleGroup(email, role)
+  return json(200, { ok: true })
+}
+
+// (2) 신규(미가입) 대상 초대 — 새 Cognito 계정을 만들고 임시 비밀번호 초대 메일을 보낸다.
+// 초대받은 사람은 임시 비밀번호로 첫 로그인해 새 비밀번호를 설정한다(completeNewPassword).
+// 메일 문구는 template.yaml 의 InviteMessageTemplate.
+async function inviteUser({ email, name, grade }) {
+  if (!email) return json(400, { error: 'email required' })
+  const role = GROUP_BY_ROLE[grade] ? grade : DEFAULT_ROLE
+  const params = {
+    UserPoolId: USER_POOL_ID,
+    Username: email,
+    DesiredDeliveryMediums: ['EMAIL'],
+    UserAttributes: [
+      { Name: 'email', Value: email },
+      { Name: 'email_verified', Value: 'true' },
+      { Name: 'name', Value: name || email.split('@')[0] },
+      { Name: 'custom:grade', Value: '일반' },
+    ],
+  }
+  try {
+    await cognito.send(new AdminCreateUserCommand(params))
+  } catch (e) {
+    // 이미 가입된 이메일이면 신규 초대가 아니라 '기존 회원 지정'을 써야 한다
+    if (e.name === 'UsernameExistsException') return json(409, { error: 'already-registered' })
     throw e
   }
   await setRoleGroup(email, role)
@@ -465,7 +494,8 @@ export async function handler(event) {
       if (!auth.isAdmin) return json(403, { error: 'forbidden' })
       const body = parseBody(event)
       if (method === 'POST' && seg2 === 'create-user') return await createUser(body)
-      if (method === 'POST' && seg2 === 'invite') return await inviteUser(body)
+      if (method === 'POST' && seg2 === 'grant') return await grantRole(body) // 기존 회원 → 권한만
+      if (method === 'POST' && seg2 === 'invite') return await inviteUser(body) // 신규 → 계정+초대메일
       return json(404, { error: 'not found' })
     }
 
