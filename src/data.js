@@ -14,7 +14,6 @@ export const BRAND = {
   bizName: '주식회사 플러스토닉',
   ceo: '한상혁',
   bizNo: '206-86-86686',
-  mailOrderNo: '제2024-경기하남-2207호',
 }
 
 // href: 홈페이지 내 앵커(다른 페이지에선 '/#앵커'로 이동) / to: 별도 라우트

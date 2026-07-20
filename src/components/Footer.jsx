@@ -53,7 +53,7 @@ export default function Footer() {
           <div className="biz">
             {BRAND.bizName} · 대표 {BRAND.ceo}
             <br />
-            사업자등록번호 {BRAND.bizNo} · 통신판매업 {BRAND.mailOrderNo}
+            사업자등록번호 {BRAND.bizNo}
             <br />
             {BRAND.address}
           </div>
