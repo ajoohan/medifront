@@ -11,7 +11,7 @@ const FALLBACK = {
   authDomain: 'medifront-auth.auth.ap-northeast-2.amazoncognito.com',
   // 네이버 로그인 — developers.naver.com 애플리케이션의 Client ID (공개 값).
   // 비어 있으면 네이버 버튼이 표시되지 않는다. 시크릿은 백엔드(Lambda)에만 둔다.
-  naverClientId: '',
+  naverClientId: 'q11Zf_W8Qids9GQHdtVx',
 }
 
 const env = import.meta.env

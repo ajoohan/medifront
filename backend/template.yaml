@@ -26,7 +26,7 @@ Parameters:
   # 커스텀 인증 챌린지로 Cognito 토큰을 발급한다 (index.mjs 의 naverLogin 참고).
   NaverClientId:
     Type: String
-    Default: ''
+    Default: 'q11Zf_W8Qids9GQHdtVx'
     Description: 네이버 애플리케이션 Client ID (프론트에도 노출되는 공개 값)
   NaverClientSecret:
     Type: String
