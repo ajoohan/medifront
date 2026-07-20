@@ -7,6 +7,8 @@ const FALLBACK = {
   userPoolId: '', // 예: ap-northeast-2_XXXXXXXXX
   clientId: '', // 예: 1a2b3c4d5e6f7g8h9i0jklmnop
   apiBaseUrl: '', // 예: https://xxxxxxxxxx.execute-api.ap-northeast-2.amazonaws.com
+  // 소셜 로그인(Hosted UI) 도메인 — backend/template.yaml 의 UserPoolDomain 과 같아야 한다
+  authDomain: 'medifront-auth.auth.ap-northeast-2.amazoncognito.com',
 }
 
 const env = import.meta.env
@@ -20,6 +22,7 @@ export const awsConfig = {
   userPoolId: pick(env.VITE_COGNITO_USER_POOL_ID, FALLBACK.userPoolId),
   clientId: pick(env.VITE_COGNITO_CLIENT_ID, FALLBACK.clientId),
   apiBaseUrl: pick(env.VITE_API_BASE_URL, FALLBACK.apiBaseUrl).replace(/\/+$/, ''),
+  authDomain: pick(env.VITE_COGNITO_AUTH_DOMAIN, FALLBACK.authDomain),
 }
 
 // DB 모듈들의 방어 가드용 — 미설정이면 각 화면이 목업/브라우저 저장으로 폴백한다

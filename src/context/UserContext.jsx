@@ -45,6 +45,8 @@ export function UserProvider({ children }) {
   useEffect(() => {
     let unsub
     const init = async () => {
+      // 구글 로그인 복귀(?code=)면 먼저 토큰 교환을 끝낸다 — 아래 세션 복원이 이어받는다
+      await auth.completeOAuthRedirect()
       const keepLogin = localStorage.getItem(AUTOLOGIN_KEY) !== '0'
       const newBrowserSession = !sessionStorage.getItem(TAB_KEY)
       sessionStorage.setItem(TAB_KEY, '1')
@@ -88,6 +90,14 @@ export function UserProvider({ children }) {
     sessionStorage.setItem(TAB_KEY, '1')
     if (autoLogin) localStorage.setItem(SAVED_EMAIL_KEY, email)
     else localStorage.removeItem(SAVED_EMAIL_KEY)
+  }, [])
+
+  // ── 구글 로그인/가입 — Hosted UI 로 이동한다 (성공 시 사이트로 복귀해 자동 로그인)
+  const signInWithGoogle = useCallback(async () => {
+    // 리디렉션으로 페이지를 떠나므로, 복귀 후 세션이 유지되도록 미리 저장한다
+    localStorage.setItem(AUTOLOGIN_KEY, '1')
+    sessionStorage.setItem(TAB_KEY, '1')
+    return auth.signInWithGoogle()
   }, [])
 
   const signInWithEmail = useCallback(
@@ -165,6 +175,7 @@ export function UserProvider({ children }) {
         signUpWithEmail,
         confirmSignUp,
         signInWithEmail,
+        signInWithGoogle,
         completeNewPassword,
         resendVerification,
         requestPasswordReset,

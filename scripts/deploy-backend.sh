@@ -29,11 +29,20 @@ aws cloudformation package \
   --region "${REGION}" >/dev/null
 
 echo "3) CloudFormation 스택 배포 (${STACK})..."
+# 구글 소셜 로그인: GOOGLE_CLIENT_SECRET 환경변수가 있으면 IdP 까지 함께 배포한다.
+#   GOOGLE_CLIENT_SECRET=... bash scripts/deploy-backend.sh
+# (시크릿은 화면에 출력되지 않고, CloudFormation 파라미터도 NoEcho 라 콘솔에 남지 않는다)
+PARAMS=()
+if [ -n "${GOOGLE_CLIENT_SECRET:-}" ]; then
+  PARAMS+=(--parameter-overrides "GoogleClientSecret=${GOOGLE_CLIENT_SECRET}")
+  echo "   (구글 IdP 포함 배포)"
+fi
 aws cloudformation deploy \
   --template-file backend/.packaged.yaml \
   --stack-name "${STACK}" \
   --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND \
-  --region "${REGION}"
+  --region "${REGION}" \
+  ${PARAMS[@]+"${PARAMS[@]}"}
 
 echo "4) 스택 출력값 조회..."
 outputs=$(aws cloudformation describe-stacks --stack-name "${STACK}" --region "${REGION}" \

@@ -240,6 +240,89 @@ export async function completeNewPassword({ email, password, session }) {
   }
 }
 
+// ── 구글 소셜 로그인 (Cognito Hosted UI + OAuth code + PKCE) ──
+// 시크릿 없는 SPA 이므로 PKCE 로 코드 탈취를 방어하고, state 로 CSRF 를 방어한다.
+const PKCE_KEY = 'medifront_oauth_pkce'
+
+const b64url = (buf) =>
+  btoa(String.fromCharCode(...new Uint8Array(buf)))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '')
+
+// 콜백 주소 — backend/template.yaml 의 CallbackURLs 와 정확히 일치해야 한다
+const oauthRedirectUri = () => window.location.origin + '/'
+
+// 구글 로그인 시작: Hosted UI 로 이동한다 (성공 시 ?code= 를 들고 사이트로 복귀)
+export async function signInWithGoogle() {
+  if (!isAuthConfigured || !awsConfig.authDomain) return { error: 'not-configured' }
+  const verifier = b64url(crypto.getRandomValues(new Uint8Array(32)))
+  const state = b64url(crypto.getRandomValues(new Uint8Array(16)))
+  sessionStorage.setItem(PKCE_KEY, JSON.stringify({ verifier, state }))
+  const challenge = b64url(
+    await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier)),
+  )
+  const p = new URLSearchParams({
+    client_id: awsConfig.clientId,
+    response_type: 'code',
+    scope: 'openid email profile',
+    redirect_uri: oauthRedirectUri(),
+    identity_provider: 'Google',
+    state,
+    code_challenge_method: 'S256',
+    code_challenge: challenge,
+  })
+  window.location.assign(`https://${awsConfig.authDomain}/oauth2/authorize?${p}`)
+  return { ok: true }
+}
+
+// 소셜 로그인 복귀(?code=) 처리 — 앱 부팅 시 1회 호출(UserContext).
+// 토큰 교환에 성공하면 일반 로그인과 동일하게 토큰을 저장하고 사용자를 반환한다.
+export async function completeOAuthRedirect() {
+  const url = new URL(window.location.href)
+  const code = url.searchParams.get('code')
+  const errParam = url.searchParams.get('error')
+  if (!code && !errParam) return null
+  let saved = null
+  try {
+    saved = JSON.parse(sessionStorage.getItem(PKCE_KEY))
+  } catch {
+    saved = null
+  }
+  sessionStorage.removeItem(PKCE_KEY)
+  // 우리가 시작한 요청(state 일치)이 아니면 무시한다 — CSRF/코드 주입 방어
+  if (!saved || url.searchParams.get('state') !== saved.state) return null
+  // 주소창의 code/state 는 즉시 지운다 (새로고침 시 재교환 시도·기록 노출 방지)
+  url.searchParams.delete('code')
+  url.searchParams.delete('state')
+  url.searchParams.delete('error')
+  url.searchParams.delete('error_description')
+  const qs = url.searchParams.toString()
+  window.history.replaceState({}, '', url.pathname + (qs ? `?${qs}` : '') + url.hash)
+  if (errParam) return null // 사용자가 구글 화면에서 취소한 경우 등
+  try {
+    const r = await fetch(`https://${awsConfig.authDomain}/oauth2/token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        grant_type: 'authorization_code',
+        client_id: awsConfig.clientId,
+        code,
+        redirect_uri: oauthRedirectUri(),
+        code_verifier: saved.verifier,
+      }),
+    })
+    if (!r.ok) return null
+    const t = await r.json()
+    saveTokens({ idToken: t.id_token, accessToken: t.access_token, refreshToken: t.refresh_token })
+    const user = claimsToUser(decode(t.id_token))
+    emit(user)
+    return user
+  } catch {
+    return null
+  }
+}
+
 export async function signOut() {
   const tokens = loadTokens()
   clearTokens()
