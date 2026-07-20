@@ -29,13 +29,25 @@ aws cloudformation package \
   --region "${REGION}" >/dev/null
 
 echo "3) CloudFormation 스택 배포 (${STACK})..."
-# 구글 소셜 로그인: GOOGLE_CLIENT_SECRET 환경변수가 있으면 IdP 까지 함께 배포한다.
-#   GOOGLE_CLIENT_SECRET=... bash scripts/deploy-backend.sh
+# 소셜 로그인 시크릿: 환경변수가 있으면 파라미터로 전달한다. 없으면 이전 배포 값 유지.
+#   GOOGLE_CLIENT_SECRET=... bash scripts/deploy-backend.sh          (구글)
+#   NAVER_CLIENT_ID=... NAVER_CLIENT_SECRET=... bash scripts/deploy-backend.sh  (네이버)
 # (시크릿은 화면에 출력되지 않고, CloudFormation 파라미터도 NoEcho 라 콘솔에 남지 않는다)
-PARAMS=()
+OVERRIDES=()
 if [ -n "${GOOGLE_CLIENT_SECRET:-}" ]; then
-  PARAMS+=(--parameter-overrides "GoogleClientSecret=${GOOGLE_CLIENT_SECRET}")
+  OVERRIDES+=("GoogleClientSecret=${GOOGLE_CLIENT_SECRET}")
   echo "   (구글 IdP 포함 배포)"
+fi
+if [ -n "${NAVER_CLIENT_ID:-}" ]; then
+  OVERRIDES+=("NaverClientId=${NAVER_CLIENT_ID}")
+fi
+if [ -n "${NAVER_CLIENT_SECRET:-}" ]; then
+  OVERRIDES+=("NaverClientSecret=${NAVER_CLIENT_SECRET}")
+  echo "   (네이버 로그인 포함 배포)"
+fi
+PARAMS=()
+if [ ${#OVERRIDES[@]} -gt 0 ]; then
+  PARAMS=(--parameter-overrides "${OVERRIDES[@]}")
 fi
 aws cloudformation deploy \
   --template-file backend/.packaged.yaml \

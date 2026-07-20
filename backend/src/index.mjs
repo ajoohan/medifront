@@ -17,6 +17,8 @@ import {
   AdminUpdateUserAttributesCommand,
   AdminAddUserToGroupCommand,
   AdminRemoveUserFromGroupCommand,
+  AdminInitiateAuthCommand,
+  AdminRespondToAuthChallengeCommand,
 } from '@aws-sdk/client-cognito-identity-provider'
 import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses'
 
@@ -112,6 +114,11 @@ const RESOURCES = {
       'status',
       'joined_at',
       'license_no',
+      // 가입 2단계(유형·이름·휴대폰·약관) 완료 여부 — 소셜(구글/네이버) 첫 가입은
+      // false 로 시작하고, 로그인 직후 뜨는 2/2 폼을 제출해야 true 가 된다.
+      'profile_done',
+      // 가입 시 선택한 회원유형(의사/병원/일반) — 표시용. 실권한은 grade 로만 판정한다.
+      'member_type',
     ],
     defaults: () => ({
       name: '',
@@ -513,6 +520,200 @@ async function inviteUser({ email, name, grade }) {
 }
 
 // ─────────────────────────────────────────────────────────────
+// 네이버 로그인 (/auth/naver — 공개 엔드포인트)
+//
+// 네이버는 Cognito 가 기본 지원하지 않는다. 프론트가 네이버 인증 후 받은 code 를
+// 여기로 보내면: ① 네이버와 코드 교환(시크릿은 Lambda 환경변수) ② 프로필(이메일) 조회
+// ③ 같은 이메일의 Cognito 계정 확보(없으면 생성 — 네이버가 이미 이메일을 검증했으므로
+// 인증 메일 생략) ④ 커스텀 인증 챌린지(아래 트리거 3종)로 정식 Cognito 토큰 발급.
+// 발급된 토큰은 이메일 로그인과 완전히 동일하게 동작한다(API authorizer 통과).
+// ─────────────────────────────────────────────────────────────
+
+// Cognito 비밀번호 정책(8자+영문+숫자)을 만족하는 일회성 무작위 비밀번호.
+// 소셜 가입 계정용 — 본인이 비밀번호를 쓰려면 '아이디/비밀번호 찾기'로 재설정하면 된다.
+const randomPw = () => `Nv1${crypto.randomUUID()}`
+
+async function naverLogin(body) {
+  const naverId = process.env.NAVER_CLIENT_ID
+  const naverSecret = process.env.NAVER_CLIENT_SECRET
+  const appClientId = process.env.CLIENT_ID
+  if (!naverId || !naverSecret || !appClientId) return json(501, { error: 'naver-not-configured' })
+  const code = String(body.code || '')
+  if (!code) return json(400, { error: 'code required' })
+
+  // ① 네이버 코드 → 액세스 토큰
+  const tokenRes = await fetch(
+    'https://nid.naver.com/oauth2.0/token?' +
+      new URLSearchParams({
+        grant_type: 'authorization_code',
+        client_id: naverId,
+        client_secret: naverSecret,
+        code,
+        state: String(body.state || ''),
+      }),
+  )
+  const token = await tokenRes.json().catch(() => ({}))
+  if (!token.access_token) return json(401, { error: 'naver-token-failed' })
+
+  // ② 프로필 조회 — 이메일은 필수 (네이버 앱 설정에서 '필수 제공'으로 지정해야 한다)
+  const profileRes = await fetch('https://openapi.naver.com/v1/nid/me', {
+    headers: { Authorization: `Bearer ${token.access_token}` },
+  })
+  const profile = (await profileRes.json().catch(() => ({})))?.response || {}
+  const email = String(profile.email || '')
+    .trim()
+    .toLowerCase()
+  if (!email) return json(400, { error: 'naver-no-email' })
+  const name = profile.name || profile.nickname || email.split('@')[0]
+  const phone = String(profile.mobile || '').replace(/\s/g, '')
+
+  // ③ Cognito 계정 확보
+  try {
+    const u = await cognito.send(
+      new AdminGetUserCommand({ UserPoolId: USER_POOL_ID, Username: email }),
+    )
+    // 관리자 초대 후 한 번도 로그인하지 않은 계정이면 임시 비밀번호 상태를 정리한다
+    if (u.UserStatus === 'FORCE_CHANGE_PASSWORD') {
+      await cognito.send(
+        new AdminSetUserPasswordCommand({
+          UserPoolId: USER_POOL_ID,
+          Username: email,
+          Password: randomPw(),
+          Permanent: true,
+        }),
+      )
+    }
+  } catch (e) {
+    if (e.name !== 'UserNotFoundException') throw e
+    await cognito.send(
+      new AdminCreateUserCommand({
+        UserPoolId: USER_POOL_ID,
+        Username: email,
+        MessageAction: 'SUPPRESS', // 초대 메일 없음 — 네이버 인증으로 즉시 가입 완료
+        UserAttributes: [
+          { Name: 'email', Value: email },
+          { Name: 'email_verified', Value: 'true' },
+          { Name: 'name', Value: name },
+          { Name: 'custom:phone', Value: phone || '-' },
+          // ⚠️ 신규 가입은 항상 '일반' — '의사' 승격은 관리자 승인으로만 (postConfirmation 과 동일 원칙)
+          { Name: 'custom:grade', Value: '일반' },
+        ],
+      }),
+    )
+    await cognito.send(
+      new AdminSetUserPasswordCommand({
+        UserPoolId: USER_POOL_ID,
+        Username: email,
+        Password: randomPw(),
+        Permanent: true,
+      }),
+    )
+  }
+
+  // ④ 회원 목록 등록 — 신규는 profile_done:false 로 시작해 가입 2/2 폼으로 유도된다.
+  //    (AdminCreateUser 는 postConfirmation 트리거를 태우지 않으므로 여기서 직접 등록)
+  const existing = (await listAll('members')).find((m) => m.email === email)
+  if (!existing) {
+    const id = await nextId('members')
+    await ddb.send(
+      new PutCommand({
+        TableName: TABLE,
+        Item: {
+          pk: 'members',
+          sk: skOf(id),
+          id,
+          name,
+          email,
+          phone: phone || '-',
+          hospital: '-',
+          specialty: '-',
+          grade: '일반',
+          license_no: '',
+          status: 'active',
+          joined_at: today(),
+          created_at: now(),
+          profile_done: false,
+        },
+      }),
+    )
+  }
+
+  // ⑤ 1회용 코드를 심고 커스텀 챌린지로 Cognito 토큰 발급
+  const secret = `${crypto.randomUUID()}${crypto.randomUUID()}`
+  await ddb.send(
+    new PutCommand({
+      TableName: TABLE,
+      Item: { pk: '_social_auth', sk: email, secret, exp: Date.now() + 60_000 },
+    }),
+  )
+  const init = await cognito.send(
+    new AdminInitiateAuthCommand({
+      UserPoolId: USER_POOL_ID,
+      ClientId: appClientId,
+      AuthFlow: 'CUSTOM_AUTH',
+      AuthParameters: { USERNAME: email },
+    }),
+  )
+  const resp = await cognito.send(
+    new AdminRespondToAuthChallengeCommand({
+      UserPoolId: USER_POOL_ID,
+      ClientId: appClientId,
+      ChallengeName: 'CUSTOM_CHALLENGE',
+      Session: init.Session,
+      ChallengeResponses: { USERNAME: email, ANSWER: secret },
+    }),
+  )
+  const a = resp.AuthenticationResult
+  if (!a?.IdToken) return json(500, { error: 'token-issue-failed' })
+  return json(200, {
+    idToken: a.IdToken,
+    accessToken: a.AccessToken,
+    refreshToken: a.RefreshToken,
+    // 가입 2/2 폼 필요 여부 — 신규이거나 아직 제출하지 않은 회원이면 false
+    profileDone: existing ? existing.profile_done !== false : false,
+  })
+}
+
+// ── 가입 2/2 폼 제출 (소셜 가입자 — 유형·이름·휴대폰·약관) ──
+// 로그인한 본인의 회원 정보만 갱신한다. grade 는 절대 바꾸지 않는다('의사' 승격은
+// 관리자 승인으로만). '의사' 유형 신청 시 면허번호를 저장해 관리자 심사에 쓴다.
+async function completeProfile(auth, body) {
+  const memberType = ['의사', '병원', '일반'].includes(body.memberType) ? body.memberType : '일반'
+  const name = String(body.name || '').trim()
+  const phone = String(body.phone || '').trim()
+  const licenseNo = memberType === '의사' ? String(body.licenseNo || '').trim() : ''
+  if (!name || !phone) return json(400, { error: 'name and phone required' })
+  const row = (await listAll('members')).find((m) => m.email === auth.email)
+  if (!row) return json(404, { error: 'member not found' })
+  const updated = {
+    ...row,
+    name,
+    phone,
+    member_type: memberType,
+    license_no: licenseNo || row.license_no || '',
+    profile_done: true,
+  }
+  await ddb.send(new PutCommand({ TableName: TABLE, Item: updated }))
+  // JWT(이름 표시)에도 반영 — 실패해도 회원 정보 저장은 유지한다
+  try {
+    await cognito.send(
+      new AdminUpdateUserAttributesCommand({
+        UserPoolId: USER_POOL_ID,
+        Username: auth.email,
+        UserAttributes: [
+          { Name: 'name', Value: name },
+          { Name: 'custom:phone', Value: phone },
+          ...(licenseNo ? [{ Name: 'custom:license_no', Value: licenseNo }] : []),
+        ],
+      }),
+    )
+  } catch (e) {
+    console.error('attr update failed:', e)
+  }
+  return json(200, toPublic(updated))
+}
+
+// ─────────────────────────────────────────────────────────────
 // 인가(authorization)
 //
 // 인증(JWT 서명·만료 검증)은 API Gateway 의 Cognito authorizer 가 담당한다.
@@ -581,11 +782,22 @@ export async function handler(event) {
 
   try {
     const auth = getAuth(event)
+
+    // 네이버 로그인 콜백 교환 — 로그인 전 단계라 공개(template.yaml 의 PublicNaverLogin)
+    if (method === 'POST' && seg1 === 'auth' && seg2 === 'naver') {
+      return await naverLogin(parseBody(event))
+    }
+
     const isPublic =
       !seg2 && PUBLIC_ROUTES.some((p) => p.method === method && p.resource === seg1)
 
     // 공개 경로가 아니면 로그인 필수 (API Gateway 가 이미 막지만 이중 방어)
     if (!isPublic && !auth.authenticated) return json(401, { error: 'unauthorized' })
+
+    // 가입 2/2 폼 제출 — 로그인한 본인의 회원 정보만 갱신 (관리자 아니어도 허용)
+    if (method === 'POST' && seg1 === 'members' && seg2 === 'complete-profile') {
+      return await completeProfile(auth, parseBody(event))
+    }
 
     // 계정 생성·초대는 관리자만
     if (seg1 === 'auth') {
@@ -665,6 +877,10 @@ export async function postConfirmation(event) {
               status: 'active',
               joined_at: today(),
               created_at: now(),
+              // 이메일 가입은 가입 화면에서 2/2(유형·이름·휴대폰)를 이미 끝냈고,
+              // 소셜(구글 등 외부 IdP, userName 이 'google_...' 형태)은 아직이므로
+              // false 로 시작해 로그인 직후 2/2 폼으로 유도한다.
+              profile_done: !/^[a-z]+_/i.test(String(event.userName || '')),
             },
           }),
         )
@@ -747,5 +963,58 @@ export async function customMessage(event) {
     // codeParameter('{####}' 자리표시자)를 본문에 심으면 Cognito 가 실제 코드로 치환한다
     event.response.emailMessage = RESET_EMAIL_HTML.replace('{####}', event.request.codeParameter)
   }
+  return event
+}
+
+// ── 네이버 로그인용 커스텀 인증 챌린지 트리거 3종 ──
+// /auth/naver(naverLogin)가 DynamoDB('_social_auth')에 심어 둔 1회용 코드를 맞혀야만
+// 토큰이 발급된다. 외부에서 CUSTOM_AUTH 를 시도하면 코드가 없으므로(무작위 값으로
+// 대체되어) 절대 통과할 수 없고, 코드는 읽는 즉시 폐기되어 재사용도 불가능하다.
+
+// 흐름 결정: 첫 시도면 챌린지 발급, 정답이면 토큰 발급, 오답이면 즉시 실패
+export async function defineAuthChallenge(event) {
+  const session = event.request.session || []
+  const last = session[session.length - 1]
+  if (event.request.userNotFound) {
+    event.response.issueTokens = false
+    event.response.failAuthentication = true
+  } else if (last?.challengeName === 'CUSTOM_CHALLENGE' && last.challengeResult === true) {
+    event.response.issueTokens = true
+    event.response.failAuthentication = false
+  } else if (last && last.challengeResult === false) {
+    // 오답 1회 즉시 실패 — 무차별 대입 여지를 남기지 않는다
+    event.response.issueTokens = false
+    event.response.failAuthentication = true
+  } else {
+    event.response.issueTokens = false
+    event.response.failAuthentication = false
+    event.response.challengeName = 'CUSTOM_CHALLENGE'
+  }
+  return event
+}
+
+// 정답 준비: 심어 둔 1회용 코드를 꺼내고(즉시 폐기), 없으면 맞힐 수 없는 무작위 값
+export async function createAuthChallenge(event) {
+  let answer = `denied-${crypto.randomUUID()}`
+  const email = String(event.request.userAttributes?.email || '')
+    .trim()
+    .toLowerCase()
+  if (email) {
+    const key = { pk: '_social_auth', sk: email }
+    const r = await ddb.send(new GetCommand({ TableName: TABLE, Key: key }))
+    if (r.Item) {
+      await ddb.send(new DeleteCommand({ TableName: TABLE, Key: key }))
+      if (r.Item.exp > Date.now()) answer = r.Item.secret
+    }
+  }
+  event.response.privateChallengeParameters = { answer }
+  event.response.challengeMetadata = 'SOCIAL_LOGIN'
+  return event
+}
+
+// 정답 검증
+export async function verifyAuthChallenge(event) {
+  const expected = event.request.privateChallengeParameters?.answer
+  event.response.answerCorrect = !!expected && event.request.challengeAnswer === expected
   return event
 }

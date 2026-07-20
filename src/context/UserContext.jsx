@@ -1,7 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import * as auth from '../lib/authClient'
-import { apiGet } from '../lib/api'
+import { apiGet, apiSend } from '../lib/api'
 
 // 공개 사이트 로그인 세션 (AWS Cognito 이메일 인증)
 const UserContext = createContext(null)
@@ -23,20 +23,16 @@ function mapAuthUser(u) {
   }
 }
 
-// members 테이블의 등급이 있으면 우선 적용 — 관리자 화면에서 변경한 등급이 실권한에 반영됨
-// (API 미설정 등 조회 실패 시 가입 메타데이터 등급 유지)
-async function withDbGrade(u) {
-  if (!u) return null
-  const rows = await apiGet('/members', { email: u.email })
-  const grade = rows?.[0]?.grade
-  if (!grade) return u
-  return { ...u, grade }
-}
+// members 테이블 조회는 applyUser(UserProvider 내부)에서 수행한다 —
+// 관리자 화면에서 변경한 등급 반영 + 소셜 가입 2/2 미완성(profile_done) 감지를 겸한다.
 
 export function UserProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loginOpen, setLoginOpen] = useState(false)
   const [loginNotice, setLoginNotice] = useState('') // 로그인 창 상단 안내 문구
+  // 소셜(구글/네이버) 가입자가 아직 가입 2/2(유형·이름·휴대폰)를 제출하지 않은 상태.
+  // true 면 로그인 창이 2/2 폼(social2)으로 열린다.
+  const [profilePending, setProfilePending] = useState(false)
   // 저장된 세션 복원이 끝났는지. 이 값이 false 인 동안 user 가 null 인 것은
   // '비로그인'이 아니라 '아직 모름'이다 — 권한 화면이 이를 구분해야 깜빡임이 없다.
   const [authReady, setAuthReady] = useState(false)
@@ -45,7 +41,7 @@ export function UserProvider({ children }) {
   useEffect(() => {
     let unsub
     const init = async () => {
-      // 구글 로그인 복귀(?code=)면 먼저 토큰 교환을 끝낸다 — 아래 세션 복원이 이어받는다
+      // 소셜 로그인 복귀(?code=)면 먼저 토큰 교환을 끝낸다 — 아래 세션 복원이 이어받는다
       await auth.completeOAuthRedirect()
       const keepLogin = localStorage.getItem(AUTOLOGIN_KEY) !== '0'
       const newBrowserSession = !sessionStorage.getItem(TAB_KEY)
@@ -53,14 +49,26 @@ export function UserProvider({ children }) {
       if (!keepLogin && newBrowserSession) {
         await auth.signOut()
       }
-      // 등급 DB 조회가 끝나기 전에도 기본 정보로 먼저 표시하고, 조회 후 등급만 보정
+      // 등급 DB 조회가 끝나기 전에도 기본 정보로 먼저 표시하고, 조회 후 등급만 보정.
+      // 이때 소셜 가입자의 2/2 미완성(profile_done:false)도 함께 감지한다.
       const applyUser = (base) => {
         setUser(base)
-        if (base) {
-          withDbGrade(base).then((u2) =>
-            setUser((cur) => (cur && u2 && cur.email === u2.email ? u2 : cur)),
-          )
+        if (!base) {
+          setProfilePending(false)
+          return
         }
+        apiGet('/members', { email: base.email }).then((rows) => {
+          const row = rows?.[0]
+          if (row?.grade) {
+            setUser((cur) => (cur && cur.email === base.email ? { ...cur, grade: row.grade } : cur))
+          }
+          // 소셜 첫 가입 → 가입 2/2 폼을 자동으로 띄운다 (제출 전까지 재로그인마다 반복)
+          if (row && row.profile_done === false && !base.isAdmin) {
+            setProfilePending(true)
+            setLoginNotice('')
+            setLoginOpen(true)
+          }
+        })
       }
       const session = await auth.getSession()
       applyUser(mapAuthUser(session))
@@ -98,6 +106,27 @@ export function UserProvider({ children }) {
     localStorage.setItem(AUTOLOGIN_KEY, '1')
     sessionStorage.setItem(TAB_KEY, '1')
     return auth.signInWithGoogle()
+  }, [])
+
+  // ── 네이버 로그인/가입 — 네이버 인증 후 백엔드가 Cognito 토큰을 발급한다
+  const signInWithNaver = useCallback(async () => {
+    localStorage.setItem(AUTOLOGIN_KEY, '1')
+    sessionStorage.setItem(TAB_KEY, '1')
+    return auth.signInWithNaver()
+  }, [])
+
+  // ── 소셜 가입 2/2 폼 제출 (유형·면허·이름·휴대폰) — 본인 회원 정보 갱신
+  const completeSocialProfile = useCallback(async ({ memberType, licenseNo, name, phone }) => {
+    const r = await apiSend('POST', '/members/complete-profile', {
+      memberType,
+      licenseNo,
+      name,
+      phone,
+    })
+    if (r.error) return { error: r.error }
+    setProfilePending(false)
+    setUser((cur) => (cur ? { ...cur, name } : cur))
+    return { ok: true }
   }, [])
 
   const signInWithEmail = useCallback(
@@ -169,6 +198,7 @@ export function UserProvider({ children }) {
         authReady,
         loginOpen,
         loginNotice,
+        profilePending,
         openLogin,
         closeLogin,
         logout,
@@ -176,6 +206,8 @@ export function UserProvider({ children }) {
         confirmSignUp,
         signInWithEmail,
         signInWithGoogle,
+        signInWithNaver,
+        completeSocialProfile,
         completeNewPassword,
         resendVerification,
         requestPasswordReset,

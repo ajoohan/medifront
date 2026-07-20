@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import Logo from './Logo'
 import { useUser } from '../context/UserContext'
 import { formatPhone } from '../lib/phone'
+import { awsConfig } from '../lib/awsConfig'
 
 // 회원유형 — 가입 2단계에서 선택 (매거진은 의사 회원 전용)
 const MEMBER_TYPES = [
@@ -34,6 +35,16 @@ function tr(err) {
   return err
 }
 
+// 네이버 'N' 로고 (버튼용 인라인 SVG — 공식 브랜드 그린 배경에 흰 N)
+function NaverIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true">
+      <rect width="20" height="20" rx="4" fill="#03C75A" />
+      <path fill="#fff" d="M11.35 10.25 8.5 6.1H6.2v7.8h2.45v-4.15l2.85 4.15h2.3V6.1h-2.45v4.15z" />
+    </svg>
+  )
+}
+
 // 구글 공식 'G' 로고 (버튼용 인라인 SVG)
 function GoogleIcon() {
   return (
@@ -60,10 +71,14 @@ function GoogleIcon() {
 
 export default function LoginModal({ open, onClose }) {
   const {
+    user,
+    profilePending,
     signUpWithEmail,
     confirmSignUp,
     signInWithEmail,
     signInWithGoogle,
+    signInWithNaver,
+    completeSocialProfile,
     completeNewPassword,
     resendVerification,
     requestPasswordReset,
@@ -95,6 +110,24 @@ export default function LoginModal({ open, onClose }) {
 
   useEffect(() => {
     if (open) {
+      // 소셜(구글/네이버) 첫 가입 — 가입 2/2 폼으로 바로 연다 (이름·휴대폰은 소셜 프로필로 프리필)
+      if (profilePending && user) {
+        setMode('social2')
+        setForm({
+          email: user.email || '',
+          password: '',
+          confirm: '',
+          name: user.name || '',
+          phone: user.phone && user.phone !== '-' ? formatPhone(user.phone) : '',
+          code: '',
+          licenseNo: '',
+        })
+        setGrade('일반')
+        setAgree(false)
+        setMsg('')
+        setInfo('')
+        return
+      }
       // 저장된 아이디(이메일)와 자동 로그인 설정 프리필
       const prefs = getLoginPrefs()
       setMode('login')
@@ -105,7 +138,7 @@ export default function LoginModal({ open, onClose }) {
       setMsg('')
       setInfo(loginNotice || '')
     }
-  }, [open, getLoginPrefs, loginNotice])
+  }, [open, getLoginPrefs, loginNotice, profilePending, user])
 
   useEffect(() => {
     if (!open) return
@@ -142,6 +175,17 @@ export default function LoginModal({ open, onClose }) {
     setBusy(true)
     const r = await signInWithGoogle()
     // 정상이면 페이지가 구글로 넘어간다 — 여기 도달했다면 설정 오류
+    if (r?.error) {
+      setBusy(false)
+      setMsg(tr(r.error))
+    }
+  }
+
+  // 네이버로 로그인/가입 — 네이버 인증 화면으로 이동 (성공 시 사이트로 복귀해 자동 로그인)
+  const startNaver = async () => {
+    setMsg('')
+    setBusy(true)
+    const r = await signInWithNaver()
     if (r?.error) {
       setBusy(false)
       setMsg(tr(r.error))
@@ -244,6 +288,22 @@ export default function LoginModal({ open, onClose }) {
     setBusy(false)
     if (r.error) setMsg(tr(r.error))
     else switchMode('verify')
+  }
+
+  // 소셜(구글/네이버) 가입 2/2 폼 제출 — 회원유형·면허·이름·휴대폰을 회원 정보에 저장
+  const submitSocial2 = async (e) => {
+    e.preventDefault()
+    setMsg('')
+    setBusy(true)
+    const r = await completeSocialProfile({
+      memberType: grade,
+      licenseNo: grade === '의사' ? form.licenseNo.trim() : '',
+      name: form.name.trim(),
+      phone: form.phone.trim(),
+    })
+    setBusy(false)
+    if (r.error) setMsg(tr(r.error))
+    else onClose()
   }
 
   const resend = async () => {
@@ -387,6 +447,17 @@ export default function LoginModal({ open, onClose }) {
               <GoogleIcon />
               구글로 로그인
             </button>
+            {awsConfig.naverClientId && (
+              <button
+                type="button"
+                className="btn-social btn-social--naver"
+                onClick={startNaver}
+                disabled={busy}
+              >
+                <NaverIcon />
+                네이버로 로그인
+              </button>
+            )}
 
             <div className="login-modal__links">
               <button type="button" className="auth-strong" onClick={() => switchMode('signup')}>
@@ -492,6 +563,17 @@ export default function LoginModal({ open, onClose }) {
               <GoogleIcon />
               구글로 가입하기
             </button>
+            {awsConfig.naverClientId && (
+              <button
+                type="button"
+                className="btn-social btn-social--naver"
+                onClick={startNaver}
+                disabled={busy}
+              >
+                <NaverIcon />
+                네이버로 가입하기
+              </button>
+            )}
 
             <div className="login-modal__links">
               <span>이미 계정이 있으신가요?</span>
@@ -502,16 +584,19 @@ export default function LoginModal({ open, onClose }) {
           </>
         )}
 
-        {/* ── 회원가입 2단계: 이름·휴대폰번호·약관 동의 ── */}
-        {mode === 'signup2' && (
+        {/* ── 회원가입 2단계: 유형·이름·휴대폰번호·약관 동의 ──
+            signup2 = 이메일 가입 2단계 / social2 = 구글·네이버 가입 직후(같은 폼, 제출만 다름) */}
+        {(mode === 'signup2' || mode === 'social2') && (
           <>
             <div
               className="auth-notice"
               style={{ background: 'var(--paper-blue)', color: 'var(--ink-700)' }}
             >
-              마지막 단계입니다 (2/2) — 가입자 정보를 입력해 주세요.
+              {mode === 'social2'
+                ? '가입을 환영합니다! 마지막 단계입니다 (2/2) — 가입자 정보를 입력해 주세요.'
+                : '마지막 단계입니다 (2/2) — 가입자 정보를 입력해 주세요.'}
             </div>
-            <form onSubmit={submitSignup2}>
+            <form onSubmit={mode === 'social2' ? submitSocial2 : submitSignup2}>
               <div className="field">
                 <label>회원유형</label>
                 <div className="member-types">
@@ -598,14 +683,16 @@ export default function LoginModal({ open, onClose }) {
                 style={{ width: '100%' }}
                 disabled={busy}
               >
-                {busy ? '가입 중...' : '가입 완료'}
+                {busy ? '저장 중...' : '가입 완료'}
               </button>
             </form>
-            <div className="login-modal__links">
-              <button type="button" onClick={() => switchMode('signup')}>
-                ← 이전 단계로
-              </button>
-            </div>
+            {mode === 'signup2' && (
+              <div className="login-modal__links">
+                <button type="button" onClick={() => switchMode('signup')}>
+                  ← 이전 단계로
+                </button>
+              </div>
+            )}
           </>
         )}
 

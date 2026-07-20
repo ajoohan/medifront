@@ -1095,6 +1095,18 @@ ul {
   opacity: 0.6;
   cursor: default;
 }
+/* 네이버 — 공식 브랜드 그린. 구글 버튼 바로 아래 나란히 놓인다 */
+.btn-social--naver {
+  margin-top: 8px;
+  border-color: #03c75a;
+  background: #03c75a;
+  color: #fff;
+}
+.btn-social--naver:hover {
+  background: #02b152;
+  border-color: #02b152;
+  box-shadow: 0 1px 4px rgba(3, 199, 90, 0.35);
+}
 .btn-social svg {
   flex-shrink: 0;
 }

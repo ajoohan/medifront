@@ -276,22 +276,54 @@ export async function signInWithGoogle() {
   return { ok: true }
 }
 
+// ── 네이버 로그인 — 네이버 인증 후 백엔드(/auth/naver)가 코드를 교환해 Cognito 토큰 발급 ──
+// (네이버는 Cognito 미지원이라 Hosted UI 를 거치지 않는다. state 로 CSRF 를 방어하고,
+//  시크릿이 필요한 코드 교환은 전부 백엔드에서 수행한다)
+const NAVER_KEY = 'medifront_oauth_naver'
+
+export async function signInWithNaver() {
+  if (!awsConfig.naverClientId || !awsConfig.apiBaseUrl) return { error: 'not-configured' }
+  const state = b64url(crypto.getRandomValues(new Uint8Array(16)))
+  sessionStorage.setItem(NAVER_KEY, JSON.stringify({ state }))
+  const p = new URLSearchParams({
+    response_type: 'code',
+    client_id: awsConfig.naverClientId,
+    redirect_uri: oauthRedirectUri(),
+    state,
+  })
+  window.location.assign(`https://nid.naver.com/oauth2.0/authorize?${p}`)
+  return { ok: true }
+}
+
 // 소셜 로그인 복귀(?code=) 처리 — 앱 부팅 시 1회 호출(UserContext).
+// 구글(Cognito Hosted UI)과 네이버(백엔드 교환) 콜백이 모두 사이트 루트로 돌아오므로,
+// 어느 쪽이 시작한 요청인지는 저장해 둔 state 로 구분한다.
 // 토큰 교환에 성공하면 일반 로그인과 동일하게 토큰을 저장하고 사용자를 반환한다.
 export async function completeOAuthRedirect() {
   const url = new URL(window.location.href)
   const code = url.searchParams.get('code')
   const errParam = url.searchParams.get('error')
   if (!code && !errParam) return null
-  let saved = null
-  try {
-    saved = JSON.parse(sessionStorage.getItem(PKCE_KEY))
-  } catch {
-    saved = null
+  const readSaved = (key) => {
+    try {
+      return JSON.parse(sessionStorage.getItem(key))
+    } catch {
+      return null
+    }
   }
+  const googleSaved = readSaved(PKCE_KEY)
+  const naverSaved = readSaved(NAVER_KEY)
   sessionStorage.removeItem(PKCE_KEY)
+  sessionStorage.removeItem(NAVER_KEY)
+  const state = url.searchParams.get('state')
+  const provider =
+    naverSaved && state === naverSaved.state
+      ? 'naver'
+      : googleSaved && state === googleSaved.state
+        ? 'google'
+        : null
   // 우리가 시작한 요청(state 일치)이 아니면 무시한다 — CSRF/코드 주입 방어
-  if (!saved || url.searchParams.get('state') !== saved.state) return null
+  if (!provider) return null
   // 주소창의 code/state 는 즉시 지운다 (새로고침 시 재교환 시도·기록 노출 방지)
   url.searchParams.delete('code')
   url.searchParams.delete('state')
@@ -299,8 +331,24 @@ export async function completeOAuthRedirect() {
   url.searchParams.delete('error_description')
   const qs = url.searchParams.toString()
   window.history.replaceState({}, '', url.pathname + (qs ? `?${qs}` : '') + url.hash)
-  if (errParam) return null // 사용자가 구글 화면에서 취소한 경우 등
+  if (errParam) return null // 사용자가 인증 화면에서 취소한 경우 등
+
   try {
+    if (provider === 'naver') {
+      // 백엔드가 네이버와 코드를 교환하고 Cognito 토큰을 발급한다
+      const r = await fetch(`${awsConfig.apiBaseUrl}/auth/naver`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ code, state }),
+      })
+      if (!r.ok) return null
+      const t = await r.json()
+      saveTokens({ idToken: t.idToken, accessToken: t.accessToken, refreshToken: t.refreshToken })
+      const user = claimsToUser(decode(t.idToken))
+      emit(user)
+      return user
+    }
+    // 구글 — Cognito Hosted UI 토큰 교환 (PKCE)
     const r = await fetch(`https://${awsConfig.authDomain}/oauth2/token`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -309,7 +357,7 @@ export async function completeOAuthRedirect() {
         client_id: awsConfig.clientId,
         code,
         redirect_uri: oauthRedirectUri(),
-        code_verifier: saved.verifier,
+        code_verifier: googleSaved.verifier,
       }),
     })
     if (!r.ok) return null

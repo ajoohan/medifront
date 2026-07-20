@@ -21,6 +21,20 @@ Parameters:
     Description: >-
       구글 OAuth 클라이언트 보안 비밀. 배포 시 GOOGLE_CLIENT_SECRET 환경변수로 전달한다
       (scripts/deploy-backend.sh). 빈 값이면 구글 IdP 를 만들지 않는다 — 값은 git 에 절대 커밋 금지.
+  # ── 네이버 소셜 로그인 (developers.naver.com 애플리케이션) ──
+  # 네이버는 Cognito 가 기본 지원하지 않아 Lambda(/auth/naver)가 직접 코드를 교환하고,
+  # 커스텀 인증 챌린지로 Cognito 토큰을 발급한다 (index.mjs 의 naverLogin 참고).
+  NaverClientId:
+    Type: String
+    Default: ''
+    Description: 네이버 애플리케이션 Client ID (프론트에도 노출되는 공개 값)
+  NaverClientSecret:
+    Type: String
+    Default: ''
+    NoEcho: true
+    Description: >-
+      네이버 애플리케이션 Client Secret. 배포 시 NAVER_CLIENT_SECRET 환경변수로 전달한다
+      (scripts/deploy-backend.sh). 값은 git 에 절대 커밋 금지.
 
 Conditions:
   HasGoogle: !Not [!Equals [!Ref GoogleClientSecret, '']]
@@ -257,6 +271,10 @@ Resources:
         PostConfirmation: !GetAtt PostConfirmationFunction.Arn
         # 비밀번호 재설정 메일만 전용 문구로 분기 (index.customMessage)
         CustomMessage: !GetAtt CustomMessageFunction.Arn
+        # 네이버 로그인 토큰 발급용 커스텀 인증 챌린지 (1회용 코드 검증)
+        DefineAuthChallenge: !GetAtt DefineAuthChallengeFunction.Arn
+        CreateAuthChallenge: !GetAtt CreateAuthChallengeFunction.Arn
+        VerifyAuthChallengeResponse: !GetAtt VerifyAuthChallengeFunction.Arn
 
   # ── 관리자 역할 그룹 (최고관리자 / 일반관리자 / 운영자) ──
   # Lambda(backend/src/index.mjs)가 JWT 의 cognito:groups 로 역할을 판정합니다.
@@ -348,6 +366,9 @@ Resources:
         - ALLOW_USER_PASSWORD_AUTH
         - ALLOW_USER_SRP_AUTH
         - ALLOW_REFRESH_TOKEN_AUTH
+        # 네이버 로그인 토큰 발급용 커스텀 챌린지 (아래 DefineAuthChallenge~ 트리거).
+        # 챌린지 답은 /auth/naver Lambda 만 아는 1회용 코드라 외부에서 악용할 수 없다.
+        - ALLOW_CUSTOM_AUTH
       RefreshTokenValidity: 30
       AccessTokenValidity: 60
       IdTokenValidity: 60
@@ -416,6 +437,57 @@ Resources:
       Principal: cognito-idp.amazonaws.com
       SourceArn: !GetAtt UserPool.Arn
 
+  # ── 네이버 로그인용 커스텀 인증 챌린지 트리거 3종 ──
+  # /auth/naver Lambda 가 DynamoDB 에 심어 둔 1회용 코드를 맞혀야만 토큰이 발급된다.
+  # 외부에서 CUSTOM_AUTH 를 시도해도 코드가 없으면(무작위 값으로 대체) 절대 통과할 수 없다.
+  DefineAuthChallengeFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub '${AWS::StackName}-define-auth'
+      CodeUri: src/
+      Handler: index.defineAuthChallenge
+
+  CreateAuthChallengeFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub '${AWS::StackName}-create-auth'
+      CodeUri: src/
+      Handler: index.createAuthChallenge
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref DataTable
+
+  VerifyAuthChallengeFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub '${AWS::StackName}-verify-auth'
+      CodeUri: src/
+      Handler: index.verifyAuthChallenge
+
+  DefineAuthChallengePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref DefineAuthChallengeFunction
+      Action: lambda:InvokeFunction
+      Principal: cognito-idp.amazonaws.com
+      SourceArn: !GetAtt UserPool.Arn
+
+  CreateAuthChallengePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref CreateAuthChallengeFunction
+      Action: lambda:InvokeFunction
+      Principal: cognito-idp.amazonaws.com
+      SourceArn: !GetAtt UserPool.Arn
+
+  VerifyAuthChallengePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref VerifyAuthChallengeFunction
+      Action: lambda:InvokeFunction
+      Principal: cognito-idp.amazonaws.com
+      SourceArn: !GetAtt UserPool.Arn
+
   # ── 데이터 API (기존 Supabase 테이블 REST 대체) ──
   ApiFunction:
     Type: AWS::Serverless::Function
@@ -426,6 +498,10 @@ Resources:
       Environment:
         Variables:
           USER_POOL_ID: !Ref UserPool
+          # 네이버 로그인 — 코드 교환(/auth/naver)과 커스텀 챌린지 토큰 발급에 사용
+          CLIENT_ID: !Ref UserPoolClient
+          NAVER_CLIENT_ID: !Ref NaverClientId
+          NAVER_CLIENT_SECRET: !Ref NaverClientSecret
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref DataTable
@@ -440,6 +516,9 @@ Resources:
                 # 운영자 삭제 시 그룹에서 빼 관리 권한을 회수하기 위해 필요
                 - cognito-idp:AdminAddUserToGroup
                 - cognito-idp:AdminRemoveUserFromGroup
+                # 네이버 로그인 — 커스텀 챌린지로 Cognito 토큰 발급(/auth/naver)
+                - cognito-idp:AdminInitiateAuth
+                - cognito-idp:AdminRespondToAuthChallenge
               Resource: !GetAtt UserPool.Arn
         # 기존 회원을 운영자로 지정할 때 '운영자 지정' 안내 메일을 SES 로 발송한다.
         # (Cognito 초대 메일과 달리 임의 알림 메일이라 SES 직접 호출이 필요하다)
@@ -505,6 +584,16 @@ Resources:
           Properties:
             ApiId: !Ref HttpApi
             Path: /inquiries
+            Method: POST
+            Auth:
+              Authorizer: NONE
+        # 네이버 로그인 콜백 교환 — 로그인 전 단계라 토큰이 없다.
+        # 네이버가 발급한 code 를 검증해야만 토큰이 나가므로 공개해도 안전하다.
+        PublicNaverLogin:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /auth/naver
             Method: POST
             Auth:
               Authorizer: NONE
