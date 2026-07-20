@@ -6,13 +6,9 @@ import { awsConfig } from '../lib/awsConfig'
 
 // 회원유형 — 가입 2단계에서 선택 (매거진은 의사 회원 전용)
 const MEMBER_TYPES = [
-  { value: '의사', label: '의사 회원', desc: '대한민국 의사면허 보유자 · 모든 서비스 이용 가능' },
-  { value: '병원', label: '병원 회원', desc: '병원/의원 소속 관계자 · 의사초빙, 임대, 개원입지' },
-  {
-    value: '일반',
-    label: '일반 회원',
-    desc: '의료계 관련 종사자 및 일반 · 의사초빙, 임대, 개원입지',
-  },
+  { value: '의사', label: '의사 회원', desc: '대한민국 의사면허 보유자' },
+  { value: '병원', label: '병원 회원', desc: '병원/의원 소속 관계자' },
+  { value: '일반', label: '일반 회원', desc: '의료계 관련 종사자 및 일반' },
 ]
 
 // Cognito 에러 → 한국어 안내
