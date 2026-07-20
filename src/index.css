@@ -1135,20 +1135,21 @@ ul {
   color: var(--ink-300);
   font-size: 0.76rem;
 }
-/* 회원유형 선택 (가입 2단계) */
+/* 회원유형 선택 (가입 2단계)
+   — 왼쪽에 큰 사각형 체크, 유형명은 진하고 크게, 설명은 그 아랫줄 */
 .member-types {
   display: grid;
-  gap: 8px;
+  gap: 10px;
 }
 .member-type {
   display: grid;
-  grid-template-columns: 16px 1fr;
+  grid-template-columns: 24px 1fr;
   grid-template-areas:
-    'radio label'
-    'radio desc';
-  column-gap: 10px;
-  align-items: center;
-  padding: 10px 12px;
+    'check label'
+    'check desc';
+  column-gap: 12px;
+  align-items: start;
+  padding: 13px 14px;
   border: 1.5px solid var(--line, #e2e8f0);
   border-radius: 10px;
   cursor: pointer;
@@ -1163,21 +1164,43 @@ ul {
   border-color: var(--primary);
   background: rgba(16, 166, 150, 0.06);
 }
-.member-type input {
-  grid-area: radio;
-  width: 16px;
-  height: 16px;
-  accent-color: var(--primary);
+/* 라디오(단일 선택)를 큰 사각형 체크박스 모양으로 — 선택 시 체크 표시.
+   input[type='radio'] 로 명시도를 올린다 — 소스 뒤쪽의 .field input(패딩·모서리)이
+   같은 명시도라 순서로 이기는 것을 막기 위함. */
+.member-type input[type='radio'] {
+  grid-area: check;
+  appearance: none;
+  -webkit-appearance: none;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  margin: 1px 0 0;
+  border: 2px solid var(--line, #d5dde5);
+  border-radius: 6px;
+  background: #fff;
   cursor: pointer;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+}
+.member-type input[type='radio']:checked {
+  border-color: var(--primary);
+  background: var(--primary)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6L9 17l-5-5'/%3E%3C/svg%3E")
+    center / 15px no-repeat;
 }
 .member-type b {
   grid-area: label;
-  font-size: 0.9rem;
+  font-size: 1.02rem;
+  font-weight: 800;
+  line-height: 1.35;
   color: var(--ink-900, #0f172a);
 }
 .member-type small {
   grid-area: desc;
-  font-size: 0.76rem;
+  margin-top: 3px;
+  font-size: 0.8rem;
+  line-height: 1.5;
   color: var(--ink-300);
 }
 /* 인증 메일 안내 화면 */
