@@ -1167,7 +1167,9 @@ ul {
   display: grid;
   gap: 10px;
 }
-.member-type {
+/* 카드는 <label> 이라 `.field label { display:block }`(같은 명시도, 뒤 순서)에 밀린다.
+   `.member-types` 를 앞에 붙여 명시도를 올려야 격자 배치가 실제로 적용된다. */
+.member-types .member-type {
   display: grid;
   grid-template-columns: 24px 1fr;
   grid-template-areas:
@@ -1175,6 +1177,7 @@ ul {
     'check desc';
   column-gap: 12px;
   align-items: start;
+  margin-bottom: 0; /* .field label 의 margin-bottom 상쇄 — 카드 간격은 .member-types 의 gap 으로 */
   padding: 13px 14px;
   border: 1.5px solid var(--line, #e2e8f0);
   border-radius: 10px;
@@ -1183,25 +1186,27 @@ ul {
     border-color 0.15s,
     background 0.15s;
 }
-.member-type:hover {
+.member-types .member-type:hover {
   border-color: var(--primary);
   background: rgba(16, 166, 150, 0.03);
 }
-.member-type.is-active {
+.member-types .member-type.is-active {
   border-color: var(--primary);
   background: rgba(16, 166, 150, 0.06);
 }
 /* 라디오(단일 선택)를 큰 사각형 체크박스 모양으로 — 선택 시 체크 표시.
    input[type='radio'] 로 명시도를 올린다 — 소스 뒤쪽의 .field input(패딩·모서리)이
    같은 명시도라 순서로 이기는 것을 막기 위함. */
-.member-type input[type='radio'] {
+.member-types .member-type input[type='radio'] {
   grid-area: check;
+  /* 유형명+설명 두 줄 전체를 기준으로 세로 중앙 (카드는 align-items:start 라 개별 지정) */
+  align-self: center;
   appearance: none;
   -webkit-appearance: none;
   width: 24px;
   height: 24px;
   padding: 0;
-  margin: 1px 0 0;
+  margin: 0;
   border: 2px solid var(--line, #d5dde5);
   border-radius: 6px;
   background: #fff;
@@ -1210,20 +1215,20 @@ ul {
     border-color 0.15s,
     background 0.15s;
 }
-.member-type input[type='radio']:checked {
+.member-types .member-type input[type='radio']:checked {
   border-color: var(--primary);
   background: var(--primary)
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6L9 17l-5-5'/%3E%3C/svg%3E")
     center / 15px no-repeat;
 }
-.member-type b {
+.member-types .member-type b {
   grid-area: label;
   font-size: 1.02rem;
   font-weight: 800;
   line-height: 1.35;
   color: var(--ink-900, #0f172a);
 }
-.member-type small {
+.member-types .member-type small {
   grid-area: desc;
   margin-top: 3px;
   font-size: 0.8rem;
