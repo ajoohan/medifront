@@ -169,7 +169,7 @@ export default function LoginModal({ open, onClose }) {
     setMsg('')
   }
 
-  // 구글로 로그인/가입 — Hosted UI 로 이동 (성공 시 사이트로 복귀해 자동 로그인)
+  // GOOGLE 로그인/가입 — Hosted UI 로 이동 (성공 시 사이트로 복귀해 자동 로그인)
   const startGoogle = async () => {
     setMsg('')
     setBusy(true)
@@ -181,7 +181,7 @@ export default function LoginModal({ open, onClose }) {
     }
   }
 
-  // 네이버로 로그인/가입 — 네이버 인증 화면으로 이동 (성공 시 사이트로 복귀해 자동 로그인)
+  // NAVER 로그인/가입 — 네이버 인증 화면으로 이동 (성공 시 사이트로 복귀해 자동 로그인)
   const startNaver = async () => {
     setMsg('')
     setBusy(true)
@@ -445,7 +445,7 @@ export default function LoginModal({ open, onClose }) {
             </div>
             <button type="button" className="btn-social" onClick={startGoogle} disabled={busy}>
               <GoogleIcon />
-              구글로 로그인
+              GOOGLE 로그인
             </button>
             {awsConfig.naverClientId && (
               <button
@@ -455,7 +455,7 @@ export default function LoginModal({ open, onClose }) {
                 disabled={busy}
               >
                 <NaverIcon />
-                네이버로 로그인
+                NAVER 로그인
               </button>
             )}
 
@@ -561,7 +561,7 @@ export default function LoginModal({ open, onClose }) {
             </div>
             <button type="button" className="btn-social" onClick={startGoogle} disabled={busy}>
               <GoogleIcon />
-              구글로 가입하기
+              GOOGLE 로그인
             </button>
             {awsConfig.naverClientId && (
               <button
@@ -571,7 +571,7 @@ export default function LoginModal({ open, onClose }) {
                 disabled={busy}
               >
                 <NaverIcon />
-                네이버로 가입하기
+                NAVER 로그인
               </button>
             )}
 

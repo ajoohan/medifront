@@ -98,6 +98,67 @@ const GRANT_EMAIL_HTML = `<!doctype html>
   </body>
 </html>`
 
+// 회원 등급 변경 안내 메일 본문(HTML) — 다른 공식 메일과 같은 디자인.
+// {{name}}/{{grade}}/{{extra}} 는 발송 시 치환한다.
+const GRADE_EMAIL_HTML = `<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light only" />
+    <title>메디프론트 회원 등급 변경 안내</title>
+  </head>
+  <body style="margin:0;padding:0;background-color:#f4f6f6;">
+    <div style="display:none;max-height:0;overflow:hidden;opacity:0;">메디프론트 회원 등급이 변경되었습니다.</div>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f6f6;">
+      <tr>
+        <td align="center" style="padding:32px 16px;">
+          <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:600px;max-width:600px;background-color:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(4,33,31,0.08);">
+            <!-- 헤더 -->
+            <tr>
+              <td align="center" style="background-color:#04211f;padding:28px 32px;">
+                <img src="https://medifront.co.kr/logo-light.png" alt="MEDIFRONT" height="26" style="height:26px;width:auto;display:block;border:0;color:#ffffff;font-size:18px;font-weight:800;" />
+              </td>
+            </tr>
+            <!-- 본문 -->
+            <tr>
+              <td style="padding:40px 40px 8px 40px;font-family:-apple-system,'Apple SD Gothic Neo','Malgun Gothic','맑은 고딕',Roboto,sans-serif;">
+                <h1 style="margin:0 0 12px 0;font-size:20px;line-height:1.4;color:#0b1a18;font-weight:700;">회원 등급이 변경되었습니다</h1>
+                <p style="margin:0;font-size:15px;line-height:1.7;color:#33504b;">{{name}} 님의 메디프론트 회원 등급이 <b style="color:#0b6b60;">{{grade}} 회원</b>(으)로 변경되었습니다.{{extra}} 다시 로그인하시면 바로 적용됩니다.</p>
+              </td>
+            </tr>
+            <!-- 버튼 -->
+            <tr>
+              <td align="center" style="padding:28px 40px 16px 40px;">
+                <table role="presentation" cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td align="center" style="background-color:#10a696;border-radius:10px;">
+                      <a href="https://medifront.co.kr" style="display:inline-block;padding:15px 40px;font-family:-apple-system,'Apple SD Gothic Neo','Malgun Gothic','맑은 고딕',Roboto,sans-serif;font-size:15px;font-weight:700;color:#ffffff;text-decoration:none;">메디프론트 열기</a>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <!-- 안내 -->
+            <tr>
+              <td style="padding:8px 40px 40px 40px;font-family:-apple-system,'Apple SD Gothic Neo','Malgun Gothic','맑은 고딕',Roboto,sans-serif;">
+                <p style="margin:0;font-size:13px;line-height:1.7;color:#5c7871;">등급 변경에 관해 궁금한 점이 있으시면 사이트의 1:1 문의로 알려주세요.</p>
+              </td>
+            </tr>
+            <!-- 푸터 -->
+            <tr>
+              <td style="background-color:#f4f6f6;padding:24px 40px;font-family:-apple-system,'Apple SD Gothic Neo','Malgun Gothic','맑은 고딕',Roboto,sans-serif;border-top:1px solid #e6ebea;">
+                <p style="margin:0 0 4px 0;font-size:13px;font-weight:700;color:#33504b;">메디프론트 MEDIFRONT</p>
+                <p style="margin:0;font-size:12px;line-height:1.6;color:#93aaa4;">병원 성장의 파트너 · <a href="https://medifront.co.kr" style="color:#10a696;text-decoration:none;">medifront.co.kr</a><br />본 메일은 발신 전용입니다.</p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`
+
 // URL 경로 → 엔티티. fields = 쓰기 허용 컬럼(기존 Postgres 스키마와 동일)
 const RESOURCES = {
   members: {
@@ -344,6 +405,10 @@ async function patchItem(cfg, id, body) {
   const fields = pickFields(cfg, body)
   const names = Object.keys(fields)
   if (names.length === 0) return { ok: true }
+  // 등급/역할 변경 안내 메일용 — 갱신 전 값을 확보해 실제로 바뀐 경우에만 알린다
+  const gradeChanging =
+    (cfg.entity === 'members' || cfg.entity === 'operators') && fields.grade !== undefined
+  const before = gradeChanging ? await getItem(cfg.entity, id) : null
   await ddb.send(
     new UpdateCommand({
       TableName: TABLE,
@@ -359,7 +424,7 @@ async function patchItem(cfg, id, body) {
   // 매거진 접근은 JWT 의 custom:grade 로 판정되므로, DynamoDB 만 고치면
   // 관리자가 '의사'로 승인해도 해당 회원은 계속 접근하지 못한다(그 반대도 마찬가지).
   if (cfg.entity === 'members' && fields.grade) {
-    const row = await getItem(cfg.entity, id)
+    const row = before
     if (row?.email) {
       try {
         await cognito.send(
@@ -373,14 +438,33 @@ async function patchItem(cfg, id, body) {
         // Cognito 계정이 없는 수동 등록 회원 등은 무시 (목록상의 등급은 이미 반영됨)
         if (e.name !== 'UserNotFoundException') throw e
       }
+      // 실제로 등급이 바뀐 경우에만 공식 폼으로 안내 메일 발송 (실패해도 변경은 유지)
+      if (row.grade !== fields.grade) {
+        try {
+          await sendGradeEmail(row.email, row.name || row.email.split('@')[0], fields.grade)
+        } catch (e) {
+          console.error('grade notification email failed', e)
+        }
+      }
     }
   }
 
   // 운영자 역할 변경도 같은 이유로 Cognito 그룹에 반영해야 한다 —
   // 행만 고치면 JWT 의 그룹은 그대로라 실권한이 바뀌지 않는다.
   if (cfg.entity === 'operators' && fields.grade) {
-    const row = await getItem(cfg.entity, id)
-    await setRoleGroup(row?.email, fields.grade)
+    await setRoleGroup(before?.email, fields.grade)
+    // 역할이 실제로 바뀐 경우 '운영자 지정' 공식 폼으로 안내 (신규 지정 메일과 동일 디자인)
+    if (before?.email && before.grade !== fields.grade && GROUP_BY_ROLE[fields.grade]) {
+      try {
+        await sendGrantEmail(
+          before.email,
+          before.name || before.email.split('@')[0],
+          fields.grade,
+        )
+      } catch (e) {
+        console.error('role notification email failed', e)
+      }
+    }
   }
   return { ok: true }
 }
@@ -444,6 +528,27 @@ async function createUser({ email, password, name, phone, grade }) {
 // (1) 기존 회원(이미 가입) → grantRole:  새 계정 없이 역할 그룹만 부여
 // (2) 신규(미가입)        → inviteUser: 새 계정 생성 + 임시 비밀번호 초대 메일 + 역할 부여
 // 두 경우 모두 관리 API 접근과 매거진 등 회원 메뉴 열람이 이 그룹(JWT cognito:groups)으로 판정된다.
+
+// '회원 등급 변경' 안내 메일 발송(SES) — 관리자가 등급을 바꾸면(의사 승인 등) 회원에게 알린다.
+async function sendGradeEmail(email, name, grade) {
+  const extra =
+    grade === '의사'
+      ? ' 이제 의사 회원 전용 매거진을 포함한 모든 서비스를 이용하실 수 있습니다.'
+      : ''
+  const html = GRADE_EMAIL_HTML.replaceAll('{{name}}', escapeHtml(name))
+    .replaceAll('{{grade}}', escapeHtml(grade))
+    .replaceAll('{{extra}}', extra)
+  await ses.send(
+    new SendEmailCommand({
+      Source: MAIL_FROM,
+      Destination: { ToAddresses: [email] },
+      Message: {
+        Subject: { Data: '[메디프론트] 회원 등급 변경 안내', Charset: 'UTF-8' },
+        Body: { Html: { Data: html, Charset: 'UTF-8' } },
+      },
+    }),
+  )
+}
 
 // '운영자로 지정' 안내 메일 발송(SES). 회원은 이미 비밀번호가 있으므로 임시비번이 아닌
 // 안내형이다. {{name}}/{{role}} 은 발송 시 치환한다. (템플릿: scratchpad/email-grant.html)
