@@ -1009,7 +1009,10 @@ ul {
   font-size: 0.9rem;
   margin: 12px 0 26px;
 }
-.login-modal__pw {
+/* 모달 안 모든 입력 필드 간격 — 관리자 로그인(.admin-login__card .field)과 동일한 20px.
+   .field 기본값은 margin-bottom:0 이고 소스 순서상 .field 규칙이 뒤에 있어 단일 클래스
+   (.login-modal__pw)로는 덮이지 못한다. 스코프를 높인 이 규칙으로 전 필드에 균일 적용한다. */
+.login-modal .field {
   margin-bottom: 20px;
 }
 .login-modal__links {
@@ -1032,6 +1035,55 @@ ul {
   color: var(--line);
 }
 /* ── 인증(로그인/회원가입) 공통 ── */
+/* 소셜 로그인 구분선 — "─── 또는 ───" */
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 18px 0 14px;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+/* 구글 로그인 버튼 — 구글 브랜드 가이드(흰 배경 + 컬러 G 로고) */
+.btn-social {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 15px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #3c4043;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+.btn-social:hover {
+  background: var(--paper-soft);
+  border-color: #c6cdd5;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.08);
+}
+.btn-social:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.btn-social svg {
+  flex-shrink: 0;
+}
 .auth-error {
   background: rgba(239, 68, 68, 0.1);
   color: #dc2626;
@@ -3145,10 +3197,16 @@ ul {
     display: block;
     width: 100%;
     padding: 14px 0;
+    /* button 은 font-size 를 상속하지 않아 기본 13.3px 로 작아진다 — 메뉴 링크와 동일하게 맞춘다 */
+    font-size: 1rem;
     color: #fff;
     font-weight: 600;
     text-align: left;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  /* 로그인만 금색으로 강조 (어두운 남색 메뉴 배경 위에서 잘 보이는 따뜻한 골드) */
+  .mobile-menu .mobile-login {
+    color: #f5c451;
   }
   .mobile-menu .mobile-user {
     padding: 14px 0 6px;
@@ -3194,8 +3252,11 @@ ul {
   .process__grid {
     grid-template-columns: 1fr;
   }
+  /* 바로가기·상담문의는 좁은 화면에서도 세로로 쌓지 않고 2열 유지
+     (브랜드 열은 위에서 grid-column:1/-1 로 전체폭 차지) */
   .footer__top {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr 1fr;
+    gap: 22px 24px;
   }
 }
 
