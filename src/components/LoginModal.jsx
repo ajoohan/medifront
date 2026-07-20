@@ -588,13 +588,12 @@ export default function LoginModal({ open, onClose }) {
             signup2 = 이메일 가입 2단계 / social2 = 구글·네이버 가입 직후(같은 폼, 제출만 다름) */}
         {(mode === 'signup2' || mode === 'social2') && (
           <>
-            <div
-              className="auth-notice"
-              style={{ background: 'var(--paper-blue)', color: 'var(--ink-700)' }}
-            >
-              {mode === 'social2'
-                ? '가입을 환영합니다! 마지막 단계입니다 (2/2) — 가입자 정보를 입력해 주세요.'
-                : '마지막 단계입니다 (2/2) — 가입자 정보를 입력해 주세요.'}
+            <div className="auth-step">
+              <span className="auth-step__badge">2/2</span>
+              <div className="auth-step__text">
+                <b>{mode === 'social2' ? '가입을 환영합니다!' : '거의 다 됐습니다'}</b>
+                <span>회원유형과 가입자 정보를 입력해 주세요</span>
+              </div>
             </div>
             <form onSubmit={mode === 'social2' ? submitSocial2 : submitSignup2}>
               <div className="field">
@@ -699,40 +698,56 @@ export default function LoginModal({ open, onClose }) {
         {/* ── 인증 코드 입력 (가입 확인) ── */}
         {mode === 'verify' && (
           <div className="auth-verify">
-            <div className="auth-verify__icon">✉️</div>
-            <h3>인증 코드를 보냈습니다</h3>
+            <div className="auth-verify__badge" aria-hidden="true">
+              <svg
+                width="26"
+                height="26"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <rect x="2" y="4" width="20" height="16" rx="3" />
+                <path d="m3 6 9 7 9-7" />
+              </svg>
+            </div>
+            <h3>인증 코드를 입력해 주세요</h3>
             <p>
-              <b>{form.email}</b> 로 인증 코드를 발송했습니다.
-              <br />
-              메일로 받은 <b>6자리 인증 코드</b>를 입력하면 가입이 완료됩니다.
+              <b>{form.email}</b> 로<br />
+              6자리 코드를 보냈습니다.
             </p>
             <form onSubmit={submitVerify}>
-              <div className="field login-modal__pw">
-                <label>인증 코드</label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  placeholder="123456"
-                  autoComplete="one-time-code"
-                  value={form.code}
-                  onChange={set('code')}
-                  required
-                />
-              </div>
+              <input
+                className="auth-code"
+                type="text"
+                inputMode="numeric"
+                maxLength={6}
+                placeholder="000000"
+                autoComplete="one-time-code"
+                value={form.code}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, code: e.target.value.replace(/\D/g, '') }))
+                }
+                required
+                autoFocus
+              />
               <button
                 type="submit"
                 className="btn btn--primary btn--lg"
                 style={{ width: '100%' }}
-                disabled={busy}
+                disabled={busy || form.code.trim().length < 6}
               >
                 {busy ? '확인 중...' : '인증 완료'}
               </button>
             </form>
             <p className="auth-verify__hint">메일이 보이지 않으면 스팸함을 확인해 주세요.</p>
-            <div className="auth-verify__actions">
+            <div className="login-modal__links">
               <button type="button" onClick={resend}>
-                인증 코드 재발송
+                코드 재발송
               </button>
+              <span>·</span>
               <button type="button" className="auth-strong" onClick={() => switchMode('login')}>
                 로그인으로
               </button>
