@@ -123,6 +123,9 @@ export default function LoginModal({ open, onClose }) {
   if (!open) return null
 
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }))
+
+  // 비밀번호 확인 실시간 검사 — 확인란에 입력이 시작된 뒤부터 불일치를 알린다
+  const pwMismatch = form.confirm.length > 0 && form.password !== form.confirm
   const switchMode = (m) => {
     setMode(m)
     setMsg('')
@@ -466,15 +469,17 @@ export default function LoginModal({ open, onClose }) {
                   autoComplete="new-password"
                   value={form.confirm}
                   onChange={set('confirm')}
+                  aria-invalid={pwMismatch}
                   required
                 />
+                {pwMismatch && <p className="field-error">비밀번호가 일치하지 않습니다.</p>}
               </div>
 
               <button
                 type="submit"
                 className="btn btn--primary btn--lg"
                 style={{ width: '100%' }}
-                disabled={busy}
+                disabled={busy || pwMismatch}
               >
                 이메일로 가입하기
               </button>

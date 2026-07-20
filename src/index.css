@@ -1035,6 +1035,20 @@ ul {
   color: var(--line);
 }
 /* ── 인증(로그인/회원가입) 공통 ── */
+/* 입력값 실시간 오류 안내 (예: 비밀번호 확인 불일치) — 해당 입력 바로 아래 붉은 글씨 */
+.field-error {
+  margin: 6px 0 0;
+  color: #dc2626;
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+.field input[aria-invalid='true'] {
+  border-color: #dc2626;
+}
+.field input[aria-invalid='true']:focus {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12);
+}
 /* 소셜 로그인 구분선 — "─── 또는 ───" */
 .auth-divider {
   display: flex;
