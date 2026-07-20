@@ -27,7 +27,7 @@ export default function MagazineGate() {
             </a>
           ) : (
             <button className="btn btn--light btn--lg" onClick={openLogin}>
-              로그인
+              로그인/회원가입
             </button>
           )}
           <Link to="/" className="btn btn--ghost btn--lg">
