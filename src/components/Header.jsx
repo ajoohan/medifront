@@ -73,7 +73,7 @@ export default function Header() {
             </>
           ) : (
             <button className="btn btn--login" onClick={handleLogin}>
-              로그인
+              로그인/회원가입
             </button>
           )}
           <button
@@ -101,7 +101,7 @@ export default function Header() {
           </>
         ) : (
           <button className="mobile-login" onClick={handleLogin}>
-            로그인
+            로그인/회원가입
           </button>
         )}
         <a href="/#contact" className="btn btn--primary" onClick={closeMenu}>
