@@ -135,7 +135,7 @@ export async function getSession() {
 // 신규 가입은 항상 '일반'으로 시작하고, '의사' 승격은 관리자가 면허번호를
 // 확인한 뒤에만 수행합니다. (Cognito UserPoolClient 의 WriteAttributes 에서도
 // custom:grade 를 제외해 서버 차원에서 막고 있습니다.)
-export async function signUp({ email, password, name, phone, licenseNo }) {
+export async function signUp({ email, password, name, phone, licenseNo, verifyTicket }) {
   if (!isAuthConfigured) return { error: 'not-configured' }
   try {
     await client.send(
@@ -149,6 +149,8 @@ export async function signUp({ email, password, name, phone, licenseNo }) {
           { Name: 'custom:phone', Value: phone || '-' },
           // 의사 회원 신청 시에만 입력 — 관리자 승인 심사용
           { Name: 'custom:license_no', Value: licenseNo || '' },
+          // 휴대폰 본인인증 티켓 — 가입 확정(postConfirmation) 시 서버가 검증·폐기한다
+          ...(verifyTicket ? [{ Name: 'custom:verify_ticket', Value: verifyTicket }] : []),
         ],
       }),
     )

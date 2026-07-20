@@ -81,10 +81,13 @@ export function UserProvider({ children }) {
   }, [])
 
   // ── 이메일 회원가입 (인증 코드 메일 발송) — 이름/휴대폰번호/회원유형은 2단계에서 수집 ──
-  const signUpWithEmail = useCallback(async ({ email, password, name, phone, grade }) => {
-    const r = await auth.signUp({ email, password, name, phone, grade: grade || '일반' })
-    return r.error ? { error: r.error } : { ok: true }
-  }, [])
+  const signUpWithEmail = useCallback(
+    async ({ email, password, name, phone, licenseNo, verifyTicket }) => {
+      const r = await auth.signUp({ email, password, name, phone, licenseNo, verifyTicket })
+      return r.error ? { error: r.error } : { ok: true }
+    },
+    [],
+  )
 
   // ── 가입 인증 코드 확인 (메일로 받은 6자리) ──
   const confirmSignUp = useCallback(async ({ email, code }) => {
@@ -116,18 +119,22 @@ export function UserProvider({ children }) {
   }, [])
 
   // ── 소셜 가입 2/2 폼 제출 (유형·면허·이름·휴대폰) — 본인 회원 정보 갱신
-  const completeSocialProfile = useCallback(async ({ memberType, licenseNo, name, phone }) => {
-    const r = await apiSend('POST', '/members/complete-profile', {
-      memberType,
-      licenseNo,
-      name,
-      phone,
-    })
-    if (r.error) return { error: r.error }
-    setProfilePending(false)
-    setUser((cur) => (cur ? { ...cur, name } : cur))
-    return { ok: true }
-  }, [])
+  const completeSocialProfile = useCallback(
+    async ({ memberType, licenseNo, name, phone, verifyTicket }) => {
+      const r = await apiSend('POST', '/members/complete-profile', {
+        memberType,
+        licenseNo,
+        name,
+        phone,
+        verifyTicket,
+      })
+      if (r.error) return { error: r.error }
+      setProfilePending(false)
+      setUser((cur) => (cur ? { ...cur, name } : cur))
+      return { ok: true }
+    },
+    [],
+  )
 
   const signInWithEmail = useCallback(
     async ({ email, password, autoLogin = true }) => {

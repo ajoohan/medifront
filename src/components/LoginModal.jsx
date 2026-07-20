@@ -3,6 +3,7 @@ import Logo from './Logo'
 import { useUser } from '../context/UserContext'
 import { formatPhone } from '../lib/phone'
 import { awsConfig } from '../lib/awsConfig'
+import { isVerifyEnabled, verifyPhone } from '../lib/phoneVerify'
 
 // 회원유형 — 가입 2단계에서 선택 (매거진은 의사 회원 전용)
 const MEMBER_TYPES = [
@@ -28,6 +29,16 @@ function tr(err) {
     return '비밀번호는 8자 이상이며 영문과 숫자를 모두 포함해야 합니다.'
   if (err.includes('LimitExceededException') || err.includes('TooManyRequests'))
     return '요청이 너무 잦습니다. 잠시 후 다시 시도해 주세요.'
+  // 휴대폰 본인인증
+  if (err === 'already-verified-member')
+    return '이미 가입된 명의입니다. 기존 계정으로 로그인하거나 아이디 찾기를 이용해 주세요.'
+  if (err.startsWith('verify-cancelled'))
+    return '본인인증이 완료되지 않았습니다. 다시 시도해 주세요.'
+  if (err === 'verify-failed') return '본인인증 확인에 실패했습니다. 다시 시도해 주세요.'
+  if (err === 'verify-sdk-failed')
+    return '본인인증 창을 열지 못했습니다. 잠시 후 다시 시도해 주세요.'
+  if (err === 'verify-required') return '휴대폰 본인인증을 완료해 주세요.'
+  if (err === 'verify-not-configured') return '본인인증 서비스가 아직 연결되지 않았습니다.'
   return err
 }
 
@@ -100,6 +111,8 @@ export default function LoginModal({ open, onClose }) {
   const [grade, setGrade] = useState('일반') // 회원유형 (가입 2단계 선택)
   const [autoLogin, setAutoLogin] = useState(true) // 자동 로그인
   const [newPwSession, setNewPwSession] = useState('') // 임시 비밀번호 챌린지 세션
+  // 휴대폰 본인인증 결과 — 티켓이 있으면 인증 완료 상태. 이름·휴대폰은 인증값으로 고정된다.
+  const [verified, setVerified] = useState(null) // { ticket, name, phone }
   const [msg, setMsg] = useState('')
   const [info, setInfo] = useState('')
   const [busy, setBusy] = useState(false)
@@ -120,6 +133,7 @@ export default function LoginModal({ open, onClose }) {
         })
         setGrade('일반')
         setAgree(false)
+        setVerified(null)
         setMsg('')
         setInfo('')
         return
@@ -131,6 +145,7 @@ export default function LoginModal({ open, onClose }) {
       setAutoLogin(prefs.autoLogin)
       setGrade('일반')
       setAgree(false)
+      setVerified(null)
       setMsg('')
       setInfo(loginNotice || '')
     }
@@ -271,6 +286,10 @@ export default function LoginModal({ open, onClose }) {
   const submitSignup2 = async (e) => {
     e.preventDefault()
     setMsg('')
+    if (isVerifyEnabled() && !verified) {
+      setMsg('휴대폰 본인인증을 완료해 주세요.')
+      return
+    }
     setBusy(true)
     // grade 는 보내지 않는다 — 신규 가입은 항상 '일반'으로 시작하고,
     // '의사' 승격은 관리자가 면허번호를 확인한 뒤에만 수행한다.
@@ -280,22 +299,42 @@ export default function LoginModal({ open, onClose }) {
       name: form.name.trim(),
       phone: form.phone.trim(),
       licenseNo: grade === '의사' ? form.licenseNo.trim() : '',
+      verifyTicket: verified?.ticket,
     })
     setBusy(false)
     if (r.error) setMsg(tr(r.error))
     else switchMode('verify')
   }
 
+  // 휴대폰 본인인증 실행 — 성공하면 이름·휴대폰이 인증된 값으로 채워지고 잠긴다
+  const startVerify = async () => {
+    setMsg('')
+    setBusy(true)
+    const r = await verifyPhone()
+    setBusy(false)
+    if (r.error) {
+      setMsg(tr(r.error))
+      return
+    }
+    setVerified({ ticket: r.ticket, name: r.name, phone: r.phone })
+    setForm((f) => ({ ...f, name: r.name, phone: formatPhone(r.phone) }))
+  }
+
   // 소셜(구글/네이버) 가입 2/2 폼 제출 — 회원유형·면허·이름·휴대폰을 회원 정보에 저장
   const submitSocial2 = async (e) => {
     e.preventDefault()
     setMsg('')
+    if (isVerifyEnabled() && !verified) {
+      setMsg('휴대폰 본인인증을 완료해 주세요.')
+      return
+    }
     setBusy(true)
     const r = await completeSocialProfile({
       memberType: grade,
       licenseNo: grade === '의사' ? form.licenseNo.trim() : '',
       name: form.name.trim(),
       phone: form.phone.trim(),
+      verifyTicket: verified?.ticket,
     })
     setBusy(false)
     if (r.error) setMsg(tr(r.error))
@@ -631,6 +670,45 @@ export default function LoginModal({ open, onClose }) {
                   </small>
                 </div>
               )}
+              {/* 휴대폰 본인인증 — 인증사 계약 전에는 표시되지 않는다(isVerifyEnabled) */}
+              {isVerifyEnabled() && (
+                <div className="field">
+                  <label>휴대폰 본인인증</label>
+                  {verified ? (
+                    <div className="verify-done">
+                      <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.4"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M20 6 9 17l-5-5" />
+                      </svg>
+                      <span>
+                        본인인증 완료 — <b>{verified.name}</b>
+                      </span>
+                    </div>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        className="btn-verify"
+                        onClick={startVerify}
+                        disabled={busy}
+                      >
+                        {busy ? '인증 중...' : '휴대폰으로 본인인증'}
+                      </button>
+                      <small className="login-modal__hint">
+                        인증하시면 이름과 휴대폰번호가 자동으로 입력됩니다.
+                      </small>
+                    </>
+                  )}
+                </div>
+              )}
               <div className="field">
                 <label>이름</label>
                 <input
@@ -638,6 +716,7 @@ export default function LoginModal({ open, onClose }) {
                   placeholder="홍길동"
                   value={form.name}
                   onChange={set('name')}
+                  readOnly={!!verified}
                   required
                 />
               </div>
@@ -649,6 +728,7 @@ export default function LoginModal({ open, onClose }) {
                   placeholder="010-0000-0000"
                   value={form.phone}
                   onChange={(e) => setForm((f) => ({ ...f, phone: formatPhone(e.target.value) }))}
+                  readOnly={!!verified}
                   required
                 />
               </div>

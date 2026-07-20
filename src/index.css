@@ -1305,6 +1305,56 @@ ul {
   margin-bottom: 0 !important;
 }
 
+/* ── 휴대폰 본인인증 (가입 2/2) ── */
+.btn-verify {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 13px 15px;
+  border: 1.5px solid var(--primary);
+  border-radius: 10px;
+  background: rgba(16, 166, 150, 0.06);
+  color: #0b6b60;
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    box-shadow 0.15s;
+}
+.btn-verify:hover {
+  background: rgba(16, 166, 150, 0.12);
+}
+.btn-verify:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+/* 인증 완료 표시 — 버튼 자리를 대신한다 */
+.verify-done {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1.5px solid var(--primary);
+  border-radius: 10px;
+  background: rgba(16, 166, 150, 0.08);
+  color: #0b6b60;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+.verify-done b {
+  font-weight: 800;
+}
+/* 인증으로 확정된 값은 수정할 수 없음을 시각적으로 알린다 */
+.field input[readonly] {
+  background: var(--paper-soft);
+  color: var(--ink-500);
+  cursor: default;
+}
+
 /* ── 가입 2/2 단계 헤더 — 안내 박스 대신 단정한 스텝 표시 ── */
 .auth-step {
   display: flex;

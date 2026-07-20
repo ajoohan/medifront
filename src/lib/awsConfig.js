@@ -12,6 +12,9 @@ const FALLBACK = {
   // 네이버 로그인 — developers.naver.com 애플리케이션의 Client ID (공개 값).
   // 비어 있으면 네이버 버튼이 표시되지 않는다. 시크릿은 백엔드(Lambda)에만 둔다.
   naverClientId: 'q11Zf_W8Qids9GQHdtVx',
+  // 휴대폰 본인인증(실명인증) — 인증사 가맹점 식별코드(공개 값).
+  // 비어 있으면 본인인증 단계 없이 지금까지처럼 가입된다. 계약 후 값을 채우면 켜진다.
+  verifyMerchantCode: '',
 }
 
 const env = import.meta.env
@@ -27,6 +30,7 @@ export const awsConfig = {
   apiBaseUrl: pick(env.VITE_API_BASE_URL, FALLBACK.apiBaseUrl).replace(/\/+$/, ''),
   authDomain: pick(env.VITE_COGNITO_AUTH_DOMAIN, FALLBACK.authDomain),
   naverClientId: pick(env.VITE_NAVER_CLIENT_ID, FALLBACK.naverClientId),
+  verifyMerchantCode: pick(env.VITE_VERIFY_MERCHANT_CODE, FALLBACK.verifyMerchantCode),
 }
 
 // DB 모듈들의 방어 가드용 — 미설정이면 각 화면이 목업/브라우저 저장으로 폴백한다

@@ -45,6 +45,15 @@ if [ -n "${NAVER_CLIENT_SECRET:-}" ]; then
   OVERRIDES+=("NaverClientSecret=${NAVER_CLIENT_SECRET}")
   echo "   (네이버 로그인 포함 배포)"
 fi
+# 휴대폰 본인인증(실명인증) — 인증사 계약 후 키를 넣으면 기능이 켜진다
+#   VERIFY_API_KEY=... VERIFY_API_SECRET=... bash scripts/deploy-backend.sh
+if [ -n "${VERIFY_API_KEY:-}" ]; then
+  OVERRIDES+=("VerifyApiKey=${VERIFY_API_KEY}")
+fi
+if [ -n "${VERIFY_API_SECRET:-}" ]; then
+  OVERRIDES+=("VerifyApiSecret=${VERIFY_API_SECRET}")
+  echo "   (휴대폰 본인인증 포함 배포)"
+fi
 PARAMS=()
 if [ ${#OVERRIDES[@]} -gt 0 ]; then
   PARAMS=(--parameter-overrides "${OVERRIDES[@]}")

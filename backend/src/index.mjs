@@ -180,6 +180,9 @@ const RESOURCES = {
       'profile_done',
       // 가입 시 선택한 회원유형(의사/병원/일반) — 표시용. 실권한은 grade 로만 판정한다.
       'member_type',
+      // 휴대폰 본인인증(실명인증) 결과. verified/ci_hash/di 는 서버(verifyPhone)만 기록하며
+      // 이 목록에 없어도 되지만, 관리자 화면 조회를 위해 읽기용으로 둔다.
+      'verified',
     ],
     defaults: () => ({
       name: '',
@@ -265,10 +268,12 @@ function parseBody(event) {
   return JSON.parse(raw)
 }
 
-// pk/sk 제거하고 프론트에 돌려줄 형태로
+// pk/sk 제거하고 프론트에 돌려줄 형태로.
+// 본인인증 식별값(ci_hash/di)은 중복 가입 대조용 내부 데이터라 절대 내보내지 않는다 —
+// 인증 여부는 verified 로만 알린다.
 function toPublic(item) {
   if (!item) return null
-  const { pk: _pk, sk: _sk, ...rest } = item
+  const { pk: _pk, sk: _sk, ci_hash: _ci, di: _di, ...rest } = item
   return rest
 }
 
@@ -625,6 +630,121 @@ async function inviteUser({ email, name, grade }) {
 }
 
 // ─────────────────────────────────────────────────────────────
+// 휴대폰 본인인증 (실명인증) — /auth/verify-phone (공개 엔드포인트)
+//
+// 흐름: 프론트가 인증사 팝업으로 본인인증 → 인증 식별자(impUid)를 여기로 보냄
+//   → 서버가 인증사 서버에 조회(위조 불가) → 이름·생년월일·성별·휴대폰·CI/DI 확보
+//   → 중복 가입 차단(CI 해시 대조) → 10분짜리 티켓을 발급
+//   → 가입 완료 시 티켓을 제출하면 회원 정보에 '본인인증 완료'로 기록된다.
+//
+// ⚠️ CI(개인 식별값)는 원본을 저장하지 않고 해시만 남긴다. 같은 사람인지 대조하는
+//    용도로는 해시로 충분하며, 유출 시 피해를 줄일 수 있다.
+//
+// 인증사 키(VERIFY_API_KEY/SECRET)가 없으면 이 기능 전체가 꺼진 것으로 동작한다 —
+// 계약 전에도 사이트는 지금까지처럼 정상 가입된다.
+// ─────────────────────────────────────────────────────────────
+const VERIFY_KEY = process.env.VERIFY_API_KEY || ''
+const VERIFY_SECRET = process.env.VERIFY_API_SECRET || ''
+const isVerifyConfigured = () => !!(VERIFY_KEY && VERIFY_SECRET)
+
+const sha256 = async (s) => {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s))
+  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('')
+}
+
+// 인증사 조회 — 여기만 갈아끼우면 다른 인증사로 교체된다.
+// (현재 구현: 포트원 V1 REST. 계약 후 발급받는 키를 VERIFY_API_KEY/SECRET 에 넣으면 동작)
+async function fetchCertification(impUid) {
+  const tokenRes = await fetch('https://api.iamport.kr/users/getToken', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ imp_key: VERIFY_KEY, imp_secret: VERIFY_SECRET }),
+  })
+  const token = (await tokenRes.json().catch(() => ({})))?.response?.access_token
+  if (!token) throw new Error('verify-token-failed')
+  const certRes = await fetch(
+    `https://api.iamport.kr/certifications/${encodeURIComponent(impUid)}`,
+    { headers: { Authorization: token } },
+  )
+  const cert = (await certRes.json().catch(() => ({})))?.response
+  if (!cert || cert.certified !== true) throw new Error('verify-not-certified')
+  return {
+    name: cert.name || '',
+    phone: String(cert.phone || '').replace(/[^0-9]/g, ''),
+    birth: cert.birthday || '', // YYYY-MM-DD
+    gender: cert.gender || '',
+    ci: cert.unique_key || '', // 기관 간 동일인 식별값
+    di: cert.unique_in_site || '', // 사이트 내 동일인 식별값
+  }
+}
+
+// 본인인증 결과 확인 + 가입용 티켓 발급
+async function verifyPhone(body) {
+  if (!isVerifyConfigured()) return json(501, { error: 'verify-not-configured' })
+  const impUid = String(body.impUid || '')
+  if (!impUid) return json(400, { error: 'impUid required' })
+
+  let cert
+  try {
+    cert = await fetchCertification(impUid)
+  } catch (e) {
+    console.error('certification failed', e)
+    return json(401, { error: 'verify-failed' })
+  }
+  if (!cert.ci) return json(401, { error: 'verify-failed' })
+  const ciHash = await sha256(cert.ci)
+
+  // 같은 사람이 이미 가입돼 있으면 중복 가입을 막는다 (명의 도용·다중 계정 방지)
+  const dup = (await listAll('members')).find((m) => m.ci_hash === ciHash)
+  if (dup) return json(409, { error: 'already-verified-member' })
+
+  // 가입 완료 시 제출할 10분짜리 티켓
+  const ticket = `${crypto.randomUUID()}${crypto.randomUUID()}`.replace(/-/g, '')
+  await ddb.send(
+    new PutCommand({
+      TableName: TABLE,
+      Item: {
+        pk: '_phone_verify',
+        sk: ticket,
+        name: cert.name,
+        phone: cert.phone,
+        birth: cert.birth,
+        gender: cert.gender,
+        ci_hash: ciHash,
+        di: cert.di,
+        exp: Date.now() + 10 * 60_000,
+      },
+    }),
+  )
+  // 프론트에는 표시용 정보만 돌려준다 — CI/DI 는 절대 내보내지 않는다
+  return json(200, { ticket, name: cert.name, phone: cert.phone })
+}
+
+// 티켓 사용(1회용) — 유효하면 인증 정보를 돌려주고 즉시 폐기한다
+async function consumeVerifyTicket(ticket) {
+  if (!ticket) return null
+  const key = { pk: '_phone_verify', sk: String(ticket) }
+  const r = await ddb.send(new GetCommand({ TableName: TABLE, Key: key }))
+  if (!r.Item) return null
+  await ddb.send(new DeleteCommand({ TableName: TABLE, Key: key }))
+  if (r.Item.exp < Date.now()) return null
+  return r.Item
+}
+
+// 회원 레코드에 넣을 본인인증 필드 (티켓이 없으면 빈 객체)
+const verifiedFields = (v) =>
+  v
+    ? {
+        verified: true,
+        verified_at: now(),
+        ci_hash: v.ci_hash,
+        di: v.di,
+        birth: v.birth,
+        gender: v.gender,
+      }
+    : {}
+
+// ─────────────────────────────────────────────────────────────
 // 네이버 로그인 (/auth/naver — 공개 엔드포인트)
 //
 // 네이버는 Cognito 가 기본 지원하지 않는다. 프론트가 네이버 인증 후 받은 code 를
@@ -784,12 +904,19 @@ async function naverLogin(body) {
 // 관리자 승인으로만). '의사' 유형 신청 시 면허번호를 저장해 관리자 심사에 쓴다.
 async function completeProfile(auth, body) {
   const memberType = ['의사', '병원', '일반'].includes(body.memberType) ? body.memberType : '일반'
-  const name = String(body.name || '').trim()
-  const phone = String(body.phone || '').trim()
   const licenseNo = memberType === '의사' ? String(body.licenseNo || '').trim() : ''
-  if (!name || !phone) return json(400, { error: 'name and phone required' })
   const row = (await listAll('members')).find((m) => m.email === auth.email)
   if (!row) return json(404, { error: 'member not found' })
+
+  // 본인인증이 켜져 있으면 티켓이 필수이고, 이름·휴대폰은 인증된 값만 신뢰한다
+  const verified = await consumeVerifyTicket(body.verifyTicket)
+  if (isVerifyConfigured() && !verified && !row.verified) {
+    return json(400, { error: 'verify-required' })
+  }
+  const name = verified ? verified.name : String(body.name || '').trim()
+  const phone = verified ? verified.phone : String(body.phone || '').trim()
+  if (!name || !phone) return json(400, { error: 'name and phone required' })
+
   const updated = {
     ...row,
     name,
@@ -797,6 +924,7 @@ async function completeProfile(auth, body) {
     member_type: memberType,
     license_no: licenseNo || row.license_no || '',
     profile_done: true,
+    ...verifiedFields(verified),
   }
   await ddb.send(new PutCommand({ TableName: TABLE, Item: updated }))
   // JWT(이름 표시)에도 반영 — 실패해도 회원 정보 저장은 유지한다
@@ -893,6 +1021,16 @@ export async function handler(event) {
       return await naverLogin(parseBody(event))
     }
 
+    // 휴대폰 본인인증 — 가입 도중(로그인 전)에도 써야 하므로 공개.
+    // 인증사 서버 조회를 통과해야만 티켓이 나가므로 공개해도 안전하다.
+    if (method === 'POST' && seg1 === 'auth' && seg2 === 'verify-phone') {
+      return await verifyPhone(parseBody(event))
+    }
+    // 본인인증 사용 여부 — 프론트가 버튼 노출/필수 여부를 판단하는 데 쓴다
+    if (method === 'GET' && seg1 === 'auth' && seg2 === 'verify-config') {
+      return json(200, { enabled: isVerifyConfigured() })
+    }
+
     const isPublic =
       !seg2 && PUBLIC_ROUTES.some((p) => p.method === method && p.resource === seg1)
 
@@ -959,6 +1097,8 @@ export async function postConfirmation(event) {
     if (email) {
       const existing = (await listAll('members')).find((m) => m.email === email)
       if (!existing) {
+        // 가입 화면에서 본인인증을 마쳤다면 그 티켓으로 인증 정보를 확정한다
+        const verified = await consumeVerifyTicket(attrs['custom:verify_ticket'])
         const id = await nextId('members')
         await ddb.send(
           new PutCommand({
@@ -967,9 +1107,10 @@ export async function postConfirmation(event) {
               pk: 'members',
               sk: skOf(id),
               id,
-              name: attrs.name || email.split('@')[0],
+              // 본인인증을 거쳤다면 인증기관이 확인한 이름·휴대폰을 우선한다
+              name: verified?.name || attrs.name || email.split('@')[0],
               email,
-              phone: attrs['custom:phone'] || '-',
+              phone: verified?.phone || attrs['custom:phone'] || '-',
               hospital: '-',
               specialty: '-',
               // ⚠️ 신규 가입은 항상 '일반'으로 시작한다.
@@ -986,6 +1127,7 @@ export async function postConfirmation(event) {
               // 소셜(구글 등 외부 IdP, userName 이 'google_...' 형태)은 아직이므로
               // false 로 시작해 로그인 직후 2/2 폼으로 유도한다.
               profile_done: !/^[a-z]+_/i.test(String(event.userName || '')),
+              ...verifiedFields(verified),
             },
           }),
         )

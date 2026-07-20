@@ -35,6 +35,18 @@ Parameters:
     Description: >-
       네이버 애플리케이션 Client Secret. 배포 시 NAVER_CLIENT_SECRET 환경변수로 전달한다
       (scripts/deploy-backend.sh). 값은 git 에 절대 커밋 금지.
+  # ── 휴대폰 본인인증(실명인증) — 인증사 계약 후 발급받는 키 ──
+  # 두 값이 모두 비어 있으면 본인인증 기능이 꺼진 상태로 동작한다(가입은 그대로 진행).
+  VerifyApiKey:
+    Type: String
+    Default: ''
+    NoEcho: true
+    Description: 본인인증 서비스 API 키. 배포 시 VERIFY_API_KEY 환경변수로 전달.
+  VerifyApiSecret:
+    Type: String
+    Default: ''
+    NoEcho: true
+    Description: 본인인증 서비스 API 시크릿. 배포 시 VERIFY_API_SECRET 환경변수로 전달.
 
 Conditions:
   HasGoogle: !Not [!Equals [!Ref GoogleClientSecret, '']]
@@ -124,6 +136,11 @@ Resources:
         # 의사면허번호 — 가입자가 입력, 관리자가 확인 후 grade 를 '의사'로 승인.
         # 관리자/본인만 조회 가능(Lambda 인가에서 제한).
         - Name: license_no
+          AttributeDataType: String
+          Mutable: true
+        # 휴대폰 본인인증 티켓 — 가입 화면에서 인증을 마치면 발급되는 1회용 값.
+        # postConfirmation 이 이 티켓으로 인증 정보를 확정한 뒤 폐기한다.
+        - Name: verify_ticket
           AttributeDataType: String
           Mutable: true
       VerificationMessageTemplate:
@@ -355,6 +372,8 @@ Resources:
         - name
         - custom:phone
         - custom:license_no
+        # 본인인증 티켓 — 값 자체는 서버가 발급한 1회용이라 위조해도 통과하지 못한다
+        - custom:verify_ticket
       ReadAttributes:
         - email
         - email_verified
@@ -502,6 +521,9 @@ Resources:
           CLIENT_ID: !Ref UserPoolClient
           NAVER_CLIENT_ID: !Ref NaverClientId
           NAVER_CLIENT_SECRET: !Ref NaverClientSecret
+          # 휴대폰 본인인증 — 비어 있으면 기능이 꺼진 상태로 동작
+          VERIFY_API_KEY: !Ref VerifyApiKey
+          VERIFY_API_SECRET: !Ref VerifyApiSecret
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref DataTable
@@ -595,6 +617,25 @@ Resources:
             ApiId: !Ref HttpApi
             Path: /auth/naver
             Method: POST
+            Auth:
+              Authorizer: NONE
+        # 휴대폰 본인인증 — 가입 도중(로그인 전)에 호출되므로 공개.
+        # 인증사 서버 조회를 통과해야만 티켓이 발급된다.
+        PublicVerifyPhone:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /auth/verify-phone
+            Method: POST
+            Auth:
+              Authorizer: NONE
+        # 본인인증 사용 여부 조회 (버튼 노출 판단용)
+        PublicVerifyConfig:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /auth/verify-config
+            Method: GET
             Auth:
               Authorizer: NONE
 
