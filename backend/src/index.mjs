@@ -676,3 +676,76 @@ export async function postConfirmation(event) {
   }
   return event
 }
+
+// ── 비밀번호 재설정 메일 (Cognito 커스텀 메시지 트리거) ──
+// Cognito 는 회원가입 인증과 비밀번호 재설정에 같은 템플릿(template.yaml 의
+// VerificationMessageTemplate)을 쓴다. 재설정 메일이 "회원가입 인증 코드"로
+// 나가면 헷갈리므로, 재설정일 때만 아래 전용 문구(같은 공식 디자인)로 바꾼다.
+const RESET_EMAIL_HTML = `<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light only" />
+    <title>메디프론트 비밀번호 재설정 코드</title>
+  </head>
+  <body style="margin:0;padding:0;background-color:#f4f6f6;">
+    <!-- 미리보기 텍스트(받은편지함 목록에 보이는 요약) -->
+    <div style="display:none;max-height:0;overflow:hidden;opacity:0;">메디프론트 비밀번호 재설정 코드입니다.</div>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f6f6;">
+      <tr>
+        <td align="center" style="padding:32px 16px;">
+          <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:600px;max-width:600px;background-color:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(4,33,31,0.08);">
+            <!-- 헤더 -->
+            <tr>
+              <td align="center" style="background-color:#04211f;padding:28px 32px;">
+                <img src="https://medifront.co.kr/logo-light.png" alt="MEDIFRONT" height="26" style="height:26px;width:auto;display:block;border:0;color:#ffffff;font-size:18px;font-weight:800;" />
+              </td>
+            </tr>
+            <!-- 본문 -->
+            <tr>
+              <td style="padding:40px 40px 8px 40px;font-family:-apple-system,'Apple SD Gothic Neo','Malgun Gothic','맑은 고딕',Roboto,sans-serif;">
+                <h1 style="margin:0 0 12px 0;font-size:20px;line-height:1.4;color:#0b1a18;font-weight:700;">비밀번호 재설정 코드</h1>
+                <p style="margin:0;font-size:15px;line-height:1.7;color:#33504b;">아래 6자리 코드를 재설정 화면의 입력란에 넣고 새 비밀번호를 설정해 주세요.</p>
+              </td>
+            </tr>
+            <!-- 코드 박스 -->
+            <tr>
+              <td style="padding:24px 40px 8px 40px;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td align="center" style="background-color:#e7f7f5;border:1px solid #10a696;border-radius:12px;padding:22px 16px;">
+                      <div style="font-family:-apple-system,'Apple SD Gothic Neo','Malgun Gothic',monospace;font-size:36px;font-weight:800;letter-spacing:10px;color:#0b6b60;">{####}</div>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <!-- 안내 -->
+            <tr>
+              <td style="padding:16px 40px 40px 40px;font-family:-apple-system,'Apple SD Gothic Neo','Malgun Gothic','맑은 고딕',Roboto,sans-serif;">
+                <p style="margin:0;font-size:13px;line-height:1.7;color:#5c7871;">본인이 요청하지 않았다면 이 메일을 무시하셔도 됩니다 — 비밀번호는 바뀌지 않습니다. 코드는 타인에게 알려주지 마세요.</p>
+              </td>
+            </tr>
+            <!-- 푸터 -->
+            <tr>
+              <td style="background-color:#f4f6f6;padding:24px 40px;font-family:-apple-system,'Apple SD Gothic Neo','Malgun Gothic','맑은 고딕',Roboto,sans-serif;border-top:1px solid #e6ebea;">
+                <p style="margin:0 0 4px 0;font-size:13px;font-weight:700;color:#33504b;">메디프론트 MEDIFRONT</p>
+                <p style="margin:0;font-size:12px;line-height:1.6;color:#93aaa4;">병원 성장의 파트너 · <a href="https://medifront.co.kr" style="color:#10a696;text-decoration:none;">medifront.co.kr</a><br />본 메일은 발신 전용입니다.</p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`
+
+export async function customMessage(event) {
+  if (event.triggerSource === 'CustomMessage_ForgotPassword') {
+    event.response.emailSubject = '[메디프론트] 비밀번호 재설정 코드'
+    // codeParameter('{####}' 자리표시자)를 본문에 심으면 Cognito 가 실제 코드로 치환한다
+    event.response.emailMessage = RESET_EMAIL_HTML.replace('{####}', event.request.codeParameter)
+  }
+  return event
+}

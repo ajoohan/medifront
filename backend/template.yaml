@@ -255,6 +255,8 @@ Resources:
             </html>
       LambdaConfig:
         PostConfirmation: !GetAtt PostConfirmationFunction.Arn
+        # 비밀번호 재설정 메일만 전용 문구로 분기 (index.customMessage)
+        CustomMessage: !GetAtt CustomMessageFunction.Arn
 
   # ── 관리자 역할 그룹 (최고관리자 / 일반관리자 / 운영자) ──
   # Lambda(backend/src/index.mjs)가 JWT 의 cognito:groups 로 역할을 판정합니다.
@@ -394,6 +396,22 @@ Resources:
     Type: AWS::Lambda::Permission
     Properties:
       FunctionName: !Ref PostConfirmationFunction
+      Action: lambda:InvokeFunction
+      Principal: cognito-idp.amazonaws.com
+      SourceArn: !GetAtt UserPool.Arn
+
+  # ── 메일 문구 분기 — 비밀번호 재설정 코드 메일을 전용 문구(같은 공식 디자인)로 ──
+  CustomMessageFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub '${AWS::StackName}-custom-message'
+      CodeUri: src/
+      Handler: index.customMessage
+
+  CustomMessagePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref CustomMessageFunction
       Action: lambda:InvokeFunction
       Principal: cognito-idp.amazonaws.com
       SourceArn: !GetAtt UserPool.Arn
