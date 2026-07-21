@@ -54,7 +54,7 @@ const EMPTY_DRAFT = {
   password: '',
 }
 
-export default function MembersAdmin() {
+export default function MembersAdmin({ onGo }) {
   // 초기엔 빈 목록으로 시작 — DB 응답 전에 더미/임시 데이터가 잠깐 보이는 깜빡임 방지
   const [members, setMembers] = useState([])
   const [loaded, setLoaded] = useState(false) // 최초 로드(DB 또는 폴백) 완료 여부
@@ -442,6 +442,12 @@ export default function MembersAdmin() {
               )}
             </button>
           ))}
+          {/* 면허 확인은 전용 화면이 빠르다 — 대기자가 있을 때만 안내 */}
+          {pendingCount > 0 && onGo && (
+            <button className="admin-filter__go" onClick={() => onGo('license')}>
+              면허 확인하러 가기 →
+            </button>
+          )}
         </div>
         <select
           className="admin-grade-filter"
