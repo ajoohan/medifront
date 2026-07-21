@@ -34,10 +34,6 @@ const FILTERS = [
   { key: 'pending-doctor', label: '의사 승인 대기' },
 ]
 
-// 보건복지부 면허민원 기관조회 — 이름·면허번호로 등록 여부를 확인한다.
-// 조회에는 기관 이용 신청(범용인증서 로그인)과 정보주체 동의가 필요하다.
-const LICENSE_CHECK_URL = 'https://lic.mohw.go.kr/instt/instt_srch_each.do?MENU_ID=I-02-01'
-
 // 회원유형: 의사(의사면허 보유자·모든 서비스) / 병원(병원·의원 소속 관계자) / 일반
 const GRADES = ['의사', '병원', '일반']
 const GRADE_CLASS = { 의사: 'doctor', 병원: 'hospital', 일반: 'general' }
