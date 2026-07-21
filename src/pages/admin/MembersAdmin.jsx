@@ -30,7 +30,13 @@ const PAGE_SIZE = 20
 const FILTERS = [
   { key: 'active', label: '활성' },
   { key: 'suspended', label: '정지' },
+  // 의사 신청 후 면허 확인을 기다리는 회원 — 심사 누락을 막는다
+  { key: 'pending-doctor', label: '의사 승인 대기' },
 ]
+
+// 보건복지부 면허민원 기관조회 — 이름·면허번호로 등록 여부를 확인한다.
+// 조회에는 기관 이용 신청(범용인증서 로그인)과 정보주체 동의가 필요하다.
+const LICENSE_CHECK_URL = 'https://lic.mohw.go.kr/instt/instt_srch_each.do?MENU_ID=I-02-01'
 
 // 회원유형: 의사(의사면허 보유자·모든 서비스) / 병원(병원·의원 소속 관계자) / 일반
 const GRADES = ['의사', '병원', '일반']
@@ -89,6 +95,11 @@ export default function MembersAdmin() {
     })
   }, [])
 
+  // 의사 승인 대기 = 가입 때 '의사'를 신청해 면허번호를 냈지만 아직 등급이 '의사'가 아닌 회원.
+  // 면허 확인(보건복지부 기관조회) 후 등급을 '의사'로 바꾸면 목록에서 빠진다.
+  const isPendingDoctor = (m) => !!m.license_no && m.grade !== '의사'
+  const pendingCount = members.filter(isPendingDoctor).length
+
   const filtered = useMemo(() => {
     const keyword = q.trim()
     return members.filter((m) => {
@@ -97,7 +108,8 @@ export default function MembersAdmin() {
         m.name.includes(keyword) ||
         m.email.includes(keyword) ||
         m.hospital.includes(keyword)
-      const matchF = filter === 'all' || m.status === filter
+      const matchF =
+        filter === 'all' || (filter === 'pending-doctor' ? isPendingDoctor(m) : m.status === filter)
       const matchG = gradeFilter === '전체' || m.grade === gradeFilter
       return matchQ && matchF && matchG
     })
@@ -418,13 +430,20 @@ export default function MembersAdmin() {
             <button
               key={f.key}
               className={
-                [f.key === 'suspended' ? 'danger' : '', filter === f.key ? 'is-active' : '']
+                [
+                  f.key === 'suspended' ? 'danger' : '',
+                  f.key === 'pending-doctor' ? 'pending' : '',
+                  filter === f.key ? 'is-active' : '',
+                ]
                   .filter(Boolean)
                   .join(' ') || undefined
               }
               onClick={() => toggleFilter(f.key)}
             >
               {f.label}
+              {f.key === 'pending-doctor' && pendingCount > 0 && (
+                <span className="admin-filter__badge">{pendingCount}</span>
+              )}
             </button>
           ))}
         </div>

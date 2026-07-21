@@ -1318,6 +1318,59 @@ ul {
   margin-bottom: 0 !important;
 }
 
+/* ── 관리자: 의사 승인 대기 필터 + 면허 조회 도구 ── */
+.admin-filter button.pending.is-active {
+  background: var(--gold, #f4b740);
+  border-color: var(--gold, #f4b740);
+  color: #4a3208;
+}
+.admin-filter__badge {
+  display: inline-block;
+  min-width: 18px;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--gold, #f4b740);
+  color: #4a3208;
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 1.5;
+}
+.admin-filter button.pending.is-active .admin-filter__badge {
+  background: rgba(0, 0, 0, 0.18);
+  color: inherit;
+}
+/* 회원 상세 — 면허번호 복사 + 복지부 조회 바로가기 */
+.admin-license {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 7px;
+  font-size: 0.78rem;
+}
+.admin-license__copy {
+  padding: 4px 10px;
+  border: 1px solid var(--line, #d8ebe7);
+  border-radius: 6px;
+  background: #fff;
+  font-family: inherit;
+  font-size: 0.78rem;
+  color: var(--ink-700, #33504b);
+  cursor: pointer;
+}
+.admin-license__copy:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+.admin-license__link {
+  color: var(--primary);
+  font-weight: 700;
+  text-decoration: none;
+}
+.admin-license__link:hover {
+  text-decoration: underline;
+}
+
 /* ── 휴대폰 본인인증 (가입 2/2) ── */
 .btn-verify {
   display: flex;

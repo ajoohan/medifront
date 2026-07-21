@@ -198,6 +198,25 @@ export default function MemberDetail({ member, onBack, onSave }) {
               readOnly
               style={{ background: 'var(--ink-50, #f5f6f8)' }}
             />
+            {member.licenseNo && (
+              <span className="admin-license">
+                <button
+                  type="button"
+                  className="admin-license__copy"
+                  onClick={() => navigator.clipboard?.writeText(member.licenseNo)}
+                >
+                  번호 복사
+                </button>
+                <a
+                  className="admin-license__link"
+                  href="https://lic.mohw.go.kr/instt/instt_srch_each.do?MENU_ID=I-02-01"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  보건복지부 면허 조회 ↗
+                </a>
+              </span>
+            )}
           </label>
           <label className="admin-add__field">
             <span>회원유형</span>

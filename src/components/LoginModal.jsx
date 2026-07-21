@@ -128,6 +128,8 @@ export default function LoginModal({ open, onClose }) {
     licenseNo: '', // 의사 회원 신청 시 입력 — 관리자 승인 심사용
   })
   const [agree, setAgree] = useState(false)
+  // 의사 회원 신청자의 면허 조회 동의 (보건복지부 기관조회는 정보주체 동의가 전제)
+  const [licenseAgree, setLicenseAgree] = useState(false)
   const [grade, setGrade] = useState('일반') // 회원유형 (가입 2단계 선택)
   const [autoLogin, setAutoLogin] = useState(true) // 자동 로그인
   const [newPwSession, setNewPwSession] = useState('') // 임시 비밀번호 챌린지 세션
@@ -153,6 +155,7 @@ export default function LoginModal({ open, onClose }) {
         })
         setGrade('일반')
         setAgree(false)
+        setLicenseAgree(false)
         setVerified(null)
         setMsg('')
         setInfo('')
@@ -165,6 +168,7 @@ export default function LoginModal({ open, onClose }) {
       setAutoLogin(prefs.autoLogin)
       setGrade('일반')
       setAgree(false)
+      setLicenseAgree(false)
       setVerified(null)
       setMsg('')
       setInfo(loginNotice || '')
@@ -692,6 +696,19 @@ export default function LoginModal({ open, onClose }) {
                     입력하신 면허번호 확인 후 의사 회원으로 승인되며, 승인 전까지는 일반 회원으로
                     이용하실 수 있습니다. 매거진은 승인 후 열람 가능합니다.
                   </small>
+                  {/* 보건복지부 기관조회로 등록 여부를 확인하려면 정보주체 동의가 필요하다 */}
+                  <label className="form__consent" style={{ margin: '10px 0 0' }}>
+                    <input
+                      type="checkbox"
+                      required
+                      checked={licenseAgree}
+                      onChange={(e) => setLicenseAgree(e.target.checked)}
+                    />
+                    <span>
+                      의사 회원 승인을 위해 <b>보건복지부 면허(자격) 등록 여부 조회</b>에
+                      동의합니다. (성명·면허번호에 한함)
+                    </span>
+                  </label>
                 </div>
               )}
               {/* 휴대폰 본인인증 — 인증사 계약 전에는 표시되지 않는다(isVerifyEnabled) */}
