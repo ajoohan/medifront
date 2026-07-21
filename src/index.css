@@ -1095,9 +1095,22 @@ ul {
   opacity: 0.6;
   cursor: default;
 }
-/* 네이버 — 공식 브랜드 그린. 구글 버튼 바로 아래 나란히 놓인다 */
-.btn-social--naver {
+/* 소셜/가입 버튼이 여러 개 쌓일 때의 간격 (메일 → 구글 → 네이버) */
+.btn-social + .btn-social {
   margin-top: 8px;
+}
+/* 메일로 회원가입 — 브랜드 청록 테두리로 가입 동선임을 드러낸다 */
+.btn-social--email {
+  border-color: var(--primary);
+  background: rgba(16, 166, 150, 0.06);
+  color: #0b6b60;
+}
+.btn-social--email:hover {
+  background: rgba(16, 166, 150, 0.12);
+  border-color: var(--primary);
+}
+/* 네이버 — 공식 브랜드 그린 */
+.btn-social--naver {
   border-color: #03c75a;
   background: #03c75a;
   color: #fff;
