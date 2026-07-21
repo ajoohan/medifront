@@ -82,8 +82,8 @@ export function UserProvider({ children }) {
 
   // ── 이메일 회원가입 (인증 코드 메일 발송) — 이름/휴대폰번호/회원유형은 2단계에서 수집 ──
   const signUpWithEmail = useCallback(
-    async ({ email, password, name, phone, licenseNo, verifyTicket }) => {
-      const r = await auth.signUp({ email, password, name, phone, licenseNo, verifyTicket })
+    async ({ email, password, name, phone, licenseNo, birth, verifyTicket }) => {
+      const r = await auth.signUp({ email, password, name, phone, licenseNo, birth, verifyTicket })
       return r.error ? { error: r.error } : { ok: true }
     },
     [],
@@ -120,10 +120,11 @@ export function UserProvider({ children }) {
 
   // ── 소셜 가입 2/2 폼 제출 (유형·면허·이름·휴대폰) — 본인 회원 정보 갱신
   const completeSocialProfile = useCallback(
-    async ({ memberType, licenseNo, name, phone, verifyTicket }) => {
+    async ({ memberType, licenseNo, birth, name, phone, verifyTicket }) => {
       const r = await apiSend('POST', '/members/complete-profile', {
         memberType,
         licenseNo,
+        birth,
         name,
         phone,
         verifyTicket,

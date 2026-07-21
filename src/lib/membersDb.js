@@ -31,6 +31,8 @@ function fromRow(r) {
     status: r.status || 'active',
     // 의사 회원 신청 시 입력한 면허번호 — 관리자 승인 심사용
     licenseNo: r.license_no || '',
+    // 생년월일(YYMMDD) — 보건복지부 면허 조회에 함께 입력해야 한다
+    birth: r.birth || '',
   }
 }
 

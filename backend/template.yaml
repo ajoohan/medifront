@@ -143,6 +143,10 @@ Resources:
         - Name: verify_ticket
           AttributeDataType: String
           Mutable: true
+        # 생년월일(YYMMDD) — 의사 회원 신청자의 보건복지부 면허 조회에 필요
+        - Name: birth
+          AttributeDataType: String
+          Mutable: true
       VerificationMessageTemplate:
         DefaultEmailOption: CONFIRM_WITH_CODE
         EmailSubject: '[메디프론트] 회원가입 인증 코드'
@@ -374,6 +378,7 @@ Resources:
         - custom:license_no
         # 본인인증 티켓 — 값 자체는 서버가 발급한 1회용이라 위조해도 통과하지 못한다
         - custom:verify_ticket
+        - custom:birth
       ReadAttributes:
         - email
         - email_verified

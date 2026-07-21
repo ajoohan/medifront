@@ -183,6 +183,9 @@ const RESOURCES = {
       // 휴대폰 본인인증(실명인증) 결과. verified/ci_hash/di 는 서버(verifyPhone)만 기록하며
       // 이 목록에 없어도 되지만, 관리자 화면 조회를 위해 읽기용으로 둔다.
       'verified',
+      // 생년월일(YYMMDD) — 의사 회원 신청자의 보건복지부 면허 조회에 필요.
+      // 휴대폰 본인인증을 켜면 인증기관이 확인한 값으로 대체된다.
+      'birth',
     ],
     defaults: () => ({
       name: '',
@@ -917,12 +920,17 @@ async function completeProfile(auth, body) {
   const phone = verified ? verified.phone : String(body.phone || '').trim()
   if (!name || !phone) return json(400, { error: 'name and phone required' })
 
+  // 생년월일 — 본인인증 값이 있으면 그것을 쓰고(신뢰), 없으면 입력값(YYMMDD 6자리)
+  const birth = String(body.birth || '')
+    .replace(/\D/g, '')
+    .slice(0, 6)
   const updated = {
     ...row,
     name,
     phone,
     member_type: memberType,
     license_no: licenseNo || row.license_no || '',
+    ...(birth ? { birth } : {}),
     profile_done: true,
     ...verifiedFields(verified),
   }
@@ -1120,6 +1128,8 @@ export async function postConfirmation(event) {
               grade: '일반',
               // 가입 시 신청한 의사면허번호 — 관리자 승인 심사용
               license_no: attrs['custom:license_no'] || '',
+              // 생년월일(YYMMDD) — 면허 조회에 필요. 본인인증을 켜면 인증값이 우선한다.
+              birth: attrs['custom:birth'] || '',
               status: 'active',
               joined_at: today(),
               created_at: now(),

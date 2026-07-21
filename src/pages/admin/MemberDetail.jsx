@@ -199,23 +199,38 @@ export default function MemberDetail({ member, onBack, onSave }) {
               style={{ background: 'var(--ink-50, #f5f6f8)' }}
             />
             {member.licenseNo && (
-              <span className="admin-license">
-                <button
-                  type="button"
-                  className="admin-license__copy"
-                  onClick={() => navigator.clipboard?.writeText(member.licenseNo)}
-                >
-                  번호 복사
-                </button>
-                <a
-                  className="admin-license__link"
-                  href="https://lic.mohw.go.kr/instt/instt_srch_each.do?MENU_ID=I-02-01"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  보건복지부 면허 조회 ↗
-                </a>
-              </span>
+              <>
+                {/* 복지부 조회는 성명·면허번호·생년월일이 모두 필요하다 */}
+                <span className="admin-license">
+                  <button
+                    type="button"
+                    className="admin-license__copy"
+                    onClick={() => navigator.clipboard?.writeText(member.licenseNo)}
+                  >
+                    면허번호 복사
+                  </button>
+                  <button
+                    type="button"
+                    className="admin-license__copy"
+                    onClick={() => navigator.clipboard?.writeText(member.birth || '')}
+                    disabled={!member.birth}
+                  >
+                    생년월일 복사
+                  </button>
+                  <a
+                    className="admin-license__link"
+                    href="https://lic.mohw.go.kr/instt/instt_srch_each.do?MENU_ID=I-02-01"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    복지부 조회 ↗
+                  </a>
+                </span>
+                <small className="admin-add__hint">
+                  조회 입력값 — 성명 <b>{member.name}</b> · 면허번호 <b>{member.licenseNo}</b> ·
+                  생년월일 <b>{member.birth || '미입력'}</b>
+                </small>
+              </>
             )}
           </label>
           <label className="admin-add__field">
