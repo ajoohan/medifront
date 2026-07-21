@@ -3,6 +3,8 @@ import { formatPhone } from '../../lib/phone'
 import { apiSend, isApiConfigured } from '../../lib/api'
 import { fetchMembers, upsertMember, updateMemberDb, deleteMemberDb } from '../../lib/membersDb'
 import MemberDetail from './MemberDetail'
+import LicenseReview from './LicenseReview'
+import { isPendingDoctor } from '../../lib/license'
 
 // ⚠️ 공용 기본 비밀번호를 두지 마세요.
 // 이 파일은 클라이언트 번들에 그대로 실리므로, 여기에 기본값을 두면 그 문자열이
@@ -54,7 +56,7 @@ const EMPTY_DRAFT = {
   password: '',
 }
 
-export default function MembersAdmin({ onGo }) {
+export default function MembersAdmin() {
   // 초기엔 빈 목록으로 시작 — DB 응답 전에 더미/임시 데이터가 잠깐 보이는 깜빡임 방지
   const [members, setMembers] = useState([])
   const [loaded, setLoaded] = useState(false) // 최초 로드(DB 또는 폴백) 완료 여부
@@ -93,7 +95,7 @@ export default function MembersAdmin({ onGo }) {
 
   // 의사 승인 대기 = 가입 때 '의사'를 신청해 면허번호를 냈지만 아직 등급이 '의사'가 아닌 회원.
   // 면허 확인(보건복지부 기관조회) 후 등급을 '의사'로 바꾸면 목록에서 빠진다.
-  const isPendingDoctor = (m) => !!m.license_no && m.grade !== '의사'
+  // (판정 규칙은 LicenseReview 와 공유한다)
   const pendingCount = members.filter(isPendingDoctor).length
 
   const filtered = useMemo(() => {
@@ -289,6 +291,19 @@ export default function MembersAdmin({ onGo }) {
         </div>
       )}
 
+      {/* 의사로 가입 신청한 회원이 있으면 이 화면에서 바로 확인하도록 안내한다 */}
+      {pendingCount > 0 && filter !== 'pending-doctor' && (
+        <div className="admin-pending-banner">
+          <span>
+            의사 회원으로 가입 신청한 회원이 <b>{pendingCount}명</b> 있습니다 — 면허 확인이
+            필요합니다.
+          </span>
+          <button className="btn btn--primary" onClick={() => setFilter('pending-doctor')}>
+            면허 확인하기
+          </button>
+        </div>
+      )}
+
       {adding && (
         <form className="admin-add" onSubmit={addMember}>
           <div className="admin-add__grid">
@@ -442,12 +457,6 @@ export default function MembersAdmin({ onGo }) {
               )}
             </button>
           ))}
-          {/* 면허 확인은 전용 화면이 빠르다 — 대기자가 있을 때만 안내 */}
-          {pendingCount > 0 && onGo && (
-            <button className="admin-filter__go" onClick={() => onGo('license')}>
-              면허 확인하러 가기 →
-            </button>
-          )}
         </div>
         <select
           className="admin-grade-filter"
@@ -488,105 +497,110 @@ export default function MembersAdmin({ onGo }) {
         </div>
       )}
 
-      <div className="admin-table-wrap">
-        <table className="admin-table">
-          <thead>
-            <tr>
-              <th className="admin-check-col">
-                <input
-                  type="checkbox"
-                  className="admin-checkbox"
-                  checked={allSelected}
-                  ref={(el) => {
-                    if (el) el.indeterminate = someSelected && !allSelected
-                  }}
-                  onChange={toggleAll}
-                  aria-label="전체 선택"
-                />
-              </th>
-              <th>이름</th>
-              <th>이메일</th>
-              <th>연락처</th>
-              <th>병원 / 전공과목</th>
-              <th>등급</th>
-              <th>가입일</th>
-              <th>상태</th>
-              <th>관리</th>
-            </tr>
-          </thead>
-          <tbody>
-            {pageItems.map((m) => (
-              <tr
-                key={m.id}
-                className={`admin-row-clickable ${selected.has(m.id) ? 'is-selected' : ''}`}
-                onClick={(e) => {
-                  // 체크박스·등급 선택·관리 버튼 클릭은 상세 진입에서 제외
-                  if (e.target.closest('button, select, input, a')) return
-                  setDetailId(m.id)
-                }}
-              >
-                <td className="admin-check-col">
+      {/* 의사 승인 대기 필터에서는 목록 대신 면허 확인 화면을 보여준다 */}
+      {filter === 'pending-doctor' ? (
+        <LicenseReview members={filtered} onApprove={(m) => changeGrade(m.id, '의사')} />
+      ) : (
+        <div className="admin-table-wrap">
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th className="admin-check-col">
                   <input
                     type="checkbox"
                     className="admin-checkbox"
-                    checked={selected.has(m.id)}
-                    onChange={() => toggleOne(m.id)}
-                    aria-label={`${m.name} 선택`}
+                    checked={allSelected}
+                    ref={(el) => {
+                      if (el) el.indeterminate = someSelected && !allSelected
+                    }}
+                    onChange={toggleAll}
+                    aria-label="전체 선택"
                   />
-                </td>
-                <td>
-                  <span className="m-name">{m.name}</span>
-                </td>
-                <td>{m.email}</td>
-                <td>{m.phone}</td>
-                <td>
-                  {m.hospital} <span style={{ color: 'var(--ink-300)' }}>· {m.specialty}</span>
-                </td>
-                <td>
-                  <select
-                    className={`grade-select grade--${GRADE_CLASS[m.grade]}`}
-                    value={m.grade}
-                    onChange={(e) => changeGrade(m.id, e.target.value)}
-                    aria-label={`${m.name} 등급`}
-                  >
-                    {GRADES.map((g) => (
-                      <option key={g} value={g}>
-                        {g}
-                      </option>
-                    ))}
-                  </select>
-                </td>
-                <td>{formatDate(m.joinedAt)}</td>
-                <td>
-                  <span className={`badge badge--${m.status}`}>
-                    {m.status === 'active' ? '활성' : '정지'}
-                  </span>
-                </td>
-                <td>
-                  <div className="admin-actions">
-                    <button
-                      className={m.status === 'active' ? undefined : 'activate'}
-                      onClick={() => toggleStatus(m.id)}
-                    >
-                      {m.status === 'active' ? '정지' : '활성'}
-                    </button>
-                    <button className="danger" onClick={() => removeMember(m.id)}>
-                      삭제
-                    </button>
-                  </div>
-                </td>
+                </th>
+                <th>이름</th>
+                <th>이메일</th>
+                <th>연락처</th>
+                <th>병원 / 전공과목</th>
+                <th>등급</th>
+                <th>가입일</th>
+                <th>상태</th>
+                <th>관리</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-        {!loaded ? (
-          <div className="admin-empty">회원 목록을 불러오는 중…</div>
-        ) : (
-          filtered.length === 0 && <div className="admin-empty">조건에 맞는 회원이 없습니다.</div>
-        )}
-      </div>
+            </thead>
+            <tbody>
+              {pageItems.map((m) => (
+                <tr
+                  key={m.id}
+                  className={`admin-row-clickable ${selected.has(m.id) ? 'is-selected' : ''}`}
+                  onClick={(e) => {
+                    // 체크박스·등급 선택·관리 버튼 클릭은 상세 진입에서 제외
+                    if (e.target.closest('button, select, input, a')) return
+                    setDetailId(m.id)
+                  }}
+                >
+                  <td className="admin-check-col">
+                    <input
+                      type="checkbox"
+                      className="admin-checkbox"
+                      checked={selected.has(m.id)}
+                      onChange={() => toggleOne(m.id)}
+                      aria-label={`${m.name} 선택`}
+                    />
+                  </td>
+                  <td>
+                    <span className="m-name">{m.name}</span>
+                  </td>
+                  <td>{m.email}</td>
+                  <td>{m.phone}</td>
+                  <td>
+                    {m.hospital} <span style={{ color: 'var(--ink-300)' }}>· {m.specialty}</span>
+                  </td>
+                  <td>
+                    <select
+                      className={`grade-select grade--${GRADE_CLASS[m.grade]}`}
+                      value={m.grade}
+                      onChange={(e) => changeGrade(m.id, e.target.value)}
+                      aria-label={`${m.name} 등급`}
+                    >
+                      {GRADES.map((g) => (
+                        <option key={g} value={g}>
+                          {g}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
+                  <td>{formatDate(m.joinedAt)}</td>
+                  <td>
+                    <span className={`badge badge--${m.status}`}>
+                      {m.status === 'active' ? '활성' : '정지'}
+                    </span>
+                  </td>
+                  <td>
+                    <div className="admin-actions">
+                      <button
+                        className={m.status === 'active' ? undefined : 'activate'}
+                        onClick={() => toggleStatus(m.id)}
+                      >
+                        {m.status === 'active' ? '정지' : '활성'}
+                      </button>
+                      <button className="danger" onClick={() => removeMember(m.id)}>
+                        삭제
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {!loaded ? (
+            <div className="admin-empty">회원 목록을 불러오는 중…</div>
+          ) : (
+            filtered.length === 0 && <div className="admin-empty">조건에 맞는 회원이 없습니다.</div>
+          )}
+        </div>
+      )}
 
-      {totalPages > 1 && (
+      {filter !== 'pending-doctor' && totalPages > 1 && (
         <nav className="admin-pagination" aria-label="페이지">
           <button disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)}>
             이전

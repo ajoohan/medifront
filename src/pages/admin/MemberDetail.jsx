@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { formatPhone } from '../../lib/phone'
 import { forgotPassword, isAuthConfigured } from '../../lib/authClient'
 import { fetchLogs, insertLog, deleteLogDb } from '../../lib/membersDb'
+import { LICENSE_CHECK_URL } from '../../lib/license'
 
 const GRADES = ['의사', '병원', '일반']
 
@@ -219,7 +220,7 @@ export default function MemberDetail({ member, onBack, onSave }) {
                   </button>
                   <a
                     className="admin-license__link"
-                    href="https://lic.mohw.go.kr/instt/instt_srch_each.do?MENU_ID=I-02-01"
+                    href={LICENSE_CHECK_URL}
                     target="_blank"
                     rel="noreferrer"
                   >

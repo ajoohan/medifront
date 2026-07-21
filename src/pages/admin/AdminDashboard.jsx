@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import DashboardAdmin from './DashboardAdmin'
 import MembersAdmin from './MembersAdmin'
-import LicenseAdmin from './LicenseAdmin'
 import MagazineAdmin from './MagazineAdmin'
 import SettingsAdmin from './SettingsAdmin'
 import PerformanceAdmin from './PerformanceAdmin'
@@ -12,10 +11,7 @@ const ADMIN_VERSION = 'Version 0.7'
 // 대시보드는 사이드바 메뉴에 노출하지 않고, 로그인 기본 화면·로고 클릭 대상으로만 사용
 const DASHBOARD_VIEW = { key: 'dashboard', label: '대시보드', component: DashboardAdmin }
 
-const VIEWS = [
-  { key: 'members', label: '회원관리', component: MembersAdmin },
-  { key: 'license', label: '의사 면허 확인', component: LicenseAdmin },
-]
+const VIEWS = [{ key: 'members', label: '회원관리', component: MembersAdmin }]
 
 // 콘텐츠 관리 서브메뉴 (성과 관리 / 매거진 관리)
 const CONTENT_VIEWS = [
