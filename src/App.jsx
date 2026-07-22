@@ -11,6 +11,7 @@ import MagazineDetailPage from './pages/MagazineDetailPage'
 import ResetPasswordPage from './pages/ResetPasswordPage'
 import TermsPage from './pages/TermsPage'
 import PrivacyPage from './pages/PrivacyPage'
+import NotFoundPage from './pages/NotFoundPage'
 import { useUser } from './context/UserContext'
 
 // 관리자 화면(회원·상담·매거진·설정)은 운영자만 쓰는데 정적 import 하면 모든 방문자의
@@ -43,6 +44,8 @@ function Shell() {
               </Suspense>
             }
           />
+          {/* 그 외 모든 주소 — 빈 화면 대신 404 안내 */}
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </main>
       {!isAdmin && <Footer />}
