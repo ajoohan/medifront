@@ -762,6 +762,8 @@ const verifiedFields = (v) =>
 const randomPw = () => `Nv1${crypto.randomUUID()}`
 
 async function naverLogin(body) {
+  // 도달 여부 추적용 — 코드 값 자체는 남기지 않는다
+  console.log('naver login attempt, code:', body.code ? 'present' : 'missing')
   const naverId = process.env.NAVER_CLIENT_ID
   const naverSecret = process.env.NAVER_CLIENT_SECRET
   const appClientId = process.env.CLIENT_ID

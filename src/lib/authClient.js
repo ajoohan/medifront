@@ -326,8 +326,13 @@ export async function completeOAuthRedirect() {
       : googleSaved && state === googleSaved.state
         ? 'google'
         : null
-  // 우리가 시작한 요청(state 일치)이 아니면 무시한다 — CSRF/코드 주입 방어
-  if (!provider) return null
+  // 우리가 시작한 요청(state 일치)이 아니면 진행하지 않는다 — CSRF/코드 주입 방어.
+  // 다만 code 는 왔는데 저장해 둔 확인값이 없다면(브라우저가 세션 저장소를 비운 경우 등)
+  // 조용히 멈추지 말고 사유를 알린다 — 사용자는 재시도만 하면 된다.
+  if (!provider) {
+    if (code && !googleSaved && !naverSaved) return { error: 'state-lost' }
+    return null
+  }
   // 주소창의 code/state 는 즉시 지운다 (새로고침 시 재교환 시도·기록 노출 방지)
   url.searchParams.delete('code')
   url.searchParams.delete('state')

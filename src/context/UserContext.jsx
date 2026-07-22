@@ -53,6 +53,8 @@ export function UserProvider({ children }) {
           'already-verified-member':
             '이미 가입된 명의입니다. 기존 계정으로 로그인하거나 아이디 찾기를 이용해 주세요.',
           network: '네트워크 오류로 로그인하지 못했습니다. 다시 시도해 주세요.',
+          'state-lost':
+            '보안 확인값이 유실되어 로그인을 완료하지 못했습니다. 아래 버튼으로 다시 시도해 주세요.',
         }
         setLoginNotice(
           reasons[redirect.error] ||
