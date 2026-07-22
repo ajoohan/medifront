@@ -781,17 +781,32 @@ async function naverLogin(body) {
       }),
   )
   const token = await tokenRes.json().catch(() => ({}))
-  if (!token.access_token) return json(401, { error: 'naver-token-failed' })
+  if (!token.access_token) {
+    // 원인 추적용 — 네이버가 주는 오류 코드/설명만 남긴다 (토큰 등 민감값 없음)
+    console.error('naver token exchange failed:', token.error, token.error_description)
+    return json(401, { error: 'naver-token-failed' })
+  }
 
   // ② 프로필 조회 — 이메일은 필수 (네이버 앱 설정에서 '필수 제공'으로 지정해야 한다)
   const profileRes = await fetch('https://openapi.naver.com/v1/nid/me', {
     headers: { Authorization: `Bearer ${token.access_token}` },
   })
-  const profile = (await profileRes.json().catch(() => ({})))?.response || {}
+  const profileBody = await profileRes.json().catch(() => ({}))
+  const profile = profileBody?.response || {}
   const email = String(profile.email || '')
     .trim()
     .toLowerCase()
-  if (!email) return json(400, { error: 'naver-no-email' })
+  if (!email) {
+    // 이메일이 안 온 이유 추적용 — 결과 코드와 제공된 항목 이름만 남긴다 (값은 남기지 않음)
+    console.error(
+      'naver profile missing email:',
+      profileBody?.resultcode,
+      profileBody?.message,
+      'fields=',
+      Object.keys(profile).join(','),
+    )
+    return json(400, { error: 'naver-no-email' })
+  }
   const name = profile.name || profile.nickname || email.split('@')[0]
   const phone = String(profile.mobile || '').replace(/\s/g, '')
 

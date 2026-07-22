@@ -41,8 +41,25 @@ export function UserProvider({ children }) {
   useEffect(() => {
     let unsub
     const init = async () => {
-      // 소셜 로그인 복귀(?code=)면 먼저 토큰 교환을 끝낸다 — 아래 세션 복원이 이어받는다
-      await auth.completeOAuthRedirect()
+      // 소셜 로그인 복귀(?code=)면 먼저 토큰 교환을 끝낸다 — 아래 세션 복원이 이어받는다.
+      // 교환 실패는 조용히 삼키지 않고 로그인 창에 사유를 띄운다 (원인 파악·재시도 유도).
+      const redirect = await auth.completeOAuthRedirect()
+      if (redirect?.error) {
+        const reasons = {
+          'naver-no-email':
+            '네이버 계정의 이메일 제공에 동의해야 가입할 수 있습니다. 다시 시도해 정보 제공에 동의해 주세요.',
+          'naver-token-failed': '네이버 인증 확인에 실패했습니다. 잠시 후 다시 시도해 주세요.',
+          'naver-not-configured': '네이버 로그인이 아직 준비되지 않았습니다.',
+          'already-verified-member':
+            '이미 가입된 명의입니다. 기존 계정으로 로그인하거나 아이디 찾기를 이용해 주세요.',
+          network: '네트워크 오류로 로그인하지 못했습니다. 다시 시도해 주세요.',
+        }
+        setLoginNotice(
+          reasons[redirect.error] ||
+            `소셜 로그인에 실패했습니다. (${redirect.error}) 다시 시도해 주세요.`,
+        )
+        setLoginOpen(true)
+      }
       const keepLogin = localStorage.getItem(AUTOLOGIN_KEY) !== '0'
       const newBrowserSession = !sessionStorage.getItem(TAB_KEY)
       sessionStorage.setItem(TAB_KEY, '1')

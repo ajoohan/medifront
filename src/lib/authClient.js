@@ -345,7 +345,11 @@ export async function completeOAuthRedirect() {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ code, state }),
       })
-      if (!r.ok) return null
+      if (!r.ok) {
+        // 실패 사유를 화면에 알릴 수 있게 돌려준다 (조용히 메인으로 떨어지지 않도록)
+        const data = await r.json().catch(() => ({}))
+        return { error: data.error || `naver-http-${r.status}` }
+      }
       const t = await r.json()
       saveTokens({ idToken: t.idToken, accessToken: t.accessToken, refreshToken: t.refreshToken })
       const user = claimsToUser(decode(t.idToken))
@@ -364,14 +368,14 @@ export async function completeOAuthRedirect() {
         code_verifier: googleSaved.verifier,
       }),
     })
-    if (!r.ok) return null
+    if (!r.ok) return { error: `google-http-${r.status}` }
     const t = await r.json()
     saveTokens({ idToken: t.id_token, accessToken: t.access_token, refreshToken: t.refresh_token })
     const user = claimsToUser(decode(t.id_token))
     emit(user)
     return user
   } catch {
-    return null
+    return { error: 'network' }
   }
 }
 
