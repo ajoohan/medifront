@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>메디프론트 개원컨설팅 프로세스</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --green:#072E2B;        /* 사이트 테마 딥그린 (다크 슬라이드 배경) */
+  --green-2:#0E453F;
+  --teal:#149A87;         /* 텍스트 포인트 (로고 민트 계열, 가독 대비 확보) */
+  --gold:#2CBFA9;         /* 로고 민트 틸 — 포인트 컬러 */
+  --ivory:#FBFBFA;
+  --ink:#221E1F;          /* 로고 차콜 블랙 */
+  --muted:#5F6866;
+  --line:rgba(34,30,31,.12);
+  --font-head:'Noto Sans KR','Pretendard Variable',sans-serif;
+  --font-body:'Pretendard Variable','Noto Sans KR',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0B1211;color:var(--ink);font-family:var(--font-body);overflow:hidden}
+.slide-deck{position:relative;width:100vw;height:100vh;overflow:hidden}
+@media (min-width:769px){
+  .slide-deck{max-width:calc(100vh*16/9);max-height:calc(100vw*9/16);margin:auto;position:absolute;inset:0;box-shadow:0 0 80px rgba(0,0,0,.5)}
+}
+.slide{position:absolute;inset:0;width:100%;height:100%;display:flex;flex-direction:column;justify-content:center;padding:64px 84px;opacity:0;visibility:hidden;transition:opacity .45s ease;background:var(--ivory);overflow:hidden}
+.slide.active{opacity:1;visibility:visible}
+.slide.dark{background:var(--green);color:var(--ivory)}
+
+/* ---------- 공통 타이포 ---------- */
+h1,h2,h3{font-family:var(--font-head)}
+.kicker{font-size:13px;letter-spacing:.32em;text-transform:uppercase;color:var(--teal);font-weight:700;margin-bottom:18px}
+.dark .kicker{color:var(--gold)}
+.h-xl{font-size:clamp(34px,4.6vw,58px);font-weight:900;line-height:1.18;letter-spacing:-.02em}
+.h-lg{font-size:clamp(26px,3.2vw,40px);font-weight:900;line-height:1.25;letter-spacing:-.02em}
+.lead{font-size:clamp(15px,1.35vw,19px);line-height:1.75;color:var(--muted);font-weight:400}
+.dark .lead{color:rgba(250,248,244,.72)}
+.accent{color:var(--teal)}
+.dark .accent{color:var(--gold)}
+.rule{width:56px;height:3px;background:var(--gold);margin:26px 0 30px}
+
+/* ---------- 헤더/푸터 ---------- */
+.brandbar{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:26px 84px;font-family:var(--font-head)}
+.brandbar .logo{font-weight:900;font-size:16px;letter-spacing:.04em;color:var(--ink)}
+.dark .brandbar .logo{color:var(--ivory)}
+.brandbar .logo b{color:var(--gold);font-weight:900;margin:0 1px}
+.brandbar .logo span{font-weight:300;letter-spacing:.12em;margin-left:7px}
+.brandbar .tag{font-size:11.5px;letter-spacing:.22em;color:var(--muted)}
+.dark .brandbar .tag{color:rgba(250,248,244,.5)}
+.pagenum{position:absolute;bottom:26px;right:84px;font-size:12px;letter-spacing:.12em;color:var(--muted)}
+.dark .pagenum{color:rgba(250,248,244,.45)}
+
+/* ---------- 카드/그리드 ---------- */
+.grid{display:grid;gap:18px}
+.g2{grid-template-columns:1fr 1fr}
+.g3{grid-template-columns:repeat(3,1fr)}
+.g4{grid-template-columns:repeat(4,1fr)}
+.card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:26px 24px;position:relative}
+.card .num{font-family:var(--font-head);font-weight:900;font-size:13px;letter-spacing:.14em;color:var(--gold);margin-bottom:12px}
+.card h3{font-size:clamp(15px,1.35vw,19px);font-weight:700;margin-bottom:10px;letter-spacing:-.01em}
+.card p{font-size:clamp(12.5px,1.05vw,14.5px);line-height:1.66;color:var(--muted)}
+.card.bar::before{content:'';position:absolute;left:0;top:22px;bottom:22px;width:3px;background:var(--gold);border-radius:2px}
+
+/* metric */
+.metric{background:#fff;border:1px solid var(--line);border-radius:14px;padding:28px 24px;text-align:left}
+.metric .val{font-family:var(--font-head);font-weight:900;font-size:clamp(30px,3.4vw,46px);color:var(--green);letter-spacing:-.02em;line-height:1.05}
+.metric .val small{font-size:.5em;font-weight:700;color:var(--teal);margin-left:2px}
+.metric .lbl{font-size:13px;color:var(--muted);margin-top:10px;line-height:1.5}
+
+/* 타임라인 */
+.tl{display:grid;grid-template-columns:1fr 1fr;gap:12px 40px}
+.tl-item{display:flex;gap:16px;align-items:flex-start;padding:12px 0;border-bottom:1px solid var(--line)}
+.tl-item .wk{flex:0 0 74px;font-family:var(--font-head);font-weight:900;font-size:14px;color:var(--green);background:rgba(7,46,43,.06);border-radius:8px;text-align:center;padding:7px 0}
+.tl-item .wk.final{background:var(--green);color:var(--gold)}
+.tl-item p{font-size:clamp(12px,1.02vw,14px);line-height:1.55;color:var(--ink);padding-top:6px}
+
+/* before/after */
+.ba{display:flex;align-items:center;gap:14px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:20px 24px}
+.ba .item-name{flex:0 0 128px;font-weight:700;font-size:clamp(13px,1.1vw,15.5px)}
+.ba .before{color:var(--muted);text-decoration:line-through;font-size:clamp(13px,1.15vw,16px);white-space:nowrap}
+.ba .arrow{color:var(--gold);font-weight:900}
+.ba .after{font-family:var(--font-head);font-weight:900;color:var(--green);font-size:clamp(16px,1.5vw,21px);white-space:nowrap}
+.ba .gain{margin-left:auto;font-size:12.5px;font-weight:700;color:#fff;background:var(--teal);border-radius:999px;padding:5px 12px;white-space:nowrap}
+
+/* index list */
+.idx{counter-reset:i}
+.idx li{list-style:none;display:flex;align-items:baseline;gap:22px;padding:16px 0;border-bottom:1px solid rgba(251,251,250,.14);font-family:var(--font-head)}
+.idx li::before{counter-increment:i;content:"0" counter(i);font-weight:900;color:var(--gold);font-size:15px;letter-spacing:.1em}
+.idx li span{font-size:clamp(17px,1.7vw,23px);font-weight:700;letter-spacing:-.01em}
+.idx li em{margin-left:auto;font-style:normal;font-size:12.5px;color:rgba(250,248,244,.5)}
+
+/* 애니메이션 */
+@keyframes fadeUp{from{opacity:0;transform:translateY(26px)}to{opacity:1;transform:translateY(0)}}
+.active .a-stagger>*{opacity:0;animation:fadeUp .55s ease-out forwards}
+.active .a-stagger>*:nth-child(1){animation-delay:.05s}
+.active .a-stagger>*:nth-child(2){animation-delay:.15s}
+.active .a-stagger>*:nth-child(3){animation-delay:.25s}
+.active .a-stagger>*:nth-child(4){animation-delay:.35s}
+.active .a-stagger>*:nth-child(5){animation-delay:.45s}
+.active .a-stagger>*:nth-child(6){animation-delay:.55s}
+.active .a-up{opacity:0;animation:fadeUp .6s ease-out forwards}
+
+/* 내비게이션 */
+.progress-bar{position:fixed;top:0;left:0;height:3px;background:var(--gold);transition:width .3s;z-index:1000}
+.nav-controls{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:16px;z-index:1000}
+.nav-btn{background:rgba(7,46,43,.75);border:none;color:#FAF8F4;width:38px;height:38px;border-radius:50%;cursor:pointer;font-size:16px}
+.nav-btn:hover{background:var(--green)}
+.slide-counter{color:rgba(120,130,128,.9);font-size:13px;font-family:var(--font-head)}
+
+.chart-box{background:#fff;border:1px solid var(--line);border-radius:14px;padding:20px}
+.note{font-size:11.5px;color:var(--muted);margin-top:12px;letter-spacing:.02em}
+.split{display:grid;grid-template-columns:1.05fr 1fr;gap:46px;align-items:center}
+.checkline{display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--line)}
+.checkline .ck{flex:0 0 20px;height:20px;border-radius:6px;background:var(--green);color:var(--gold);font-size:12px;display:flex;align-items:center;justify-content:center;font-weight:900;margin-top:2px}
+.checkline p{font-size:clamp(12.5px,1.08vw,15px);line-height:1.6}
+.checkline p small{display:block;color:var(--muted);font-size:.86em;margin-top:2px}
+
+@media (max-width:768px){
+  .slide{padding:40px 26px}
+  .brandbar{padding:18px 26px}
+  .pagenum{right:26px}
+  .g3,.g4,.tl,.split{grid-template-columns:1fr}
+  .g2{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="progress-bar" id="progressBar"></div>
+<div class="slide-deck">
+
+<!-- 1. 표지 -->
+<div class="slide dark active">
+  <div class="brandbar"><div class="logo">ME<b>+</b>DI<span>FRONT</span></div><div class="tag">OPENING CONSULTING</div></div>
+  <div class="a-up" style="max-width:900px">
+    <div class="kicker">Medifront Opening Consulting Proposal</div>
+    <h1 class="h-xl">개원컨설팅<br>프로세스</h1>
+    <div class="rule"></div>
+    <p class="lead">입지선정부터 계약·인테리어·인허가·구인까지,<br>목표기간 내 완벽한 개원을 설계합니다.</p>
+    <p style="margin-top:44px;font-size:13px;letter-spacing:.2em;color:rgba(250,248,244,.55)">WWW.MEDIFRONT.CO.KR</p>
+  </div>
+  <div class="pagenum">01 / 16</div>
+</div>
+
+<!-- 2. 문제 제기 -->
+<div class="slide">
+  <div class="brandbar"><div class="logo">ME<b>+</b>DI<span>FRONT</span></div><div class="tag">WHY CONSULTING</div></div>
+  <div class="kicker a-up">The Problem</div>
+  <h2 class="h-lg a-up" style="margin-bottom:34px">개원, 혼자 준비하면<br><span class="accent">놓치는 것들</span></h2>
+  <div class="grid g2 a-stagger">
+    <div class="card bar"><h3>일정 지연 리스크</h3><p>진료와 개원 준비를 병행하다 보면 의사결정이 밀리고, 개원일은 기약 없이 늦어집니다. 지연되는 하루하루가 임대료와 기회비용입니다.</p></div>
+    <div class="card bar"><h3>임대차 협상 손해</h3><p>협상 경험이 없는 상태로 시행사·임대인을 마주하면 보증금, 임대료, 지원금에서 수천만 원에서 억 단위까지 손해가 발생합니다.</p></div>
+    <div class="card bar"><h3>인허가 반려로 인한 지연</h3><p>소방·보건소 점검 요건을 놓쳐 개설등록이 반려되면, 인테리어를 되돌리는 비용과 시간을 그대로 떠안게 됩니다.</p></div>
+    <div class="card bar"><h3>업체 선정의 반복 부담</h3><p>인테리어·장비·세무·노무·차트·수탁… 검증 없이 선택하면 개원 이후에도 비용과 갈등이 계속 이어집니다.</p></div>
+  </div>
+  <div class="pagenum">02 / 16</div>
+</div>
+
+<!-- 3. 소개/실적 -->
+<div class="slide">
+  <div class="brandbar"><div class="logo">ME<b>+</b>DI<span>FRONT</span></div><div class="tag">ABOUT US</div></div>
+  <div class="kicker a-up">Why Medifront</div>
+  <h2 class="h-lg a-up" style="margin-bottom:12px">개원의 모든 절차를 대신 수행하는<br>개원 전문 컨설팅, <span class="accent">메디프론트</span></h2>
+  <p class="lead a-up" style="margin-bottom:30px">개원 준비부터 개원 후 경영까지, 원장님은 진료에만 집중하실 수 있도록.</p>
+  <div class="grid g4 a-stagger">
+    <div class="metric"><div class="val">OO<small>건</small></div><div class="lbl">누적 개원 수행<br>(내과·이비인후과·정형외과 등)</div></div>
+    <div class="metric"><div class="val">11<small>주</small></div><div class="lbl">평균 개원 소요기간<br>계약부터 개원까지</div></div>
+    <div class="metric"><div class="val">1<small>억+</small></div><div class="lbl">임대조건 협상 절감 사례<br>보증금·지원금·렌트프리</div></div>
+    <div class="metric"><div class="val">One-Stop</div><div class="lbl">개원 후 경영컨설팅까지<br>행정·마케팅·인력관리</div></div>
+  </div>
+  <p class="note a-up">* OO 표기는 실제 실적 수치로 교체해 주세요.</p>
+  <div class="pagenum">03 / 16</div>
+</div>
+
+<!-- 4. INDEX -->
+<div class="slide dark">
+  <div class="brandbar"><div class="logo">ME<b>+</b>DI<span>FRONT</span></div><div class="tag">INDEX</div></div>
+  <div class="split">
+    <div class="a-up">
+      <div class="kicker">Contents</div>
+      <h2 class="h-xl">INDEX</h2>
+      <div class="rule"></div>
+      <p class="lead">개원의 전 과정을 하나의 프로세스로<br>설계하고, 실제 사례로 증명합니다.</p>
+    </div>
+    <ul class="idx a-stagger">
+      <li><span>개요</span><em>OVERVIEW</em></li>
+      <li><span>개원절차</span><em>PROCESS</em></li>
+      <li><span>11주 개원 타임테이블</span><em>TIMETABLE</em></li>
+      <li><span>절차별 세부예시</span><em>CASE</em></li>
+      <li><span>부설클리닉</span><em>CLINIC</em></li>
+      <li><span>상담 안내</span><em>CONTACT</em></li>
+    </ul>
+  </div>
+  <div class="pagenum">04 / 16</div>
+</div>
+
+<!-- 5. 개요 -->
+<div class="slide">
+  <div class="brandbar"><div class="logo">ME<b>+</b>DI<span>FRONT</span></div><div class="tag">OVERVIEW</div></div>
+  <div class="kicker a-up">Overview</div>
+  <h2 class="h-lg a-up" style="margin-bottom:14px">목표기간 내 개원,<br><span class="accent">약속으로 만듭니다</span></h2>
+  <p class="lead a-up" style="max-width:760px;margin-bottom:32px">입지선정부터 계약, 인테리어, 구인, 장비세팅까지 개원에 필요한 모든 절차를 전문 노하우로 수행하여 목표기간 내 개원을 달성합니다. 개원 후에는 경영컨설팅(행정지원·마케팅·인력관리 자문)을 통해 의원의 안정적인 운영과 매출 극대화에 기여합니다.</p>
+  <div class="grid g3 a-stagger">
+    <div class="card"><div class="num">BEFORE</div><h3>개원 준비</h3><p>상권분석 · 입지선정 · 임대협상 · 계약 · 인테리어 · 인허가 · 구인 · 장비세팅</p></div>
+    <div class="card"><div class="num">D-DAY</div><h3>목표기간 내 개원</h3><p>주차별 로드맵 기반의 일정 관리로 목표한 날짜에 진료를 시작합니다.</p></div>
+    <div class="card"><div class="num">AFTER</div><h3>경영컨설팅</h3><p>행정지원 · 마케팅 · 인력관리 자문으로 안정적 운영과 매출 성장을 지원합니다.</p></div>
+  </div>
+  <div class="pagenum">05 / 16</div>
+</div>
+
+<!-- 6. 절차1 -->
+<div class="slide">
+  <div class="brandbar"><div class="logo">ME<b>+</b>DI<span>FRONT</span></div><div class="tag">PROCESS 01</div></div>
+  <div class="kicker a-up">Process 01</div>
+  <h2 class="h-lg a-up" style="margin-bottom:34px">입지선정 및 계약</h2>
+  <div class="grid g3 a-stagger">
+    <div class="card"><div class="num">STEP 1</div><h3>상권분석</h3><p>주변 세대·인구 분석<br>경쟁 의원 분석<br>유동인구 분석</p></div>
+    <div class="card"><div class="num">STEP 2</div><h3>조건 협의</h3><p>보증금·임대료 협의<br>계약기간 협의<br>지원금·렌트프리 협의</p></div>
+    <div class="card"><div class="num">STEP 3</div><h3>계약</h3><p>법률자문 기반 계약내용 검토<br>지원약정 체결<br>임대차계약 체결</p></div>
+  </div>
+  <p class="note a-up">모든 협상은 메디프론트가 원장님을 대신해 수행하고, 법무법인 자문으로 계약 리스크를 차단합니다.</p>
+  <div class="pagenum">06 / 16</div>
+</div>
+
+<!-- 7. 절차2 -->
+<div class="slide">
+  <div class="brandbar"><div class="logo">ME<b>+</b>DI<span>FRONT</span></div><div class="tag">PROCESS 02</div></div>
+  <div class="kicker a-up">Process 02</div>
+  <h2 class="h-lg a-up" style="margin-bottom:34px">인테리어</h2>
+  <div class="grid g3 a-stagger">
+    <div class="card"><div class="num">STEP 1</div><h3>업체 선정</h3><p>의원급 인테리어 수행경험이 검증된 업체를 선정하고 견적을 비교·협의합니다.</p></div>
+    <div class="card"><div class="num">STEP 2</div><h3>설계</h3><p>메디프론트 자문으로 컨셉을 설정하고, 각 실 배치와 환자·직원 동선을 고려해 설계합니다.</p></div>
+    <div class="card"><div class="num">STEP 3</div><h3>감리·감독</h3><p>공사 전 과정을 감리·감독하여 품질과 일정, 두 가지를 모두 지킵니다.</p></div>
+  </div>
+  <div class="pagenum">07 / 16</div>
+</div>
+
+<!-- 8. 절차3 -->
+<div class="slide">
+  <div class="brandbar"><div class="logo">ME<b>+</b>DI<span>FRONT</span></div><div class="tag">PROCESS 03</div></div>
+  <div class="kicker a-up">Process 03</div>
+  <h2 class="h-lg a-up" style="margin-bottom:34px">행정지원 · 부설클리닉</h2>
+  <div class="grid g2 a-stagger">
+    <div class="card bar"><h3>사업자등록</h3><p>개원 준비를 위한 사전 사업자등록을 진행합니다. (개설등록필증 추후 보완 조건)</p></div>
+    <div class="card bar"><h3>개설등록필증</h3><p>소방·보건소 점검 통과 후 발급받도록 구비서류 준비와 제출을 지원합니다.</p></div>
+    <div class="card bar"><h3>부설클리닉 선정</h3><p>수요 예측을 기반으로 업체 미팅, 조건협의, 컨설팅 계약까지 진행합니다.</p></div>
+    <div class="card bar"><h3>부설클리닉 관리</h3><p>원장님 지시에 따라 관리·감독하고, 마케팅 전략과 운영 현황을 상시 공유합니다.</p></div>
+  </div>
+  <div class="pagenum">08 / 16</div>
+</div>
+
+<!-- 9. 타임테이블 -->
+<div class="slide">
+  <div class="brandbar"><div class="logo">ME<b>+</b>DI<span>FRONT</span></div><div class="tag">TIMETABLE</div></div>
+  <div class="kicker a-up">11-Week Roadmap</div>
+  <h2 class="h-lg a-up" style="margin-bottom:26px">계약에서 개원까지, <span class="accent">11주</span></h2>
+  <div class="tl a-stagger">
+    <div class="tl-item"><div class="wk">1주차</div><p>상권분석·입지선정, 임대차 및 지원협의, 부설클리닉 미팅</p></div>
+    <div class="tl-item"><div class="wk">2주차</div><p>임대차계약·지원약정, 용도변경, 인테리어 업체 미팅·도면작업</p></div>
+    <div class="tl-item"><div class="wk">3주차</div><p>철거 및 인테리어 착공</p></div>
+    <div class="tl-item"><div class="wk">4주차</div><p>세무사·차트업체 선정, 병원명·BI/CI 제작</p></div>
+    <div class="tl-item"><div class="wk">5-6주차</div><p>사업자등록, 구인, 장비·수탁·폐기물 업체 계약, 직원 면접</p></div>
+    <div class="tl-item"><div class="wk">7-8주차</div><p>마케팅 시작, 플레이스 등록, 집기·가전 발주</p></div>
+    <div class="tl-item"><div class="wk">9-10주차</div><p>인허가·소방점검, 심평원 등록, 인테리어 마감, 직원 교육</p></div>
+    <div class="tl-item"><div class="wk final">11주차</div><p style="font-weight:700">개원</p></div>
+  </div>
+  <div class="pagenum">09 / 16</div>
+</div>
+
+<!-- 10. 챕터 표지 -->
+<div class="slide dark">
+  <div class="brandbar"><div class="logo">ME<b>+</b>DI<span>FRONT</span></div><div class="tag">CASE STUDY</div></div>
+  <div class="a-up" style="max-width:860px">
+    <div class="kicker">Case Study</div>
+    <h2 class="h-xl">절차별 세부예시</h2>
+    <div class="rule"></div>
+    <p class="lead">실제 수행 사례를 기반으로 메디프론트의 일하는 방식을 보여드립니다.<br>입지분석 → 조건협의 성과 → 인테리어 → 행정지원 순서입니다.</p>
+  </div>
+  <div class="pagenum">10 / 16</div>
+</div>
+
+<!-- 11. 입지분석 -->
+<div class="slide">
+  <div class="brandbar"><div class="logo">ME<b>+</b>DI<span>FRONT</span></div><div class="tag">CASE 01</div></div>
+  <div class="split">
+    <div>
+      <div class="kicker a-up">Case 01</div>
+      <h2 class="h-lg a-up" style="margin-bottom:22px">입지분석</h2>
+      <div class="a-stagger">
+        <div class="checkline"><div class="ck">✓</div><p>소재지 및 건물 개요<small>경기도 OOO / OO빌딩</small></p></div>
+        <div class="checkline"><div class="ck">✓</div><p>주변 세대수·인프라 분석<small>아파트 단지별 세대수, 역세권·마트 등 집객시설</small></p></div>
+        <div class="checkline"><div class="ck">✓</div><p>경쟁·보완관계 분석<small>경쟁 의원 및 보완 진료과 분포</small></p></div>
+        <div class="checkline"><div class="ck">✓</div><p>소비인구 및 향후 기대요인<small>반경 내 인구수, 학교 신설 예정 등</small></p></div>
+      </div>
+    </div>
+    <div class="chart-box a-up">
+      <p style="font-family:var(--font-head);font-weight:700;font-size:14px;margin-bottom:12px">주변 단지 세대수 분석 <span style="color:var(--muted);font-weight:400">(예시)</span></p>
+      <div style="height:250px"><canvas id="chartHouseholds"></canvas></div>
+      <p class="note">* 실제 개원 예정지 데이터로 교체됩니다.</p>
+    </div>
+  </div>
+  <div class="pagenum">11 / 16</div>
+</div>
+
+<!-- 12. 조건협의 성과 -->
+<div class="slide">
+  <div class="brandbar"><div class="logo">ME<b>+</b>DI<span>FRONT</span></div><div class="tag">CASE 02</div></div>
+  <div class="kicker a-up">Case 02 — Negotiation</div>
+  <h2 class="h-lg a-up" style="margin-bottom:8px">조건협의 성과: <span class="accent">협상이 만든 1억 원+</span></h2>
+  <p class="lead a-up" style="margin-bottom:26px">시행사 최초 제시 조건 대비, 메디프론트가 협상으로 만들어낸 실제 결과입니다.</p>
+  <div class="grid a-stagger" style="gap:12px">
+    <div class="ba"><div class="item-name">보증금</div><div class="before">3억 5천만원</div><div class="arrow">→</div><div class="after">2억 5천만원</div><div class="gain">1억원 절감</div></div>
+    <div class="ba"><div class="item-name">월임대료</div><div class="before">전용평당 12만원</div><div class="arrow">→</div><div class="after">전용평당 10만원</div><div class="gain">17% 인하</div></div>
+    <div class="ba"><div class="item-name">인테리어지원금</div><div class="before">평당 200만원</div><div class="arrow">→</div><div class="after">평당 250만원</div><div class="gain">25% 상향</div></div>
+    <div class="ba"><div class="item-name">렌트프리</div><div class="before">3개월</div><div class="arrow">→</div><div class="after">6개월</div><div class="gain">2배 확대</div></div>
+  </div>
+  <p class="note a-up">법무법인 자문을 통해 지원약정서·임대차계약서를 검토한 뒤 체결합니다.</p>
+  <div class="pagenum">12 / 16</div>
+</div>
+
+<!-- 13. 인테리어 사례 -->
+<div class="slide">
+  <div class="brandbar"><div class="logo">ME<b>+</b>DI<span>FRONT</span></div><div class="tag">CASE 03</div></div>
+  <div class="kicker a-up">Case 03</div>
+  <h2 class="h-lg a-up" style="margin-bottom:14px">인테리어</h2>
+  <p class="lead a-up" style="max-width:760px;margin-bottom:32px">전체 컨셉과 색상, 동선, 각 실의 배치를 원장님께 먼저 제안드리고, 의견을 반영해 도면을 설계합니다. 시공 전 과정은 메디프론트가 감리·감독합니다.</p>
+  <div class="grid g3 a-stagger">
+    <div class="card"><div class="num">PROPOSE</div><h3>컨셉 제안</h3><p>진료과목과 타깃 환자층에 맞춘 컨셉·색상·마감재 제안</p></div>
+    <div class="card"><div class="num">DESIGN</div><h3>도면 설계</h3><p>접수-대기-진료-검사 동선을 고려한 각 실 배치 설계</p></div>
+    <div class="card"><div class="num">SUPERVISE</div><h3>감리·감독</h3><p>공정별 품질 점검과 일정 관리로 마감 품질 보장</p></div>
+  </div>
+  <div class="pagenum">13 / 16</div>
+</div>
+
+<!-- 14. 행정지원 체크리스트 -->
+<div class="slide">
+  <div class="brandbar"><div class="logo">ME<b>+</b>DI<span>FRONT</span></div><div class="tag">CASE 04</div></div>
+  <div class="kicker a-up">Case 04</div>
+  <h2 class="h-lg a-up" style="margin-bottom:14px">행정지원 체크리스트</h2>
+  <p class="lead a-up" style="margin-bottom:26px">모든 항목은 일자·업체명·특이사항이 기록으로 관리되어 원장님께 투명하게 공유됩니다.</p>
+  <div class="grid g2 a-stagger" style="gap:0 46px">
+    <div>
+      <div class="checkline"><div class="ck">✓</div><p>세무사 미팅·계약</p></div>
+      <div class="checkline"><div class="ck">✓</div><p>차트업체 미팅·계약</p></div>
+      <div class="checkline"><div class="ck">✓</div><p>사업자등록 · 개설등록필증</p></div>
+      <div class="checkline"><div class="ck">✓</div><p>의료장비 업체 미팅·계약</p></div>
+    </div>
+    <div>
+      <div class="checkline"><div class="ck">✓</div><p>수탁·폐기물 업체 계약</p></div>
+      <div class="checkline"><div class="ck">✓</div><p>PC·프린터 업체 계약</p></div>
+      <div class="checkline"><div class="ck">✓</div><p>필요인력 산출 · 구인공고</p></div>
+      <div class="checkline"><div class="ck">✓</div><p>근로계약 · 직원 교육</p></div>
+    </div>
+  </div>
+  <div class="pagenum">14 / 16</div>
+</div>
+
+<!-- 15. 부설클리닉 -->
+<div class="slide">
+  <div class="brandbar"><div class="logo">ME<b>+</b>DI<span>FRONT</span></div><div class="tag">CLINIC</div></div>
+  <div class="kicker a-up">Additional Revenue</div>
+  <h2 class="h-lg a-up" style="margin-bottom:14px">부설클리닉: <span class="accent">추가 수익 모델</span></h2>
+  <p class="lead a-up" style="max-width:760px;margin-bottom:32px">진료 외 추가 매출원을 설계합니다. 수요 예측을 기반으로 부설클리닉을 선정하고, 목표매출 달성까지 메디프론트가 함께 관리합니다.</p>
+  <div class="grid g4 a-stagger">
+    <div class="card"><div class="num">01</div><h3>선정</h3><p>수요 예측 기반 업체 미팅 및 조건협의</p></div>
+    <div class="card"><div class="num">02</div><h3>세팅</h3><p>면적·인력·초기준비금 설계</p></div>
+    <div class="card"><div class="num">03</div><h3>목표</h3><p>목표매출 설정 및 달성 계획안 수립</p></div>
+    <div class="card"><div class="num">04</div><h3>관리</h3><p>상시 마케팅 전략·운영 현황 공유</p></div>
+  </div>
+  <div class="pagenum">15 / 16</div>
+</div>
+
+<!-- 16. CTA -->
+<div class="slide dark">
+  <div class="brandbar"><div class="logo">ME<b>+</b>DI<span>FRONT</span></div><div class="tag">CONTACT</div></div>
+  <div class="a-up" style="max-width:880px">
+    <div class="kicker">Free Consulting</div>
+    <h2 class="h-xl">개원 예정지,<br>무료 입지분석부터 시작하세요</h2>
+    <div class="rule"></div>
+    <div class="grid g2" style="max-width:720px;margin-top:8px">
+      <div>
+        <p style="font-size:12px;letter-spacing:.2em;color:var(--gold);font-weight:700;margin-bottom:6px">MANAGING DIRECTOR</p>
+        <p style="font-family:var(--font-head);font-weight:700;font-size:19px">이훈희 <span style="font-weight:400;font-size:15px;color:rgba(250,248,244,.75)">010-7607-3161</span></p>
+      </div>
+      <div>
+        <p style="font-size:12px;letter-spacing:.2em;color:var(--gold);font-weight:700;margin-bottom:6px">CONSULTING DIRECTOR</p>
+        <p style="font-family:var(--font-head);font-weight:700;font-size:19px">조일권 <span style="font-weight:400;font-size:15px;color:rgba(250,248,244,.75)">010-8362-8899</span></p>
+      </div>
+    </div>
+    <p style="margin-top:38px;font-size:13.5px;color:rgba(250,248,244,.6);letter-spacing:.06em">medifront.md@gmail.com &nbsp;·&nbsp; www.medifront.co.kr &nbsp;·&nbsp; 제공: 메디프론트</p>
+  </div>
+  <div class="pagenum">16 / 16</div>
+</div>
+
+</div><!-- /.slide-deck -->
+
+<div class="nav-controls">
+  <button class="nav-btn" onclick="prevSlide()">←</button>
+  <span class="slide-counter"><span id="current">1</span> / <span id="total">16</span></span>
+  <button class="nav-btn" onclick="nextSlide()">→</button>
+</div>
+
+<script>
+let current=1;
+const total=document.querySelectorAll('.slide').length;
+document.getElementById('total').textContent=total;
+function showSlide(n){
+  if(n<1)n=1;if(n>total)n=total;current=n;
+  document.querySelectorAll('.slide').forEach((s,i)=>{s.classList.toggle('active',i===n-1)});
+  document.getElementById('current').textContent=n;
+  document.getElementById('progressBar').style.width=(n/total*100)+'%';
+}
+function nextSlide(){showSlide(current+1)}
+function prevSlide(){showSlide(current-1)}
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'||e.key===' '){e.preventDefault();nextSlide()}
+  if(e.key==='ArrowLeft'){e.preventDefault();prevSlide()}
+});
+document.addEventListener('click',e=>{if(!e.target.closest('.nav-controls'))nextSlide()});
+showSlide(1);
+
+/* 입지분석 예시 차트 */
+new Chart(document.getElementById('chartHouseholds'),{
+  type:'bar',
+  data:{
+    labels:['OO아파트','OOO아파트','OOXX아파트','XXOO아파트','기타'],
+    datasets:[{
+      data:[1240,860,720,540,380],
+      backgroundColor:['#221E1F','#072E2B','#149A87','#2CBFA9','#9ADFD3'],
+      borderRadius:6,
+      barPercentage:.62
+    }]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.y.toLocaleString()+'세대 (예시)'}}},
+    scales:{
+      x:{grid:{display:false},ticks:{color:'#5C6B68',font:{family:'Pretendard Variable',size:11}}},
+      y:{grid:{color:'rgba(7,46,43,.07)'},ticks:{color:'#5C6B68',font:{family:'Pretendard Variable',size:11},callback:v=>v.toLocaleString()}}
+    }
+  }
+});
+</script>
+</body>
+</html>
