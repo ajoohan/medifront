@@ -108,6 +108,10 @@ h1,h2,h3{font-family:var(--font-head)}
 .progress-bar{position:fixed;top:0;left:0;height:3px;background:var(--gold);transition:width .3s;z-index:1000}
 .nav-controls{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:16px;z-index:1000}
 .nav-btn{background:rgba(7,46,43,.75);border:none;color:#FAF8F4;width:38px;height:38px;border-radius:50%;cursor:pointer;font-size:16px}
+/* PDF 다운로드 — 지금 보고 있는 화면(해상도·레이아웃) 그대로 슬라이드를 캡처해 저장 */
+.nav-btn--pdf{width:auto;border-radius:19px;padding:0 16px;font-size:12.5px;font-weight:700;letter-spacing:.04em;white-space:nowrap}
+.nav-btn--pdf:disabled{opacity:.6;cursor:default}
+.exporting .slide{transition:none!important}
 .nav-btn:hover{background:var(--green)}
 .slide-counter{color:rgba(120,130,128,.9);font-size:13px;font-family:var(--font-head)}
 
@@ -401,6 +405,7 @@ h1,h2,h3{font-family:var(--font-head)}
   <button class="nav-btn" onclick="prevSlide()">←</button>
   <span class="slide-counter"><span id="current">1</span> / <span id="total">16</span></span>
   <button class="nav-btn" onclick="nextSlide()">→</button>
+  <button class="nav-btn nav-btn--pdf" id="pdfBtn" onclick="downloadPdf()">PDF 다운로드</button>
 </div>
 
 <script>
@@ -420,6 +425,59 @@ document.addEventListener('keydown',e=>{
   if(e.key==='ArrowLeft'){e.preventDefault();prevSlide()}
 });
 document.addEventListener('click',e=>{if(!e.target.closest('.nav-controls'))nextSlide()});
+
+/* ---------- PDF 다운로드 ----------
+   지금 보고 있는 화면(해상도·레이아웃)을 그대로 캡처한다 —
+   PC 에서 누르면 PC 레이아웃으로, 모바일에서 누르면 모바일 레이아웃으로.
+   슬라이드를 한 장씩 활성화하며 캡처해 PDF 페이지로 묶는다. */
+function loadScript(src){
+  return new Promise((res,rej)=>{
+    const s=document.createElement('script');
+    s.src=src;s.onload=res;s.onerror=()=>rej(new Error('load fail: '+src));
+    document.head.appendChild(s);
+  });
+}
+let pdfLibsReady=null;
+function ensurePdfLibs(){
+  if(!pdfLibsReady){
+    pdfLibsReady=Promise.all([
+      loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js'),
+      loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js')
+    ]).catch(e=>{pdfLibsReady=null;throw e;});
+  }
+  return pdfLibsReady;
+}
+async function downloadPdf(){
+  const btn=document.getElementById('pdfBtn');
+  const deck=document.querySelector('.slide-deck');
+  const prev=current;
+  btn.disabled=true;
+  try{
+    btn.textContent='준비 중...';
+    await ensurePdfLibs();
+    deck.classList.add('exporting'); // 캡처 중 슬라이드 전환 애니메이션 제거
+    const {jsPDF}=window.jspdf;
+    let pdf=null;
+    for(let i=1;i<=total;i++){
+      btn.textContent='생성 중 '+i+'/'+total;
+      showSlide(i);
+      await new Promise(r=>setTimeout(r,150)); // 렌더 안정화
+      const canvas=await html2canvas(deck,{scale:2,useCORS:true});
+      const w=canvas.width/2, h=canvas.height/2; // scale 보정한 화면 픽셀 크기
+      if(!pdf) pdf=new jsPDF({unit:'px',format:[w,h],orientation:w>h?'l':'p',hotfixes:['px_scaling']});
+      else pdf.addPage([w,h],w>h?'l':'p');
+      pdf.addImage(canvas.toDataURL('image/jpeg',0.92),'JPEG',0,0,w,h);
+    }
+    pdf.save('메디프론트_개원컨설팅.pdf');
+  }catch(e){
+    alert('PDF 생성에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+  }finally{
+    deck.classList.remove('exporting');
+    showSlide(prev);
+    btn.textContent='PDF 다운로드';
+    btn.disabled=false;
+  }
+}
 showSlide(1);
 
 /* 입지분석 예시 차트 */
