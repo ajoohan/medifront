@@ -45,7 +45,10 @@ h1,h2,h3{font-family:var(--font-head)}
 
 /* ---------- 헤더/푸터 ---------- */
 .brandbar{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:26px 84px;font-family:var(--font-head)}
-.brandbar .logo{font-weight:900;font-size:16px;letter-spacing:.04em;color:var(--ink)}
+.brandbar .logo{font-weight:900;font-size:16px;letter-spacing:.04em;color:var(--ink);text-decoration:none;cursor:pointer}
+/* 연락처 링크 — 전화·메일·홈페이지. 본문 색을 그대로 따르고 터치 시에만 밑줄 */
+a.contact-link{color:inherit;text-decoration:none}
+a.contact-link:hover,a.contact-link:active{text-decoration:underline}
 .dark .brandbar .logo{color:var(--ivory)}
 .brandbar .logo b{color:var(--gold);font-weight:900;margin:0 1px}
 .brandbar .logo span{font-weight:300;letter-spacing:.12em;margin-left:7px}
@@ -138,7 +141,7 @@ h1,h2,h3{font-family:var(--font-head)}
 
 <!-- 1. 표지 -->
 <div class="slide dark active">
-  <div class="brandbar"><div class="logo">ME<b>+</b>DI<span>FRONT</span></div><div class="tag">OPENING CONSULTING</div></div>
+  <div class="brandbar"><a class="logo" href="https://medifront.co.kr" onclick="event.stopPropagation()">ME<b>+</b>DI<span>FRONT</span></a><div class="tag">OPENING CONSULTING</div></div>
   <div class="a-up" style="max-width:900px">
     <div class="kicker">Medifront Opening Consulting Proposal</div>
     <h1 class="h-xl">개원컨설팅<br>프로세스</h1>
@@ -151,7 +154,7 @@ h1,h2,h3{font-family:var(--font-head)}
 
 <!-- 2. 문제 제기 -->
 <div class="slide">
-  <div class="brandbar"><div class="logo">ME<b>+</b>DI<span>FRONT</span></div><div class="tag">WHY CONSULTING</div></div>
+  <div class="brandbar"><a class="logo" href="https://medifront.co.kr" onclick="event.stopPropagation()">ME<b>+</b>DI<span>FRONT</span></a><div class="tag">WHY CONSULTING</div></div>
   <div class="kicker a-up">The Problem</div>
   <h2 class="h-lg a-up" style="margin-bottom:34px">개원, 혼자 준비하면<br><span class="accent">놓치는 것들</span></h2>
   <div class="grid g2 a-stagger">
@@ -165,7 +168,7 @@ h1,h2,h3{font-family:var(--font-head)}
 
 <!-- 3. 소개/실적 -->
 <div class="slide">
-  <div class="brandbar"><div class="logo">ME<b>+</b>DI<span>FRONT</span></div><div class="tag">ABOUT US</div></div>
+  <div class="brandbar"><a class="logo" href="https://medifront.co.kr" onclick="event.stopPropagation()">ME<b>+</b>DI<span>FRONT</span></a><div class="tag">ABOUT US</div></div>
   <div class="kicker a-up">Why Medifront</div>
   <h2 class="h-lg a-up" style="margin-bottom:12px">개원의 모든 절차를 대신 수행하는<br>개원 전문 컨설팅, <span class="accent">메디프론트</span></h2>
   <p class="lead a-up" style="margin-bottom:30px">개원 준비부터 개원 후 경영까지, 원장님은 진료에만 집중하실 수 있도록.</p>
@@ -181,7 +184,7 @@ h1,h2,h3{font-family:var(--font-head)}
 
 <!-- 4. INDEX -->
 <div class="slide dark">
-  <div class="brandbar"><div class="logo">ME<b>+</b>DI<span>FRONT</span></div><div class="tag">INDEX</div></div>
+  <div class="brandbar"><a class="logo" href="https://medifront.co.kr" onclick="event.stopPropagation()">ME<b>+</b>DI<span>FRONT</span></a><div class="tag">INDEX</div></div>
   <div class="split">
     <div class="a-up">
       <div class="kicker">Contents</div>
@@ -203,7 +206,7 @@ h1,h2,h3{font-family:var(--font-head)}
 
 <!-- 5. 개요 -->
 <div class="slide">
-  <div class="brandbar"><div class="logo">ME<b>+</b>DI<span>FRONT</span></div><div class="tag">OVERVIEW</div></div>
+  <div class="brandbar"><a class="logo" href="https://medifront.co.kr" onclick="event.stopPropagation()">ME<b>+</b>DI<span>FRONT</span></a><div class="tag">OVERVIEW</div></div>
   <div class="kicker a-up">Overview</div>
   <h2 class="h-lg a-up" style="margin-bottom:14px">목표기간 내 개원,<br><span class="accent">약속으로 만듭니다</span></h2>
   <p class="lead a-up" style="max-width:760px;margin-bottom:32px">입지선정부터 계약, 인테리어, 구인, 장비세팅까지 개원에 필요한 모든 절차를 전문 노하우로 수행하여 목표기간 내 개원을 달성합니다. 개원 후에는 경영컨설팅(행정지원·마케팅·인력관리 자문)을 통해 의원의 안정적인 운영과 매출 극대화에 기여합니다.</p>
@@ -217,7 +220,7 @@ h1,h2,h3{font-family:var(--font-head)}
 
 <!-- 6. 절차1 -->
 <div class="slide">
-  <div class="brandbar"><div class="logo">ME<b>+</b>DI<span>FRONT</span></div><div class="tag">PROCESS 01</div></div>
+  <div class="brandbar"><a class="logo" href="https://medifront.co.kr" onclick="event.stopPropagation()">ME<b>+</b>DI<span>FRONT</span></a><div class="tag">PROCESS 01</div></div>
   <div class="kicker a-up">Process 01</div>
   <h2 class="h-lg a-up" style="margin-bottom:34px">입지선정 및 계약</h2>
   <div class="grid g3 a-stagger">
@@ -231,7 +234,7 @@ h1,h2,h3{font-family:var(--font-head)}
 
 <!-- 7. 절차2 -->
 <div class="slide">
-  <div class="brandbar"><div class="logo">ME<b>+</b>DI<span>FRONT</span></div><div class="tag">PROCESS 02</div></div>
+  <div class="brandbar"><a class="logo" href="https://medifront.co.kr" onclick="event.stopPropagation()">ME<b>+</b>DI<span>FRONT</span></a><div class="tag">PROCESS 02</div></div>
   <div class="kicker a-up">Process 02</div>
   <h2 class="h-lg a-up" style="margin-bottom:34px">인테리어</h2>
   <div class="grid g3 a-stagger">
@@ -244,7 +247,7 @@ h1,h2,h3{font-family:var(--font-head)}
 
 <!-- 8. 절차3 -->
 <div class="slide">
-  <div class="brandbar"><div class="logo">ME<b>+</b>DI<span>FRONT</span></div><div class="tag">PROCESS 03</div></div>
+  <div class="brandbar"><a class="logo" href="https://medifront.co.kr" onclick="event.stopPropagation()">ME<b>+</b>DI<span>FRONT</span></a><div class="tag">PROCESS 03</div></div>
   <div class="kicker a-up">Process 03</div>
   <h2 class="h-lg a-up" style="margin-bottom:34px">행정지원 · 부설클리닉</h2>
   <div class="grid g2 a-stagger">
@@ -258,7 +261,7 @@ h1,h2,h3{font-family:var(--font-head)}
 
 <!-- 9. 타임테이블 -->
 <div class="slide">
-  <div class="brandbar"><div class="logo">ME<b>+</b>DI<span>FRONT</span></div><div class="tag">TIMETABLE</div></div>
+  <div class="brandbar"><a class="logo" href="https://medifront.co.kr" onclick="event.stopPropagation()">ME<b>+</b>DI<span>FRONT</span></a><div class="tag">TIMETABLE</div></div>
   <div class="kicker a-up">11-Week Roadmap</div>
   <h2 class="h-lg a-up" style="margin-bottom:26px">계약에서 개원까지, <span class="accent">11주</span></h2>
   <div class="tl a-stagger">
@@ -276,7 +279,7 @@ h1,h2,h3{font-family:var(--font-head)}
 
 <!-- 10. 챕터 표지 -->
 <div class="slide dark">
-  <div class="brandbar"><div class="logo">ME<b>+</b>DI<span>FRONT</span></div><div class="tag">CASE STUDY</div></div>
+  <div class="brandbar"><a class="logo" href="https://medifront.co.kr" onclick="event.stopPropagation()">ME<b>+</b>DI<span>FRONT</span></a><div class="tag">CASE STUDY</div></div>
   <div class="a-up" style="max-width:860px">
     <div class="kicker">Case Study</div>
     <h2 class="h-xl">절차별 세부예시</h2>
@@ -288,7 +291,7 @@ h1,h2,h3{font-family:var(--font-head)}
 
 <!-- 11. 입지분석 -->
 <div class="slide">
-  <div class="brandbar"><div class="logo">ME<b>+</b>DI<span>FRONT</span></div><div class="tag">CASE 01</div></div>
+  <div class="brandbar"><a class="logo" href="https://medifront.co.kr" onclick="event.stopPropagation()">ME<b>+</b>DI<span>FRONT</span></a><div class="tag">CASE 01</div></div>
   <div class="split">
     <div>
       <div class="kicker a-up">Case 01</div>
@@ -311,7 +314,7 @@ h1,h2,h3{font-family:var(--font-head)}
 
 <!-- 12. 조건협의 성과 -->
 <div class="slide">
-  <div class="brandbar"><div class="logo">ME<b>+</b>DI<span>FRONT</span></div><div class="tag">CASE 02</div></div>
+  <div class="brandbar"><a class="logo" href="https://medifront.co.kr" onclick="event.stopPropagation()">ME<b>+</b>DI<span>FRONT</span></a><div class="tag">CASE 02</div></div>
   <div class="kicker a-up">Case 02 — Negotiation</div>
   <h2 class="h-lg a-up" style="margin-bottom:8px">조건협의 성과: <span class="accent">협상이 만든 1억 원+</span></h2>
   <p class="lead a-up" style="margin-bottom:26px">시행사 최초 제시 조건 대비, 메디프론트가 협상으로 만들어낸 실제 결과입니다.</p>
@@ -327,7 +330,7 @@ h1,h2,h3{font-family:var(--font-head)}
 
 <!-- 13. 인테리어 사례 -->
 <div class="slide">
-  <div class="brandbar"><div class="logo">ME<b>+</b>DI<span>FRONT</span></div><div class="tag">CASE 03</div></div>
+  <div class="brandbar"><a class="logo" href="https://medifront.co.kr" onclick="event.stopPropagation()">ME<b>+</b>DI<span>FRONT</span></a><div class="tag">CASE 03</div></div>
   <div class="kicker a-up">Case 03</div>
   <h2 class="h-lg a-up" style="margin-bottom:14px">인테리어</h2>
   <p class="lead a-up" style="max-width:760px;margin-bottom:32px">전체 컨셉과 색상, 동선, 각 실의 배치를 원장님께 먼저 제안드리고, 의견을 반영해 도면을 설계합니다. 시공 전 과정은 메디프론트가 감리·감독합니다.</p>
@@ -341,7 +344,7 @@ h1,h2,h3{font-family:var(--font-head)}
 
 <!-- 14. 행정지원 체크리스트 -->
 <div class="slide">
-  <div class="brandbar"><div class="logo">ME<b>+</b>DI<span>FRONT</span></div><div class="tag">CASE 04</div></div>
+  <div class="brandbar"><a class="logo" href="https://medifront.co.kr" onclick="event.stopPropagation()">ME<b>+</b>DI<span>FRONT</span></a><div class="tag">CASE 04</div></div>
   <div class="kicker a-up">Case 04</div>
   <h2 class="h-lg a-up" style="margin-bottom:14px">행정지원 체크리스트</h2>
   <p class="lead a-up" style="margin-bottom:26px">모든 항목은 일자·업체명·특이사항이 기록으로 관리되어 원장님께 투명하게 공유됩니다.</p>
@@ -364,7 +367,7 @@ h1,h2,h3{font-family:var(--font-head)}
 
 <!-- 15. 부설클리닉 -->
 <div class="slide">
-  <div class="brandbar"><div class="logo">ME<b>+</b>DI<span>FRONT</span></div><div class="tag">CLINIC</div></div>
+  <div class="brandbar"><a class="logo" href="https://medifront.co.kr" onclick="event.stopPropagation()">ME<b>+</b>DI<span>FRONT</span></a><div class="tag">CLINIC</div></div>
   <div class="kicker a-up">Additional Revenue</div>
   <h2 class="h-lg a-up" style="margin-bottom:14px">부설클리닉: <span class="accent">추가 수익 모델</span></h2>
   <p class="lead a-up" style="max-width:760px;margin-bottom:32px">진료 외 추가 매출원을 설계합니다. 수요 예측을 기반으로 부설클리닉을 선정하고, 목표매출 달성까지 메디프론트가 함께 관리합니다.</p>
@@ -379,7 +382,7 @@ h1,h2,h3{font-family:var(--font-head)}
 
 <!-- 16. CTA -->
 <div class="slide dark">
-  <div class="brandbar"><div class="logo">ME<b>+</b>DI<span>FRONT</span></div><div class="tag">CONTACT</div></div>
+  <div class="brandbar"><a class="logo" href="https://medifront.co.kr" onclick="event.stopPropagation()">ME<b>+</b>DI<span>FRONT</span></a><div class="tag">CONTACT</div></div>
   <div class="a-up" style="max-width:880px">
     <div class="kicker">Free Consulting</div>
     <h2 class="h-xl">개원 예정지,<br>무료 입지분석부터 시작하세요</h2>
@@ -387,14 +390,14 @@ h1,h2,h3{font-family:var(--font-head)}
     <div class="grid g2" style="max-width:720px;margin-top:8px">
       <div>
         <p style="font-size:12px;letter-spacing:.2em;color:var(--gold);font-weight:700;margin-bottom:6px">MANAGING DIRECTOR</p>
-        <p style="font-family:var(--font-head);font-weight:700;font-size:19px">이훈희 <span style="font-weight:400;font-size:15px;color:rgba(250,248,244,.75)">010-7607-3161</span></p>
+        <p style="font-family:var(--font-head);font-weight:700;font-size:19px">이훈희 <span style="font-weight:400;font-size:15px;color:rgba(250,248,244,.75)"><a class="contact-link" href="tel:010-7607-3161" onclick="event.stopPropagation()">010-7607-3161</a></span></p>
       </div>
       <div>
         <p style="font-size:12px;letter-spacing:.2em;color:var(--gold);font-weight:700;margin-bottom:6px">CONSULTING DIRECTOR</p>
-        <p style="font-family:var(--font-head);font-weight:700;font-size:19px">조일권 <span style="font-weight:400;font-size:15px;color:rgba(250,248,244,.75)">010-8362-8899</span></p>
+        <p style="font-family:var(--font-head);font-weight:700;font-size:19px">조일권 <span style="font-weight:400;font-size:15px;color:rgba(250,248,244,.75)"><a class="contact-link" href="tel:010-8362-8899" onclick="event.stopPropagation()">010-8362-8899</a></span></p>
       </div>
     </div>
-    <p style="margin-top:38px;font-size:13.5px;color:rgba(250,248,244,.6);letter-spacing:.06em">medifront.md@gmail.com &nbsp;·&nbsp; www.medifront.co.kr &nbsp;·&nbsp; 제공: 메디프론트</p>
+    <p style="margin-top:38px;font-size:13.5px;color:rgba(250,248,244,.6);letter-spacing:.06em"><a class="contact-link" href="mailto:medifront.md@gmail.com" onclick="event.stopPropagation()">medifront.md@gmail.com</a> &nbsp;·&nbsp; <a class="contact-link" href="https://medifront.co.kr" onclick="event.stopPropagation()">www.medifront.co.kr</a> &nbsp;·&nbsp; 제공: 메디프론트</p>
   </div>
   <div class="pagenum">16 / 16</div>
 </div>
