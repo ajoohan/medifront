@@ -1151,11 +1151,18 @@ ul {
   line-height: 1.7;
   color: var(--muted);
 }
-/* 긴 화살표 — 자료를 연다는 신호. 마우스를 올리면 살짝 나아간다 */
+/* 본문이 남은 폭을 차지해 화살표를 오른쪽 끝으로 민다 */
+.docs-item__body {
+  flex: 1;
+  min-width: 0;
+}
+/* 긴 화살표 — 자료를 연다는 신호. 오른쪽 끝에 여백을 두고 정렬한다 */
 .docs-item__go {
   flex-shrink: 0;
   display: flex;
   align-items: center;
+  margin-left: auto;
+  padding-right: 4px;
   color: var(--primary);
   transition: transform 0.2s ease;
 }
