@@ -1,37 +1,35 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import useReveal from '../hooks/useReveal'
 import { useUser } from '../context/UserContext'
+import { CONSULTING_DOCS } from '../lib/consultingDocs'
 
-// 회원 전용 컨설팅 자료 목록.
-// 자료 본문은 public/ 의 단일 HTML 덱이라 라우터를 거치지 않는다 —
-// 목록은 누구나 볼 수 있고, 열람은 로그인한 회원만 가능하다.
-const DOCS = [
-  {
-    file: '/consulting_1.html',
-    kicker: 'OPENING CONSULTING',
-    title: '개원컨설팅 프로세스',
-    desc: '입지 선정·계약부터 인테리어, 행정지원, 부설클리닉까지 개원 전 과정의 절차와 실제 사례를 정리했습니다.',
-    meta: '16장',
-  },
-  {
-    file: '/consulting_2.html',
-    kicker: 'PHARMACY NEW MODEL',
-    title: '약국 신(新)모델 입점 예시 — 파주운정',
-    desc: '배후 세대·상권 인구 분석부터 의원·약국 입점 모델(M1/M2)까지, 신규 입점 전략 제안 자료입니다.',
-    meta: '9장',
-  },
-]
-
+// 컨설팅 자료 — 목록은 누구나 보고, 열람은 로그인 회원만.
+// 회원이 자료를 고르면 같은 페이지 안(iframe)에서 바로 펼쳐 본다.
 export default function ConsultingDocsPage() {
   useReveal()
   const { user, openLogin } = useUser()
-  // 비회원이 자료를 눌렀을 때 띄우는 안내
-  const [gateOpen, setGateOpen] = useState(false)
+  const [openDoc, setOpenDoc] = useState(null) // 지금 보고 있는 자료
+  const [gateOpen, setGateOpen] = useState(false) // 비회원 안내
 
-  const openDoc = (e, file) => {
-    if (user) return // 회원이면 링크 그대로 새 창
-    e.preventDefault()
-    setGateOpen(true)
+  // 자료를 보는 동안에는 뒤 배경이 스크롤되지 않게 한다
+  useEffect(() => {
+    if (!openDoc) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    const onKey = (e) => e.key === 'Escape' && setOpenDoc(null)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.body.style.overflow = prev
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [openDoc])
+
+  const pick = (doc) => {
+    if (!user) {
+      setGateOpen(true)
+      return
+    }
+    setOpenDoc(doc)
   }
 
   return (
@@ -50,31 +48,63 @@ export default function ConsultingDocsPage() {
       <section className="section">
         <div className="container">
           <ul className="docs-list reveal">
-            {DOCS.map((d) => (
+            {CONSULTING_DOCS.map((d) => (
               <li key={d.file}>
-                {/* 자료는 라우터 밖의 단일 HTML — 회원은 새 창, 비회원은 안내 */}
-                <a
-                  className="docs-item"
-                  href={d.file}
-                  target="_blank"
-                  rel="noreferrer"
-                  onClick={(e) => openDoc(e, d.file)}
-                >
+                <button type="button" className="docs-item" onClick={() => pick(d)}>
                   <div className="docs-item__body">
                     <span className="docs-item__kicker">{d.kicker}</span>
                     <h3>{d.title}</h3>
                     <p>{d.desc}</p>
                   </div>
-                  <span className="docs-item__go">
-                    {d.meta}
-                    <b aria-hidden="true">{user ? '↗' : '🔒'}</b>
+                  <span className="docs-item__go" aria-hidden="true">
+                    <svg viewBox="0 0 120 12" width="120" height="12" fill="none">
+                      <path
+                        d="M2 6h108"
+                        stroke="currentColor"
+                        strokeWidth="1.6"
+                        strokeLinecap="round"
+                      />
+                      <path
+                        d="M104 1.5 110.5 6 104 10.5"
+                        stroke="currentColor"
+                        strokeWidth="1.6"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
                   </span>
-                </a>
+                </button>
               </li>
             ))}
           </ul>
         </div>
       </section>
+
+      {/* 자료 열람 — 사이트 안에서 바로 펼친다 */}
+      {openDoc && (
+        <div className="doc-viewer" role="dialog" aria-modal="true" aria-label={openDoc.title}>
+          <div className="doc-viewer__bar">
+            <div className="doc-viewer__title">
+              <span>{openDoc.kicker}</span>
+              <b>{openDoc.title}</b>
+            </div>
+            <div className="doc-viewer__actions">
+              <a className="doc-viewer__link" href={openDoc.file} target="_blank" rel="noreferrer">
+                새 창으로 보기 ↗
+              </a>
+              <button
+                type="button"
+                className="doc-viewer__close"
+                onClick={() => setOpenDoc(null)}
+                aria-label="닫기"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+          <iframe className="doc-viewer__frame" src={openDoc.file} title={openDoc.title} />
+        </div>
+      )}
 
       {/* 비회원이 자료를 눌렀을 때 — 회원 전용 안내 */}
       {gateOpen && (

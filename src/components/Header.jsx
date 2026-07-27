@@ -1,12 +1,18 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { NAV } from '../data'
+import { CONSULTING_DOCS } from '../lib/consultingDocs'
 import Logo from './Logo'
 import { useUser } from '../context/UserContext'
 
 // 관리자·운영자는 회원등급 대신 역할(최고관리자/일반관리자/운영자)을 표시한다.
 // 권한은 회원등급이 아니라 JWT 의 역할 그룹으로 정해진다.
 const roleLabel = (user) => user.adminRole || `${user.grade} 회원`
+
+// 메뉴에 개수 배지를 붙인다 — 컨설팅 자료가 늘면 자동으로 반영된다
+const NAV_ITEMS = NAV.map((item) =>
+  item.to === '/consulting' ? { ...item, badge: CONSULTING_DOCS.length } : item,
+)
 
 // 소셜 로그인으로 접속한 회원에게 어떤 계정으로 들어왔는지 알려준다
 // (이메일 가입자는 표시하지 않음 — 굳이 알릴 정보가 아니다)
@@ -27,16 +33,23 @@ function ProviderBadge({ user }) {
 // 네비 항목 렌더: to(라우트)면 Link, href(홈 앵커)면 '/#앵커' 링크로
 function NavItem({ item, onClick }) {
   const className = item.highlight ? 'nav-highlight' : undefined
+  // badge: 항목 옆 개수 표시 (예: 컨설팅 자료 수)
+  const label = (
+    <>
+      {item.label}
+      {item.badge ? <span className="nav-badge">{item.badge}</span> : null}
+    </>
+  )
   if (item.to) {
     return (
       <Link to={item.to} className={className} onClick={onClick}>
-        {item.label}
+        {label}
       </Link>
     )
   }
   return (
     <a href={`/${item.href}`} className={className} onClick={onClick}>
-      {item.label}
+      {label}
     </a>
   )
 }
@@ -72,7 +85,7 @@ export default function Header() {
         </a>
 
         <nav className="nav">
-          {NAV.map((item) => (
+          {NAV_ITEMS.map((item) => (
             <NavItem key={item.to || item.href} item={item} />
           ))}
         </nav>
@@ -104,7 +117,7 @@ export default function Header() {
       </div>
 
       <div className={`mobile-menu ${menuOpen ? 'open' : ''}`}>
-        {NAV.map((item) => (
+        {NAV_ITEMS.map((item) => (
           <NavItem key={item.to || item.href} item={item} onClick={closeMenu} />
         ))}
         {user ? (

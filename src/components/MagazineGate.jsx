@@ -16,16 +16,10 @@ export default function MagazineGate() {
         </h1>
         <p>
           메디프론트 매거진은 의사회원만 열람할 수 있습니다.
-          {loggedIn
-            ? ` 현재 '${user.grade} 회원'은 열람 권한이 없습니다.`
-            : ' 로그인 후 이용해 주세요.'}
+          {!loggedIn && ' 로그인 후 이용해 주세요.'}
         </p>
         <div className="gate__actions">
-          {loggedIn ? (
-            <a href="/#contact" className="btn btn--light btn--lg">
-              등급 문의하기
-            </a>
-          ) : (
+          {!loggedIn && (
             <button className="btn btn--light btn--lg" onClick={openLogin}>
               로그인 / 회원가입
             </button>

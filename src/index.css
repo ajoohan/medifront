@@ -191,6 +191,14 @@ ul {
   font-size: clamp(1rem, 1.4vw, 1.12rem);
   color: var(--muted);
 }
+/* 가운데 정렬 섹션의 설명은 한 줄로 읽히도록 폭 제한을 풀어 준다
+   (좁은 화면에서는 자연스럽게 줄바꿈) */
+.section-head.center p {
+  max-width: none;
+  width: max-content;
+  max-width: 100%;
+  margin-inline: auto;
+}
 .section--navy .section-head p,
 .section--gradient .section-head p {
   color: var(--blue-300);
@@ -326,6 +334,24 @@ ul {
 }
 .nav a:hover {
   color: #fff;
+}
+/* 메뉴 옆 개수 배지 (컨설팅 자료 수) */
+.nav-badge {
+  display: inline-block;
+  min-width: 17px;
+  margin-left: 5px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 0.66rem;
+  font-weight: 800;
+  line-height: 17px;
+  text-align: center;
+  vertical-align: 1px;
+}
+.mobile-menu .nav-badge {
+  vertical-align: 2px;
 }
 /* 강조 메뉴 (매거진) — 브랜드 청록색으로 눈에 띄게 */
 .nav a.nav-highlight,
@@ -783,6 +809,11 @@ ul {
   margin-top: 14px;
   color: var(--blue-300);
 }
+/* 마지막 줄 — 핵심 약속이라 굵고 밝게 */
+.pain__answer p b {
+  font-weight: 800;
+  color: #fff;
+}
 
 /* ---------- Process ---------- */
 .process__grid {
@@ -1081,22 +1112,24 @@ ul {
 .docs-item {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 24px;
+  width: 100%;
   padding: 26px 28px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: #fff;
   text-decoration: none;
   color: inherit;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
   transition:
     border-color 0.15s,
-    box-shadow 0.15s,
-    transform 0.15s;
+    box-shadow 0.15s;
 }
-a.docs-item:hover {
+.docs-item:hover {
   border-color: var(--primary);
   box-shadow: 0 6px 20px rgba(4, 33, 31, 0.08);
-  transform: translateY(-2px);
 }
 .docs-item__kicker {
   display: block;
@@ -1118,18 +1151,92 @@ a.docs-item:hover {
   line-height: 1.7;
   color: var(--muted);
 }
+/* 긴 화살표 — 자료를 연다는 신호. 마우스를 올리면 살짝 나아간다 */
 .docs-item__go {
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 0.82rem;
-  font-weight: 700;
   color: var(--primary);
+  transition: transform 0.2s ease;
+}
+a.docs-item:hover .docs-item__go,
+button.docs-item:hover .docs-item__go {
+  transform: translateX(6px);
+}
+
+/* ── 자료 열람 화면 (사이트 안에서 펼침) ── */
+.doc-viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 2500;
+  display: flex;
+  flex-direction: column;
+  background: #0b1211;
+  animation: overlayIn 0.2s ease;
+}
+.doc-viewer__bar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 20px;
+  background: var(--navy-900);
+  color: #fff;
+}
+.doc-viewer__title span {
+  display: block;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  color: var(--teal-400);
+}
+.doc-viewer__title b {
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+.doc-viewer__actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-shrink: 0;
+}
+.doc-viewer__link {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.75);
+  text-decoration: none;
   white-space: nowrap;
 }
-.docs-item__go b {
+.doc-viewer__link:hover {
+  color: #fff;
+}
+.doc-viewer__close {
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
   font-size: 1rem;
+  cursor: pointer;
+}
+.doc-viewer__close:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+.doc-viewer__frame {
+  flex: 1;
+  width: 100%;
+  border: 0;
+  display: block;
+}
+@media (max-width: 560px) {
+  .doc-viewer__link {
+    display: none;
+  }
+  .doc-viewer__title b {
+    font-size: 0.85rem;
+  }
 }
 @media (max-width: 560px) {
   .docs-item {
