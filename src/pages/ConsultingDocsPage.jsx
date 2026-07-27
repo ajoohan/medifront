@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react'
 import useReveal from '../hooks/useReveal'
 import { useUser } from '../context/UserContext'
-import { CONSULTING_DOCS } from '../lib/consultingDocs'
+import useConsultingDocs from '../hooks/useConsultingDocs'
 
 // 컨설팅 자료 — 목록은 누구나 보고, 열람은 로그인 회원만.
 // 회원이 자료를 고르면 같은 페이지 안(iframe)에서 바로 펼쳐 본다.
 export default function ConsultingDocsPage() {
   useReveal()
   const { user, openLogin } = useUser()
+  const docs = useConsultingDocs() // 관리자가 숨긴 자료는 빠진 목록
   const [openDoc, setOpenDoc] = useState(null) // 지금 보고 있는 자료
   const [gateOpen, setGateOpen] = useState(false) // 비회원 안내
 
@@ -48,7 +49,7 @@ export default function ConsultingDocsPage() {
       <section className="section">
         <div className="container">
           <ul className="docs-list reveal">
-            {CONSULTING_DOCS.map((d) => (
+            {docs.map((d) => (
               <li key={d.file}>
                 <button type="button" className="docs-item" onClick={() => pick(d)}>
                   <div className="docs-item__body">
@@ -77,6 +78,9 @@ export default function ConsultingDocsPage() {
               </li>
             ))}
           </ul>
+          {docs.length === 0 && (
+            <p className="docs-empty">현재 공개된 컨설팅 자료가 없습니다. 곧 준비하겠습니다.</p>
+          )}
         </div>
       </section>
 

@@ -2982,13 +2982,16 @@ button.docs-item:hover .docs-item__go {
 /* 좌측 이미지 */
 .cta-bar__visual {
   flex-shrink: 0;
-  width: 96px;
-  height: 96px;
+  width: 150px;
+  height: 92px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--paper-soft);
 }
 .cta-bar__visual img {
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
   display: block;
 }
 /* 중앙 메시지 */
@@ -4130,5 +4133,135 @@ button.docs-item:hover .docs-item__go {
   .reveal {
     opacity: 1;
     transform: none;
+  }
+}
+
+/* ── 관리자 > 콘텐츠 관리 > 컨설팅 자료 ────────────────────────────── */
+/* 노출을 끈 자료는 목록에서 딤 처리해 한눈에 구분된다 */
+.admin-head__meta {
+  font-size: 0.88rem;
+  color: var(--muted);
+  font-weight: 700;
+  white-space: nowrap;
+}
+.doc-admin-list {
+  list-style: none;
+  display: grid;
+  gap: 12px;
+}
+.doc-admin {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 20px 22px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fff;
+  transition:
+    opacity 0.18s ease,
+    background 0.18s ease;
+}
+.doc-admin.is-hidden {
+  opacity: 0.45;
+  background: var(--paper-soft);
+}
+.doc-admin__body {
+  flex: 1;
+  min-width: 0;
+}
+.doc-admin__kicker {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: var(--primary);
+  margin-bottom: 6px;
+}
+.doc-admin__body h3 {
+  font-size: 1.02rem;
+  line-height: 1.4;
+}
+.doc-admin__body p {
+  margin-top: 6px;
+  font-size: 0.88rem;
+  color: var(--muted);
+  line-height: 1.6;
+}
+.doc-admin__link {
+  display: inline-block;
+  margin-top: 10px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--primary);
+  text-decoration: none;
+}
+.doc-admin__link:hover {
+  text-decoration: underline;
+}
+.doc-admin__control {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+.doc-admin__state {
+  font-size: 0.82rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.doc-admin__state.on {
+  color: var(--primary);
+}
+.doc-admin__state.off {
+  color: var(--ink-300);
+}
+
+/* 토글 스위치 */
+.switch {
+  position: relative;
+  width: 50px;
+  height: 28px;
+  flex-shrink: 0;
+  border: none;
+  border-radius: 999px;
+  background: #cbd5d2;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.18s ease;
+}
+.switch.is-on {
+  background: var(--primary);
+}
+.switch:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+.switch__knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  transition: transform 0.18s ease;
+}
+.switch.is-on .switch__knob {
+  transform: translateX(22px);
+}
+
+/* 공개 목록이 비었을 때 */
+.docs-empty {
+  text-align: center;
+  color: var(--muted);
+  padding: 48px 0;
+}
+
+@media (max-width: 560px) {
+  .doc-admin {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
   }
 }

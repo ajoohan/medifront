@@ -15,7 +15,7 @@ export default function FloatingInquiry() {
         <div className="cta-bar__inner">
           {/* 좌측 — 신뢰 이미지 */}
           <div className="cta-bar__visual" aria-hidden="true">
-            <img src="/consulting-cycle.svg" alt="" />
+            <img src="/cta-visual.webp" alt="" />
           </div>
 
           {/* 중앙 — 메시지 */}

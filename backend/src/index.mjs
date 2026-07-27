@@ -251,6 +251,13 @@ const RESOURCES = {
     fields: ['hospital', 'size', 'opening_year'],
     defaults: () => ({ size: '' }),
   },
+  // 컨설팅 자료의 노출 여부만 저장한다. 자료 본문(제목·설명·HTML)은
+  // public/ 의 정적 덱과 src/lib/consultingDocs.js 가 원본이다.
+  'consulting-docs': {
+    entity: 'consulting_docs',
+    fields: ['doc_id', 'hidden'],
+    defaults: () => ({ hidden: false }),
+  },
 }
 
 const now = () => new Date().toISOString()
@@ -297,9 +304,7 @@ async function nextId(entity) {
 
 // 단건 조회 (등급 변경 시 대상 회원의 이메일을 찾는 데 사용)
 async function getItem(entity, id) {
-  const r = await ddb.send(
-    new GetCommand({ TableName: TABLE, Key: { pk: entity, sk: skOf(id) } }),
-  )
+  const r = await ddb.send(new GetCommand({ TableName: TABLE, Key: { pk: entity, sk: skOf(id) } }))
   return r.Item || null
 }
 
@@ -378,7 +383,11 @@ async function setRoleGroup(email, role) {
   for (const g of ADMIN_GROUPS) {
     const cmd =
       g === target
-        ? new AdminAddUserToGroupCommand({ UserPoolId: USER_POOL_ID, Username: email, GroupName: g })
+        ? new AdminAddUserToGroupCommand({
+            UserPoolId: USER_POOL_ID,
+            Username: email,
+            GroupName: g,
+          })
         : new AdminRemoveUserFromGroupCommand({
             UserPoolId: USER_POOL_ID,
             Username: email,
@@ -466,11 +475,7 @@ async function patchItem(cfg, id, body) {
     // 역할이 실제로 바뀐 경우 '운영자 지정' 공식 폼으로 안내 (신규 지정 메일과 동일 디자인)
     if (before?.email && before.grade !== fields.grade && GROUP_BY_ROLE[fields.grade]) {
       try {
-        await sendGrantEmail(
-          before.email,
-          before.name || before.email.split('@')[0],
-          fields.grade,
-        )
+        await sendGrantEmail(before.email, before.name || before.email.split('@')[0], fields.grade)
       } catch (e) {
         console.error('role notification email failed', e)
       }
@@ -995,6 +1000,8 @@ async function completeProfile(auth, body) {
 const PUBLIC_ROUTES = [
   { method: 'GET', resource: 'articles' },
   { method: 'GET', resource: 'performances' },
+  // 노출 여부는 비회원 목록 화면도 알아야 한다(숨긴 자료는 목록에서 빠진다)
+  { method: 'GET', resource: 'consulting-docs' },
   { method: 'POST', resource: 'inquiries' },
   { method: 'POST', resource: 'consult-requests' },
 ]
@@ -1016,7 +1023,10 @@ function getAuth(event) {
   const groups = Array.isArray(raw)
     ? raw
     : typeof raw === 'string'
-      ? raw.replace(/^\[|\]$/g, '').split(/[\s,]+/).filter(Boolean)
+      ? raw
+          .replace(/^\[|\]$/g, '')
+          .split(/[\s,]+/)
+          .filter(Boolean)
       : []
   // 한 사람은 한 역할 그룹에만 속한다(setRoleGroup). 세 등급의 권한은 현재 동일하므로
   // 인가는 isAdmin 만 본다 — 등급별로 나눌 때 role 로 분기하면 된다.
@@ -1059,8 +1069,7 @@ export async function handler(event) {
       return json(200, { enabled: isVerifyConfigured() })
     }
 
-    const isPublic =
-      !seg2 && PUBLIC_ROUTES.some((p) => p.method === method && p.resource === seg1)
+    const isPublic = !seg2 && PUBLIC_ROUTES.some((p) => p.method === method && p.resource === seg1)
 
     // 공개 경로가 아니면 로그인 필수 (API Gateway 가 이미 막지만 이중 방어)
     if (!isPublic && !auth.authenticated) return json(401, { error: 'unauthorized' })

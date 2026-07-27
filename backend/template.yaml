@@ -596,6 +596,15 @@ Resources:
             Method: GET
             Auth:
               Authorizer: NONE
+        # 컨설팅 자료 노출 설정 (비회원 목록 화면도 숨김 여부를 알아야 한다)
+        PublicConsultingDocs:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /consulting-docs
+            Method: GET
+            Auth:
+              Authorizer: NONE
         # 무료 상담 신청 (제출만, 열람은 관리자)
         PublicConsultRequests:
           Type: HttpApi

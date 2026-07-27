@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { NAV } from '../data'
-import { CONSULTING_DOCS } from '../lib/consultingDocs'
+import useConsultingDocs from '../hooks/useConsultingDocs'
 import Logo from './Logo'
 import { useUser } from '../context/UserContext'
 
@@ -9,10 +9,9 @@ import { useUser } from '../context/UserContext'
 // 권한은 회원등급이 아니라 JWT 의 역할 그룹으로 정해진다.
 const roleLabel = (user) => user.adminRole || `${user.grade} 회원`
 
-// 메뉴에 개수 배지를 붙인다 — 컨설팅 자료가 늘면 자동으로 반영된다
-const NAV_ITEMS = NAV.map((item) =>
-  item.to === '/consulting' ? { ...item, badge: CONSULTING_DOCS.length } : item,
-)
+// 메뉴에 개수 배지를 붙인다 — 노출 중인 컨설팅 자료 수가 그대로 반영된다
+const navItemsWith = (docCount) =>
+  NAV.map((item) => (item.to === '/consulting' ? { ...item, badge: docCount } : item))
 
 // 소셜 로그인으로 접속한 회원에게 어떤 계정으로 들어왔는지 알려준다
 // (이메일 가입자는 표시하지 않음 — 굳이 알릴 정보가 아니다)
@@ -58,6 +57,7 @@ export default function Header() {
   const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const { user, openLogin, logout } = useUser()
+  const navItems = navItemsWith(useConsultingDocs().length)
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20)
@@ -85,7 +85,7 @@ export default function Header() {
         </a>
 
         <nav className="nav">
-          {NAV_ITEMS.map((item) => (
+          {navItems.map((item) => (
             <NavItem key={item.to || item.href} item={item} />
           ))}
         </nav>
@@ -117,7 +117,7 @@ export default function Header() {
       </div>
 
       <div className={`mobile-menu ${menuOpen ? 'open' : ''}`}>
-        {NAV_ITEMS.map((item) => (
+        {navItems.map((item) => (
           <NavItem key={item.to || item.href} item={item} onClick={closeMenu} />
         ))}
         {user ? (

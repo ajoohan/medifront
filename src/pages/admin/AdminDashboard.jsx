@@ -4,6 +4,7 @@ import MembersAdmin from './MembersAdmin'
 import MagazineAdmin from './MagazineAdmin'
 import SettingsAdmin from './SettingsAdmin'
 import PerformanceAdmin from './PerformanceAdmin'
+import ConsultingDocsAdmin from './ConsultingDocsAdmin'
 import ConsultMeetingAdmin, { ConsultDirectAdmin } from './ConsultAdmin'
 
 const ADMIN_VERSION = 'Version 0.7'
@@ -13,10 +14,11 @@ const DASHBOARD_VIEW = { key: 'dashboard', label: '대시보드', component: Das
 
 const VIEWS = [{ key: 'members', label: '회원관리', component: MembersAdmin }]
 
-// 콘텐츠 관리 서브메뉴 (성과 관리 / 매거진 관리)
+// 콘텐츠 관리 서브메뉴 (성과 관리 / 매거진 관리 / 컨설팅 자료)
 const CONTENT_VIEWS = [
   { key: 'performance', label: '성과 관리', component: PerformanceAdmin },
   { key: 'magazine', label: '매거진 관리', component: MagazineAdmin },
+  { key: 'consulting-docs', label: '컨설팅 자료', component: ConsultingDocsAdmin },
 ]
 
 // 상담 관리 서브메뉴 (대면 상담: 신청 접수 + 회의록 / 1:1 상담)
