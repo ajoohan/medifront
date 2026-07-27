@@ -23,6 +23,7 @@ export const NAV = [
   { label: '성과', href: '#results' },
   { label: '프로세스', href: '#process' },
   { label: '자주 묻는 질문', href: '#faq' },
+  { label: '컨설팅', to: '/consulting' },
   { label: '매거진', to: '/magazine', highlight: true },
 ]
 

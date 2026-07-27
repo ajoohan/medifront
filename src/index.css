@@ -1034,6 +1034,113 @@ ul {
 .login-modal__links span {
   color: var(--line);
 }
+/* ── 컨설팅 자료 (회원 전용) ── */
+.docs-gate {
+  max-width: 640px;
+  margin: 0 auto 40px;
+  padding: 40px 32px;
+  text-align: center;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--paper-soft);
+}
+.docs-gate h2 {
+  font-size: 1.35rem;
+  font-weight: 800;
+  margin-bottom: 12px;
+  color: var(--ink-900);
+}
+.docs-gate p {
+  font-size: 0.95rem;
+  line-height: 1.8;
+  color: var(--muted);
+  margin-bottom: 24px;
+}
+.docs-list {
+  display: grid;
+  gap: 14px;
+  max-width: 820px;
+  margin: 0 auto;
+  list-style: none;
+  padding: 0;
+}
+.docs-item {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 26px 28px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fff;
+  text-decoration: none;
+  color: inherit;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s,
+    transform 0.15s;
+}
+a.docs-item:hover {
+  border-color: var(--primary);
+  box-shadow: 0 6px 20px rgba(4, 33, 31, 0.08);
+  transform: translateY(-2px);
+}
+.docs-item__kicker {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  color: var(--primary);
+  margin-bottom: 8px;
+}
+.docs-item__body h3 {
+  font-size: 1.08rem;
+  font-weight: 800;
+  line-height: 1.4;
+  color: var(--ink-900);
+  margin-bottom: 8px;
+}
+.docs-item__body p {
+  font-size: 0.88rem;
+  line-height: 1.7;
+  color: var(--muted);
+}
+.docs-item__go {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--primary);
+  white-space: nowrap;
+}
+.docs-item__go b {
+  font-size: 1rem;
+}
+/* 비회원 — 잠금 표시, 클릭 불가 */
+.docs-list--locked .docs-item {
+  opacity: 0.72;
+}
+.docs-item__lock {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--paper-soft);
+  color: var(--ink-300);
+}
+@media (max-width: 560px) {
+  .docs-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 22px 20px;
+  }
+}
+
 /* 로그인 방식 배지 — 이름 옆에 작게 (구글/네이버 계정으로 접속한 경우만) */
 .user-badge {
   display: inline-block;

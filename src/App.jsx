@@ -11,6 +11,7 @@ import MagazineDetailPage from './pages/MagazineDetailPage'
 import ResetPasswordPage from './pages/ResetPasswordPage'
 import TermsPage from './pages/TermsPage'
 import PrivacyPage from './pages/PrivacyPage'
+import ConsultingDocsPage from './pages/ConsultingDocsPage'
 import NotFoundPage from './pages/NotFoundPage'
 import { useUser } from './context/UserContext'
 
@@ -31,6 +32,7 @@ function Shell() {
       <main>
         <Routes>
           <Route path="/" element={<HomePage />} />
+          <Route path="/consulting" element={<ConsultingDocsPage />} />
           <Route path="/magazine" element={<MagazinePage />} />
           <Route path="/magazine/:id" element={<MagazineDetailPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
