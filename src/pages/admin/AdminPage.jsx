@@ -45,7 +45,9 @@ export default function AdminPage() {
 
   if (!user) return <AdminLogin />
 
-  // 로그인은 됐지만 관리자가 아닌 경우 (일반 회원이 /admin 을 직접 연 상황)
+  // 로그인은 됐지만 관리자가 아닌 경우 (일반 회원이 /admin 을 직접 연 상황).
+  // 기존 회원 세션에 갇히지 않도록 '다른 계정으로 로그인' 동선을 반드시 제공한다 —
+  // 로그아웃하면 user 가 비어 위의 AdminLogin 화면으로 자연스럽게 넘어간다.
   if (!user.isAdmin) {
     return (
       <div className="admin-login">
@@ -55,10 +57,28 @@ export default function AdminPage() {
           </div>
           <p className="admin-login__sub">접근 권한 없음</p>
           <div className="admin-login__error" style={{ textAlign: 'left', lineHeight: 1.7 }}>
-            <b>{user.name}</b> 님({user.email})은 관리자 권한이 없습니다.
-            <br />
-            관리자 계정으로 로그인해 주세요.
+            현재 <b>{user.name}</b> 님({user.email}) 계정으로 로그인되어 있습니다.
+            <br />이 계정에는 관리자 권한이 없습니다.
           </div>
+          <button
+            className="btn btn--primary"
+            style={{ width: '100%', marginTop: 16 }}
+            onClick={logout}
+          >
+            다른 계정으로 로그인
+          </button>
+          <a
+            href="/"
+            style={{
+              display: 'block',
+              marginTop: 14,
+              textAlign: 'center',
+              fontSize: '0.85rem',
+              color: 'var(--ink-500, #5c7871)',
+            }}
+          >
+            ← 홈으로 돌아가기
+          </a>
         </div>
       </div>
     )
