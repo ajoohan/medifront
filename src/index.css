@@ -2959,32 +2959,181 @@ button.docs-item:hover .docs-item__go {
   color: var(--primary);
 }
 /* 화면 하단에 고정되어 따라다니는 전체 폭 1:1 문의 바 */
-.floating-inquiry {
+/* ── 하단 고정 상담 배너 (좌: 이미지 / 중앙: 메시지 / 우: CTA) ── */
+.cta-bar {
   position: fixed;
   left: 0;
   right: 0;
   bottom: 0;
   z-index: 90;
+  background: #fff;
+  border-top: 1px solid var(--line);
+  box-shadow: 0 -6px 28px rgba(4, 33, 31, 0.1);
+}
+.cta-bar__inner {
+  position: relative;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
+  gap: 26px;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 16px 56px 16px 24px;
+}
+/* 좌측 이미지 */
+.cta-bar__visual {
+  flex-shrink: 0;
+  width: 96px;
+  height: 96px;
+}
+.cta-bar__visual img {
   width: 100%;
-  padding: 16px;
-  border-radius: 0;
-  background: linear-gradient(135deg, #f97316, #ea580c);
-  color: #fff;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+/* 중앙 메시지 */
+.cta-bar__body {
+  flex: 1;
+  min-width: 0;
+}
+.cta-bar__eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.cta-bar__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(16, 166, 150, 0.1);
+  color: #0b6b60;
+  font-size: 0.76rem;
   font-weight: 800;
-  font-size: 1.02rem;
-  box-shadow: 0 -6px 24px rgba(234, 88, 12, 0.28);
-  transition: background 0.15s;
 }
-.floating-inquiry:hover {
-  background: linear-gradient(135deg, #fb8a3c, #f97316);
+.cta-bar__sub {
+  font-size: 0.76rem;
+  color: var(--ink-300);
 }
-.floating-inquiry svg {
+.cta-bar__title {
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--ink-900);
+  margin-bottom: 10px;
+}
+.cta-bar__title b {
+  font-weight: 800;
+}
+.cta-bar__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.cta-bar__tags li {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 0.76rem;
+  color: var(--ink-500);
+}
+.cta-bar__tags svg {
+  color: var(--primary);
   flex-shrink: 0;
 }
+/* 우측 CTA */
+.cta-bar__action {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+}
+.cta-bar__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 15px 28px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--navy-900);
+  color: #fff;
+  font-family: inherit;
+  font-size: 0.98rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    transform 0.15s;
+}
+.cta-bar__btn:hover {
+  background: var(--navy-700);
+  transform: translateY(-1px);
+}
+.cta-bar__btn b {
+  font-weight: 800;
+}
+.cta-bar__note {
+  font-size: 0.72rem;
+  color: var(--ink-300);
+  white-space: nowrap;
+}
+.cta-bar__close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ink-300);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.cta-bar__close:hover {
+  background: var(--paper-soft);
+  color: var(--ink-700);
+}
+@media (max-width: 900px) {
+  .cta-bar__visual,
+  .cta-bar__tags {
+    display: none;
+  }
+  .cta-bar__inner {
+    gap: 14px;
+    padding: 12px 44px 12px 16px;
+  }
+  .cta-bar__title {
+    font-size: 0.88rem;
+    margin-bottom: 0;
+  }
+  .cta-bar__btn {
+    padding: 12px 18px;
+    font-size: 0.88rem;
+  }
+  .cta-bar__note {
+    display: none;
+  }
+}
+@media (max-width: 560px) {
+  .cta-bar__eyebrow {
+    margin-bottom: 5px;
+  }
+  .cta-bar__sub {
+    display: none;
+  }
+}
+
 /* 1:1 문의 (비공개 게시판) */
 .inquiry-modal {
   position: relative;
