@@ -55,6 +55,7 @@ export function UserProvider({ children }) {
           network: '네트워크 오류로 로그인하지 못했습니다. 다시 시도해 주세요.',
           'state-lost':
             '보안 확인값이 유실되어 로그인을 완료하지 못했습니다. 아래 버튼으로 다시 시도해 주세요.',
+          'google-http-400': '인증 코드가 만료되었거나 이미 사용되었습니다. 다시 시도해 주세요.',
         }
         setLoginNotice(
           reasons[redirect.error] ||

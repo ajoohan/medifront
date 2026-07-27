@@ -307,6 +307,7 @@ export async function completeOAuthRedirect() {
   const url = new URL(window.location.href)
   const code = url.searchParams.get('code')
   const errParam = url.searchParams.get('error')
+  const errDesc = url.searchParams.get('error_description')
   if (!code && !errParam) return null
   const readSaved = (key) => {
     try {
@@ -340,7 +341,9 @@ export async function completeOAuthRedirect() {
   url.searchParams.delete('error_description')
   const qs = url.searchParams.toString()
   window.history.replaceState({}, '', url.pathname + (qs ? `?${qs}` : '') + url.hash)
-  if (errParam) return null // 사용자가 인증 화면에서 취소한 경우 등
+  // 인증사가 code 대신 error 를 붙여 돌려보낸 경우 — 취소일 수도 있지만 설정 오류일 수도
+  // 있으므로 조용히 삼키지 않고 사유를 그대로 올린다 (진단·재시도 유도)
+  if (errParam) return { error: `provider:${errParam}${errDesc ? ` — ${errDesc}` : ''}` }
 
   try {
     if (provider === 'naver') {
