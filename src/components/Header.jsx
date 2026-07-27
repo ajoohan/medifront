@@ -8,6 +8,22 @@ import { useUser } from '../context/UserContext'
 // 권한은 회원등급이 아니라 JWT 의 역할 그룹으로 정해진다.
 const roleLabel = (user) => user.adminRole || `${user.grade} 회원`
 
+// 소셜 로그인으로 접속한 회원에게 어떤 계정으로 들어왔는지 알려준다
+// (이메일 가입자는 표시하지 않음 — 굳이 알릴 정보가 아니다)
+const PROVIDERS = {
+  google: { label: 'Google', className: 'user-badge user-badge--google' },
+  naver: { label: 'NAVER', className: 'user-badge user-badge--naver' },
+}
+function ProviderBadge({ user }) {
+  const p = PROVIDERS[user.provider]
+  if (!p) return null
+  return (
+    <span className={p.className} title={`${p.label} 계정으로 로그인`}>
+      {p.label}
+    </span>
+  )
+}
+
 // 네비 항목 렌더: to(라우트)면 Link, href(홈 앵커)면 '/#앵커' 링크로
 function NavItem({ item, onClick }) {
   const className = item.highlight ? 'nav-highlight' : undefined
@@ -66,6 +82,7 @@ export default function Header() {
             <>
               <span className="header__user">
                 <b>{user.name}</b> 님 ({roleLabel(user)})
+                <ProviderBadge user={user} />
               </span>
               <button className="btn btn--login" onClick={handleLogout}>
                 로그아웃
@@ -94,6 +111,7 @@ export default function Header() {
           <>
             <div className="mobile-user">
               <b>{user.name}</b> 님 ({roleLabel(user)})
+              <ProviderBadge user={user} />
             </div>
             <button className="mobile-login" onClick={handleLogout}>
               로그아웃

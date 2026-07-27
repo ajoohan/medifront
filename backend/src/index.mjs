@@ -186,6 +186,8 @@ const RESOURCES = {
       // 생년월일(YYMMDD) — 의사 회원 신청자의 보건복지부 면허 조회에 필요.
       // 휴대폰 본인인증을 켜면 인증기관이 확인한 값으로 대체된다.
       'birth',
+      // 가입 경로 — 'email' | 'google' | 'naver'. 화면에 로그인 방식을 표시하는 데 쓴다.
+      'provider',
     ],
     defaults: () => ({
       name: '',
@@ -878,6 +880,7 @@ async function naverLogin(body) {
           joined_at: today(),
           created_at: now(),
           profile_done: false,
+          provider: 'naver',
         },
       }),
     )
@@ -1154,6 +1157,8 @@ export async function postConfirmation(event) {
               // 소셜(구글 등 외부 IdP, userName 이 'google_...' 형태)은 아직이므로
               // false 로 시작해 로그인 직후 2/2 폼으로 유도한다.
               profile_done: !/^[a-z]+_/i.test(String(event.userName || '')),
+              // 가입 경로 — 외부 IdP 는 userName 이 'google_...' 형태로 온다
+              provider: /^google_/i.test(String(event.userName || '')) ? 'google' : 'email',
               ...verifiedFields(verified),
             },
           }),

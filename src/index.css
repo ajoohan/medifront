@@ -1034,6 +1034,34 @@ ul {
 .login-modal__links span {
   color: var(--line);
 }
+/* 로그인 방식 배지 — 이름 옆에 작게 (구글/네이버 계정으로 접속한 경우만) */
+.user-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  vertical-align: 1px;
+  white-space: nowrap;
+}
+.user-badge--google {
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+}
+.user-badge--naver {
+  background: #03c75a;
+  color: #fff;
+}
+/* 모바일 메뉴는 밝은 배경이라 구글 배지의 대비를 따로 잡는다 */
+.mobile-user .user-badge--google {
+  background: rgba(15, 23, 42, 0.06);
+  color: var(--ink-700, #33504b);
+  border-color: rgba(15, 23, 42, 0.16);
+}
+
 /* 소셜 로그인 복귀 처리 중 오버레이 — 토큰 교환이 끝날 때까지 표시 */
 .oauth-wait {
   position: fixed;

@@ -51,6 +51,17 @@ const ROLE_BY_GROUP = {
   operator: '운영자',
 }
 
+// 로그인 경로 판별 — 'google' | 'email'
+// 구글(외부 IdP)은 Cognito 가 identities 클레임을 넣어주므로 토큰만으로 즉시 알 수 있다.
+// 네이버는 백엔드가 커스텀 챌린지로 토큰을 발급해 identities 가 없으므로,
+// 회원 정보(members.provider)를 조회해 보정한다(UserContext).
+function providerOf(claims) {
+  const raw = claims.identities
+  const text = typeof raw === 'string' ? raw : raw ? JSON.stringify(raw) : ''
+  if (/google/i.test(text)) return 'google'
+  return 'email'
+}
+
 function claimsToUser(claims) {
   if (!claims?.email) return null
   // cognito:groups 는 배열 또는 "[admin operator]" 형태 문자열로 올 수 있다.
@@ -71,6 +82,9 @@ function claimsToUser(claims) {
     name: claims.name || claims.email.split('@')[0],
     phone: claims['custom:phone'] || '-',
     grade: claims['custom:grade'] || '일반',
+    // 로그인 경로 — 구글은 Cognito 가 외부 IdP 정보를 identities 에 남기고,
+    // 네이버는 백엔드가 발급한 커스텀 챌린지 토큰이라 challenge 메타로 판별한다.
+    provider: providerOf(claims),
     // 역할은 서버가 서명한 JWT 의 그룹으로만 정해진다(가입자가 조작 불가)
     isAdmin: !!roleGroup,
     adminRole: roleGroup ? ROLE_BY_GROUP[roleGroup] : null,

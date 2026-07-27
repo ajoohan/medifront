@@ -20,6 +20,8 @@ function mapAuthUser(u) {
     // 덮어써도 이 두 값은 유지되어야 한다.
     isAdmin: !!u.isAdmin,
     adminRole: u.adminRole || null, // 최고관리자 | 일반관리자 | 운영자
+    // 로그인 경로 — 구글은 토큰에서 즉시, 네이버는 회원 정보 조회로 보정된다
+    provider: u.provider || 'email',
   }
 }
 
@@ -85,8 +87,17 @@ export function UserProvider({ children }) {
         }
         apiGet('/members', { email: base.email }).then((rows) => {
           const row = rows?.[0]
-          if (row?.grade) {
-            setUser((cur) => (cur && cur.email === base.email ? { ...cur, grade: row.grade } : cur))
+          if (row?.grade || row?.provider) {
+            setUser((cur) =>
+              cur && cur.email === base.email
+                ? {
+                    ...cur,
+                    ...(row.grade ? { grade: row.grade } : {}),
+                    // 네이버는 토큰만으로 알 수 없어 회원 정보로 보정한다
+                    ...(row.provider ? { provider: row.provider } : {}),
+                  }
+                : cur,
+            )
           }
           // 소셜 첫 가입 → 가입 2/2 폼을 자동으로 띄운다 (제출 전까지 재로그인마다 반복)
           if (row && row.profile_done === false && !base.isAdmin) {
