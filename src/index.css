@@ -2149,18 +2149,24 @@ ul {
   flex-direction: column;
   gap: 6px;
 }
+/* 사이드바 로고 — 어두운 배경이라 흰색(light) SVG 사용 */
 .admin__brand {
-  font-weight: 900;
-  font-size: 1.15rem;
-  letter-spacing: -0.02em;
+  display: flex;
+  align-items: center;
+  gap: 7px;
   padding: 0 8px 20px;
   color: inherit;
   text-align: left;
 }
+.admin__brand img {
+  height: 17px;
+  width: auto;
+  display: block;
+}
 .admin__brand span {
   color: var(--teal-400);
   font-size: 0.68rem;
-  margin-left: 4px;
+  font-weight: 900;
   letter-spacing: 0.1em;
 }
 .admin__nav {

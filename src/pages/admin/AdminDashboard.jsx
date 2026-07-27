@@ -70,7 +70,9 @@ export default function AdminDashboard({ onLogout }) {
           onClick={() => setView('dashboard')}
           aria-label="관리자 메인으로"
         >
-          MEDIFRONT <span>ADMIN</span>
+          {/* 사이드바는 어두운 배경 — 밝은 배경용(light) 로고를 쓴다 */}
+          <img src="/logo-1line-light.svg" alt="MEDIFRONT" />
+          <span>ADMIN</span>
         </button>
         <nav className="admin__nav">
           {VIEWS.map((v) => (
