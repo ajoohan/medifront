@@ -1034,25 +1034,39 @@ ul {
 .login-modal__links span {
   color: var(--line);
 }
-/* ── 컨설팅 자료 (회원 전용) ── */
-.docs-gate {
-  max-width: 640px;
-  margin: 0 auto 40px;
-  padding: 40px 32px;
+/* ── 컨설팅 자료 (목록은 공개, 열람은 회원 전용) ── */
+/* 비회원이 자료를 눌렀을 때 뜨는 안내 창 */
+.docs-modal {
+  position: relative;
+  width: 100%;
+  max-width: 380px;
+  padding: 38px 32px 30px;
   text-align: center;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--paper-soft);
+  background: var(--paper);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  animation: modalIn 0.25s ease;
 }
-.docs-gate h2 {
-  font-size: 1.35rem;
+.docs-modal__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  margin: 0 auto 16px;
+  border-radius: 50%;
+  background: rgba(16, 166, 150, 0.1);
+  color: var(--primary);
+}
+.docs-modal h3 {
+  font-size: 1.2rem;
   font-weight: 800;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
   color: var(--ink-900);
 }
-.docs-gate p {
-  font-size: 0.95rem;
-  line-height: 1.8;
+.docs-modal p {
+  font-size: 0.92rem;
+  line-height: 1.75;
   color: var(--muted);
   margin-bottom: 24px;
 }
@@ -1116,21 +1130,6 @@ a.docs-item:hover {
 }
 .docs-item__go b {
   font-size: 1rem;
-}
-/* 비회원 — 잠금 표시, 클릭 불가 */
-.docs-list--locked .docs-item {
-  opacity: 0.72;
-}
-.docs-item__lock {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  background: var(--paper-soft);
-  color: var(--ink-300);
 }
 @media (max-width: 560px) {
   .docs-item {
