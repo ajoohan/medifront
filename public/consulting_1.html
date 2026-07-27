@@ -22,13 +22,9 @@
   --font-body:'Pretendard Variable','Noto Sans KR',sans-serif;
 }
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:#0B1211;color:var(--ink);font-family:var(--font-body);overflow:hidden}
-.slide-deck{position:relative;width:100vw;height:100vh;overflow:hidden}
-@media (min-width:769px){
-  .slide-deck{max-width:calc(100vh*16/9);max-height:calc(100vw*9/16);margin:auto;position:absolute;inset:0;box-shadow:0 0 80px rgba(0,0,0,.5)}
-}
-.slide{position:absolute;inset:0;width:100%;height:100%;display:flex;flex-direction:column;justify-content:center;padding:64px 84px;opacity:0;visibility:hidden;transition:opacity .45s ease;background:var(--ivory);overflow:hidden}
-.slide.active{opacity:1;visibility:visible}
+body{background:#0B1211;color:var(--ink);font-family:var(--font-body)}
+.slide-deck{position:relative;width:100%;max-width:1440px;margin:0 auto;box-shadow:0 0 80px rgba(0,0,0,.5)}
+.slide{position:relative;width:100%;min-height:100vh;display:flex;flex-direction:column;justify-content:center;padding:120px 84px 90px;background:var(--ivory);overflow:hidden;border-bottom:1px solid rgba(0,0,0,.06)}
 .slide.dark{background:var(--green);color:var(--ivory)}
 
 /* ---------- 공통 타이포 ---------- */
@@ -104,19 +100,20 @@ a.contact-link:hover,a.contact-link:active{text-decoration:underline}
 
 /* 애니메이션 */
 @keyframes fadeUp{from{opacity:0;transform:translateY(26px)}to{opacity:1;transform:translateY(0)}}
-.active .a-stagger>*{opacity:0;animation:fadeUp .55s ease-out forwards}
-.active .a-stagger>*:nth-child(1){animation-delay:.05s}
-.active .a-stagger>*:nth-child(2){animation-delay:.15s}
-.active .a-stagger>*:nth-child(3){animation-delay:.25s}
-.active .a-stagger>*:nth-child(4){animation-delay:.35s}
-.active .a-stagger>*:nth-child(5){animation-delay:.45s}
-.active .a-stagger>*:nth-child(6){animation-delay:.55s}
-.active .a-up{opacity:0;animation:fadeUp .6s ease-out forwards}
+.inview .a-stagger>*{animation:fadeUp .55s ease-out both}
+.inview .a-stagger>*:nth-child(2){animation-delay:.12s}
+.inview .a-stagger>*:nth-child(3){animation-delay:.22s}
+.inview .a-stagger>*:nth-child(4){animation-delay:.32s}
+.inview .a-stagger>*:nth-child(5){animation-delay:.42s}
+.inview .a-stagger>*:nth-child(6){animation-delay:.52s}
+.inview .a-up{animation:fadeUp .6s ease-out both}
 
 /* 내비게이션 */
 .progress-bar{position:fixed;top:0;left:0;height:3px;background:var(--gold);transition:width .3s;z-index:1000}
-.nav-controls{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:16px;z-index:1000}
-.nav-btn{background:rgba(7,46,43,.75);border:none;color:#FAF8F4;width:38px;height:38px;border-radius:50%;cursor:pointer;font-size:16px}
+.nav-controls{position:fixed;bottom:18px;right:18px;display:flex;align-items:center;gap:10px;z-index:1000;opacity:.85}
+.nav-btn{background:rgba(7,46,43,.8);border:none;color:#FAF8F4;width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:14px}
+/* PDF 다운로드 — 보고 있는 기기에 맞는 판본을 받는다 */
+.nav-btn--dl{width:auto;border-radius:17px;padding:0 14px;font-size:12px;font-weight:700;white-space:nowrap}
 .nav-btn:hover{background:var(--green)}
 .slide-counter{color:rgba(120,130,128,.9);font-size:13px;font-family:var(--font-head)}
 
@@ -129,7 +126,7 @@ a.contact-link:hover,a.contact-link:active{text-decoration:underline}
 .checkline p small{display:block;color:var(--muted);font-size:.86em;margin-top:2px}
 
 @media (max-width:768px){
-  .slide{padding:40px 26px}
+  .slide{padding:92px 22px 74px;min-height:auto}
   .brandbar{padding:18px 26px}
   .pagenum{right:26px}
   .g3,.g4,.tl,.split{grid-template-columns:1fr}
@@ -142,7 +139,7 @@ a.contact-link:hover,a.contact-link:active{text-decoration:underline}
 <div class="slide-deck">
 
 <!-- 1. 표지 -->
-<div class="slide dark active">
+<div class="slide dark inview">
   <div class="brandbar"><a class="logo" href="https://medifront.co.kr" onclick="event.stopPropagation()"><img class="on-light" src="/logo-1line-dark.svg" alt="MEDIFRONT" /><img class="on-dark" src="/logo-1line-light.svg" alt="MEDIFRONT" /></a><div class="tag">OPENING CONSULTING</div></div>
   <div class="a-up" style="max-width:900px">
     <div class="kicker">Medifront Opening Consulting Proposal</div>
@@ -410,27 +407,29 @@ a.contact-link:hover,a.contact-link:active{text-decoration:underline}
   <button class="nav-btn" onclick="prevSlide()">←</button>
   <span class="slide-counter"><span id="current">1</span> / <span id="total">16</span></span>
   <button class="nav-btn" onclick="nextSlide()">→</button>
+  <button class="nav-btn nav-btn--dl" onclick="downloadPdf()" title="PDF 내려받기">PDF</button>
 </div>
 
 <script>
-let current=1;
-const total=document.querySelectorAll('.slide').length;
+const slides=[...document.querySelectorAll('.slide')];
+const total=slides.length;
 document.getElementById('total').textContent=total;
-function showSlide(n){
-  if(n<1)n=1;if(n>total)n=total;current=n;
-  document.querySelectorAll('.slide').forEach((s,i)=>{s.classList.toggle('active',i===n-1)});
-  document.getElementById('current').textContent=n;
-  document.getElementById('progressBar').style.width=(n/total*100)+'%';
-}
-function nextSlide(){showSlide(current+1)}
-function prevSlide(){showSlide(current-1)}
-document.addEventListener('keydown',e=>{
-  if(e.key==='ArrowRight'||e.key===' '){e.preventDefault();nextSlide()}
-  if(e.key==='ArrowLeft'){e.preventDefault();prevSlide()}
-});
-document.addEventListener('click',e=>{if(!e.target.closest('.nav-controls'))nextSlide()});
+let current=1;
+function goTo(n){if(n<1)n=1;if(n>total)n=total;slides[n-1].scrollIntoView({behavior:'smooth',block:'start'});}
+function nextSlide(){goTo(current+1)}
+function prevSlide(){goTo(current-1)}
+document.addEventListener('keydown',e=>{if(e.key==='ArrowRight'){e.preventDefault();nextSlide()}if(e.key==='ArrowLeft'){e.preventDefault();prevSlide()}});
+const io=new IntersectionObserver(es=>{es.forEach(en=>{if(en.isIntersecting){en.target.classList.add('inview');current=slides.indexOf(en.target)+1;document.getElementById('current').textContent=current;document.getElementById('progressBar').style.width=(current/total*100)+'%';}});},{threshold:.45});
+slides.forEach(sl=>io.observe(sl));
 
-showSlide(1);
+/* PDF 내려받기 — 화면 폭으로 PC/모바일 판본을 고른다 */
+function downloadPdf(){
+  var mobile = window.matchMedia('(max-width: 768px)').matches;
+  var a = document.createElement('a');
+  a.href = '/docs/consulting_1_' + (mobile ? 'mobile' : 'pc') + '.pdf';
+  a.download = '메디프론트_개원컨설팅' + (mobile ? '_모바일' : '_PC') + '.pdf';
+  document.body.appendChild(a); a.click(); a.remove();
+}
 
 /* 입지분석 예시 차트 */
 new Chart(document.getElementById('chartHouseholds'),{
