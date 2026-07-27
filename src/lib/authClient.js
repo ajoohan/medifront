@@ -362,7 +362,9 @@ export async function completeOAuthRedirect() {
       saveTokens({ idToken: t.idToken, accessToken: t.accessToken, refreshToken: t.refreshToken })
       const user = claimsToUser(decode(t.idToken))
       emit(user)
-      return user
+      // profileDone: 가입 2/2 폼 필요 여부 — 서버가 함께 알려주므로
+      // 회원 조회를 기다리지 않고 즉시 폼을 열 수 있다
+      return { ok: true, user, profileDone: t.profileDone }
     }
     // 구글 — Cognito Hosted UI 토큰 교환 (PKCE)
     const r = await fetch(`https://${awsConfig.authDomain}/oauth2/token`, {
@@ -381,7 +383,7 @@ export async function completeOAuthRedirect() {
     saveTokens({ idToken: t.id_token, accessToken: t.access_token, refreshToken: t.refresh_token })
     const user = claimsToUser(decode(t.id_token))
     emit(user)
-    return user
+    return { ok: true, user }
   } catch {
     return { error: 'network' }
   }

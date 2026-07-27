@@ -1034,6 +1034,43 @@ ul {
 .login-modal__links span {
   color: var(--line);
 }
+/* 소셜 로그인 복귀 처리 중 오버레이 — 토큰 교환이 끝날 때까지 표시 */
+.oauth-wait {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(2px);
+}
+.oauth-wait p {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--ink-700, #33504b);
+}
+.oauth-wait__spinner {
+  width: 42px;
+  height: 42px;
+  border: 3.5px solid rgba(16, 166, 150, 0.18);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: oauthSpin 0.8s linear infinite;
+}
+@keyframes oauthSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .oauth-wait__spinner {
+    animation-duration: 1.6s;
+  }
+}
+
 /* ── 인증(로그인/회원가입) 공통 ── */
 /* 입력값 실시간 오류 안내 (예: 비밀번호 확인 불일치) — 해당 입력 바로 아래 붉은 글씨 */
 .field-error {

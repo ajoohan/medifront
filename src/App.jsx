@@ -22,7 +22,7 @@ function Shell() {
   const { pathname } = useLocation()
   // 대소문자 무관 판정 (/ADMIN 등으로 접속해도 헤더/푸터 숨김)
   const isAdmin = pathname.toLowerCase().startsWith('/admin')
-  const { loginOpen, closeLogin } = useUser()
+  const { loginOpen, closeLogin, oauthProcessing } = useUser()
 
   return (
     <>
@@ -51,6 +51,13 @@ function Shell() {
       {!isAdmin && <Footer />}
       {!isAdmin && <FloatingInquiry />}
       <LoginModal open={loginOpen} onClose={closeLogin} />
+      {/* 소셜 로그인 복귀 처리 중 — 완료 전까지 메인이 그대로 보여 오해하지 않도록 */}
+      {oauthProcessing && (
+        <div className="oauth-wait" role="status" aria-live="polite">
+          <div className="oauth-wait__spinner" aria-hidden="true" />
+          <p>로그인 처리 중입니다...</p>
+        </div>
+      )}
     </>
   )
 }

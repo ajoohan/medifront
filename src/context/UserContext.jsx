@@ -36,6 +36,11 @@ export function UserProvider({ children }) {
   // 저장된 세션 복원이 끝났는지. 이 값이 false 인 동안 user 가 null 인 것은
   // '비로그인'이 아니라 '아직 모름'이다 — 권한 화면이 이를 구분해야 깜빡임이 없다.
   const [authReady, setAuthReady] = useState(false)
+  // 소셜 로그인 복귀(?code=) 처리 중 — 토큰 교환이 끝날 때까지 '로그인 처리 중' 오버레이를
+  // 띄워, 그 사이 메인 화면만 보여 로그인이 안 된 것처럼 오해하는 일을 막는다.
+  const [oauthProcessing, setOauthProcessing] = useState(
+    () => typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('code'),
+  )
 
   // 저장된 세션 복원 (자동 로그인 꺼진 상태에서 브라우저를 새로 연 경우에는 세션 종료)
   useEffect(() => {
@@ -63,6 +68,7 @@ export function UserProvider({ children }) {
         )
         setLoginOpen(true)
       }
+      setOauthProcessing(false)
       const keepLogin = localStorage.getItem(AUTOLOGIN_KEY) !== '0'
       const newBrowserSession = !sessionStorage.getItem(TAB_KEY)
       sessionStorage.setItem(TAB_KEY, '1')
@@ -92,11 +98,21 @@ export function UserProvider({ children }) {
       }
       const session = await auth.getSession()
       applyUser(mapAuthUser(session))
+      // 네이버 로그인 응답에는 가입 2/2 필요 여부가 함께 실려 온다 —
+      // 회원 조회 왕복을 기다리지 않고 즉시 폼을 열어 "로그인이 안 됐나" 오해를 막는다
+      if (redirect?.ok && redirect.profileDone === false) {
+        setProfilePending(true)
+        setLoginNotice('')
+        setLoginOpen(true)
+      }
       setAuthReady(true)
       unsub = auth.onAuthChange((u) => applyUser(mapAuthUser(u)))
     }
     // 세션 복원이 실패해도 화면이 로딩에 갇히면 안 된다
-    init().finally(() => setAuthReady(true))
+    init().finally(() => {
+      setAuthReady(true)
+      setOauthProcessing(false)
+    })
     return () => unsub?.()
   }, [])
 
@@ -224,6 +240,7 @@ export function UserProvider({ children }) {
       value={{
         user,
         authReady,
+        oauthProcessing,
         loginOpen,
         loginNotice,
         profilePending,
