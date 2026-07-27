@@ -461,15 +461,18 @@ async function downloadPdf(){
     deck.classList.add('exporting'); // 캡처 중 슬라이드 전환 애니메이션 제거
     const {jsPDF}=window.jspdf;
     let pdf=null;
+    // 글자가 선명하도록 3배 해상도로 캡처하고 무손실(PNG)로 담는다 —
+    // JPEG 는 글자 주변이 뭉개져 흐릿하게 보인다.
+    const SCALE=3;
     for(let i=1;i<=total;i++){
       btn.textContent='생성 중 '+i+'/'+total;
       showSlide(i);
       await new Promise(r=>setTimeout(r,150)); // 렌더 안정화
-      const canvas=await html2canvas(deck,{scale:2,useCORS:true});
-      const w=canvas.width/2, h=canvas.height/2; // scale 보정한 화면 픽셀 크기
+      const canvas=await html2canvas(deck,{scale:SCALE,useCORS:true});
+      const w=canvas.width/SCALE, h=canvas.height/SCALE; // scale 보정한 화면 픽셀 크기
       if(!pdf) pdf=new jsPDF({unit:'px',format:[w,h],orientation:w>h?'l':'p',hotfixes:['px_scaling']});
       else pdf.addPage([w,h],w>h?'l':'p');
-      pdf.addImage(canvas.toDataURL('image/jpeg',0.92),'JPEG',0,0,w,h);
+      pdf.addImage(canvas.toDataURL('image/png'),'PNG',0,0,w,h,undefined,'FAST');
     }
     pdf.save('메디프론트_개원컨설팅.pdf');
   }catch(e){
