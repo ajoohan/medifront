@@ -37,5 +37,6 @@ export const CK = {
   requests: 'requests',
   inquiries: 'inquiries',
   consultingDocs: 'consulting-docs',
+  internalDocs: 'internal-docs',
   dashboard: 'dashboard',
 }

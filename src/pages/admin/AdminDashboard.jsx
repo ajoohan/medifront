@@ -5,6 +5,7 @@ import MagazineAdmin from './MagazineAdmin'
 import SettingsAdmin from './SettingsAdmin'
 import PerformanceAdmin from './PerformanceAdmin'
 import ConsultingDocsAdmin from './ConsultingDocsAdmin'
+import InternalDocsAdmin from './InternalDocsAdmin'
 import ConsultMeetingAdmin, { ConsultDirectAdmin } from './ConsultAdmin'
 
 const ADMIN_VERSION = 'Version 0.7'
@@ -27,9 +28,23 @@ const CONSULT_VIEWS = [
   { key: 'consult-direct', label: '1:1 상담', component: ConsultDirectAdmin },
 ]
 
+// 내부 자료실 — 사내 문서함(홈페이지에는 없는 관리자 전용 메뉴)
+const INTERNAL_VIEW = {
+  key: 'internal-docs',
+  label: '내부 자료실',
+  component: InternalDocsAdmin,
+}
+
 const SETTINGS_VIEW = { key: 'settings', label: '설정', component: SettingsAdmin }
 
-const ALL_VIEWS = [DASHBOARD_VIEW, ...VIEWS, ...CONTENT_VIEWS, ...CONSULT_VIEWS, SETTINGS_VIEW]
+const ALL_VIEWS = [
+  DASHBOARD_VIEW,
+  ...VIEWS,
+  ...CONTENT_VIEWS,
+  ...CONSULT_VIEWS,
+  INTERNAL_VIEW,
+  SETTINGS_VIEW,
+]
 
 // 드롭다운 그룹 메뉴 — 상위 메뉴와 동일 스타일, 클릭 시 서브메뉴 펼침/접힘
 function NavGroup({ label, views, open, onToggle, view, setView }) {
@@ -104,6 +119,13 @@ export default function AdminDashboard({ onLogout }) {
             view={view}
             setView={setView}
           />
+
+          <button
+            className={`admin__navitem ${view === INTERNAL_VIEW.key ? 'is-active' : ''}`}
+            onClick={() => setView(INTERNAL_VIEW.key)}
+          >
+            {INTERNAL_VIEW.label}
+          </button>
 
           <button
             className={`admin__navitem ${view === SETTINGS_VIEW.key ? 'is-active' : ''}`}

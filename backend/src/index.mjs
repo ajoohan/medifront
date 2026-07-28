@@ -258,6 +258,14 @@ const RESOURCES = {
     fields: ['doc_id', 'hidden'],
     defaults: () => ({ hidden: false }),
   },
+  // 내부 자료실 — 관리자·운영자만 보는 사내 문서.
+  // ⚠️ 절대 PUBLIC_ROUTES 에 넣지 말 것. 아래 ADMIN_READ_ONLY_RESOURCES 에도
+  // 반드시 들어 있어야 일반 회원이 로그인 토큰으로 읽어가지 못한다.
+  'internal-docs': {
+    entity: 'internal_docs',
+    fields: ['title', 'summary', 'category', 'content', 'updated_at'],
+    defaults: () => ({ category: '운영', summary: '', content: '' }),
+  },
 }
 
 const now = () => new Date().toISOString()
@@ -1013,6 +1021,8 @@ const ADMIN_READ_ONLY_RESOURCES = [
   'member-logs',
   'inquiries',
   'consult-requests',
+  // 내부 자료실 — 회원이 로그인 토큰으로 읽어가지 못하게 막는다
+  'internal-docs',
 ]
 
 function getAuth(event) {
