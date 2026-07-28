@@ -7,6 +7,7 @@ import {
   deleteInternalDoc,
 } from '../../lib/internalDocsDb'
 import { INTERNAL_DOCS_SEED, INTERNAL_DOC_CATEGORIES } from '../../lib/internalDocsSeed'
+import { INTERNAL_FILES } from '../../lib/internalFiles'
 import useAdminData from '../../hooks/useAdminData'
 import { CK } from '../../lib/adminCache'
 import { SkeletonCards, LoadingRegion } from '../../components/admin/Skeleton'
@@ -156,6 +157,19 @@ export default function InternalDocsAdmin() {
   const [writing, setWriting] = useState(null) // null | { mode:'new' } | { mode:'edit', doc }
   const [busy, setBusy] = useState(false)
   const [filter, setFilter] = useState('전체')
+  const [copied, setCopied] = useState('') // 방금 링크를 복사한 자료 id
+
+  // 파일 주소를 전체 주소(https://…)로 만들어 클립보드에 넣는다 — 그대로 공유할 수 있게
+  const copyLink = async (doc) => {
+    const url = `${window.location.origin}${doc.file}`
+    try {
+      await navigator.clipboard.writeText(url)
+      setCopied(doc.id)
+      setTimeout(() => setCopied(''), 1800)
+    } catch {
+      window.prompt('아래 주소를 복사하세요', url)
+    }
+  }
 
   // 목록이 갱신되면 열람 중인 자료도 최신 내용으로 맞춘다
   useEffect(() => {
@@ -228,6 +242,38 @@ export default function InternalDocsAdmin() {
     )
   }
 
+  // ── 파일형 자료 열람 — 문서 자체가 반응형이라 폭만 채워 주면 PC·모바일 모두 맞는다 ──
+  if (viewing?.file) {
+    return (
+      <>
+        <div className="mag-editor__top">
+          <button className="mag-editor__back" onClick={() => setViewing(null)}>
+            ← 목록으로
+          </button>
+          <div className="admin-actions">
+            <button onClick={() => copyLink(viewing)}>
+              {copied === viewing.id ? '복사됨' : '링크 복사'}
+            </button>
+            <a className="admin-linkbtn" href={viewing.file} target="_blank" rel="noreferrer">
+              새 창으로 보기 ↗
+            </a>
+            <a className="admin-linkbtn" href={viewing.file} download>
+              다운로드
+            </a>
+          </div>
+        </div>
+
+        <div className="doc-frame admin-fade">
+          <div className="doc-frame__head">
+            <span className="doc-read__cat">{viewing.category}</span>
+            <b>{viewing.title}</b>
+          </div>
+          <iframe className="doc-frame__view" src={viewing.file} title={viewing.title} />
+        </div>
+      </>
+    )
+  }
+
   // ── 자료 열람 화면 ──
   if (viewing) {
     return (
@@ -259,7 +305,9 @@ export default function InternalDocsAdmin() {
   }
 
   // ── 목록 화면 ──
-  const shown = filter === '전체' ? docs : docs.filter((d) => d.category === filter)
+  // 파일형 자료(public/internal/)를 먼저, 그 뒤에 관리자가 쓴 자료를 붙인다
+  const all = [...INTERNAL_FILES, ...docs]
+  const shown = filter === '전체' ? all : all.filter((d) => d.category === filter)
 
   return (
     <>
@@ -271,14 +319,22 @@ export default function InternalDocsAdmin() {
             없습니다.
           </p>
         </div>
-        {available && (
-          <button
-            className="btn btn--primary admin-head__action"
-            onClick={() => setWriting({ mode: 'new' })}
-          >
-            + 자료 등록
-          </button>
-        )}
+        <div className="admin-head__buttons">
+          {/* 아직 작성한 자료가 없으면 기본 운영 자료를 한 번에 채울 수 있게 */}
+          {available && docs.length === 0 && (
+            <button className="btn admin-head__action" onClick={seed} disabled={busy}>
+              {busy ? '등록 중...' : `기본 자료 ${INTERNAL_DOCS_SEED.length}건 불러오기`}
+            </button>
+          )}
+          {available && (
+            <button
+              className="btn btn--primary admin-head__action"
+              onClick={() => setWriting({ mode: 'new' })}
+            >
+              + 자료 등록
+            </button>
+          )}
+        </div>
       </div>
 
       {checked && !available && (
@@ -309,7 +365,7 @@ export default function InternalDocsAdmin() {
         <LoadingRegion label="내부 자료 불러오는 중">
           <SkeletonCards count={3} lines={2} />
         </LoadingRegion>
-      ) : docs.length === 0 ? (
+      ) : all.length === 0 ? (
         <div className="mag-empty">
           <span className="mag-empty__icon" aria-hidden="true">
             <svg
@@ -346,12 +402,13 @@ export default function InternalDocsAdmin() {
       ) : (
         <ul className="docs-list admin-fade">
           {shown.map((d) => (
-            <li key={d.id}>
+            <li key={d.file || d.id} className="docs-row">
               <button type="button" className="docs-item" onClick={() => setViewing(d)}>
                 <div className="docs-item__body">
                   <span className="docs-item__kicker">
                     {d.category}
-                    {d.updatedAt && ` · ${formatDate(d.updatedAt)}`}
+                    {d.file && <em className="docs-item__type">문서</em>}
+                    {(d.date || d.updatedAt) && ` · ${formatDate(d.date || d.updatedAt)}`}
                   </span>
                   <h3>{d.title}</h3>
                   {d.summary && <p>{d.summary}</p>}
@@ -374,6 +431,83 @@ export default function InternalDocsAdmin() {
                   </svg>
                 </span>
               </button>
+
+              {/* 파일형 자료 — 링크 복사 · 다운로드 */}
+              {d.file && (
+                <div className="docs-row__tools">
+                  <button
+                    type="button"
+                    className={`icon-btn ${copied === d.id ? 'is-done' : ''}`}
+                    onClick={() => copyLink(d)}
+                    title="링크 복사"
+                    aria-label={`${d.title} 링크 복사`}
+                  >
+                    {copied === d.id ? (
+                      <svg
+                        width="17"
+                        height="17"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        aria-hidden="true"
+                      >
+                        <path
+                          d="m5 12.5 4.5 4.5L19 7.5"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    ) : (
+                      <svg
+                        width="17"
+                        height="17"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        aria-hidden="true"
+                      >
+                        <path
+                          d="M10 13a4 4 0 0 0 5.7.3l3-3A4 4 0 0 0 13 4.7l-1.2 1.2"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                        <path
+                          d="M14 11a4 4 0 0 0-5.7-.3l-3 3A4 4 0 0 0 11 19.3l1.2-1.2"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    )}
+                  </button>
+                  <a
+                    className="icon-btn"
+                    href={d.file}
+                    download
+                    title="다운로드"
+                    aria-label={`${d.title} 다운로드`}
+                  >
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <path
+                        d="M12 4v11m0 0 4-4m-4 4-4-4"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      <path
+                        d="M5 18.5h14"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                  </a>
+                </div>
+              )}
             </li>
           ))}
           {shown.length === 0 && (

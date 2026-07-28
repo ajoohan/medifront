@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { formatPhone } from '../../lib/phone'
 import { apiSend, isApiConfigured } from '../../lib/api'
 import { fetchMembers, upsertMember, updateMemberDb, deleteMemberDb } from '../../lib/membersDb'
+import { fetchOperatorsDb } from '../../lib/operatorsDb'
 import MemberDetail from './MemberDetail'
 import LicenseReview from './LicenseReview'
 import { isPendingDoctor } from '../../lib/license'
@@ -42,6 +43,10 @@ const FILTERS = [
 // 회원유형: 의사(의사면허 보유자·모든 서비스) / 병원(병원·의원 소속 관계자) / 일반
 const GRADES = ['의사', '병원', '일반']
 const GRADE_CLASS = { 의사: 'doctor', 병원: 'hospital', 일반: 'general' }
+
+// 관리자 권한을 가진 회원은 목록에서 바로 구분되어야 한다 —
+// 등급(의사/병원/일반)과 역할(최고관리자/일반관리자/운영자)은 별개다.
+const ROLE_CLASS = { 최고관리자: 'super', 일반관리자: 'master', 운영자: 'manager' }
 
 function formatDate(iso) {
   const [y, m, d] = iso.split('-')
@@ -86,6 +91,15 @@ export default function MembersAdmin() {
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState(null) // { type: 'ok' | 'warn', text }
   const [detailId, setDetailId] = useState(null) // 상세 보기 중인 회원 id
+
+  // 운영자 목록을 곁들여 회원 행에 역할을 표시한다 (설정 화면과 같은 캐시를 쓴다)
+  const { data: operatorData } = useAdminData(CK.operators, fetchOperatorsDb)
+  const roleByEmail = useMemo(() => {
+    const map = {}
+    for (const o of operatorData || []) if (o.email) map[o.email] = o.grade
+    return map
+  }, [operatorData])
+  const roleOf = (email) => roleByEmail[email]
 
   // 조회 실패 시 예전에는 목업 회원 28명을 대신 보여줬는데, 관리자가 이를 실제 회원으로
   // 오해할 수 있어 제거했다. 실패는 빈 목록 + 오류 안내로 정직하게 드러낸다.
@@ -562,6 +576,12 @@ export default function MembersAdmin() {
                   </td>
                   <td>
                     <span className="m-name">{m.name}</span>
+                    {/* 운영자·관리자는 일반 회원과 한눈에 구분되게 역할을 붙인다 */}
+                    {roleOf(m.email) && (
+                      <span className={`role-tag role-tag--${ROLE_CLASS[roleOf(m.email)]}`}>
+                        {roleOf(m.email)}
+                      </span>
+                    )}
                   </td>
                   <td>{m.email}</td>
                   <td>{m.phone}</td>

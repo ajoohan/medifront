@@ -4665,3 +4665,143 @@ button.docs-item:hover .docs-item__go {
     font-size: 1.34rem;
   }
 }
+
+/* ── 내부 자료실: 파일형 자료 ────────────────────────────────────── */
+/* 카드 옆에 링크복사·다운로드 아이콘을 세운다 (카드 안에 버튼을 넣으면 중첩이 된다) */
+.docs-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.docs-row .docs-item {
+  flex: 1;
+  min-width: 0;
+}
+.docs-row__tools {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--ink-500);
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    color 0.15s,
+    background 0.15s;
+}
+.icon-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: var(--paper-soft);
+}
+.icon-btn.is-done {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: #fff;
+}
+/* 목록에서 파일형 자료임을 알리는 작은 꼬리표 */
+.docs-item__type {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 4px;
+  background: var(--paper-blue);
+  color: var(--navy-700);
+  font-size: 0.68rem;
+  font-style: normal;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+/* 파일형 자료 열람 — 문서가 반응형이라 iframe 폭만 채워 주면 된다 */
+.doc-frame {
+  margin-top: 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: #fff;
+}
+.doc-frame__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 18px;
+  border-bottom: 1px solid var(--line);
+  background: var(--paper-soft);
+  font-size: 0.94rem;
+}
+.doc-frame__head b {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.doc-frame__view {
+  display: block;
+  width: 100%;
+  height: calc(100vh - 210px);
+  min-height: 460px;
+  border: 0;
+}
+
+/* 링크형 버튼 — admin-actions 안에서 button 과 같은 모양으로 */
+.admin-linkbtn {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.admin-head__buttons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ── 회원관리: 운영자 구분 꼬리표 ───────────────────────────────── */
+.role-tag {
+  display: inline-block;
+  margin-left: 7px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  vertical-align: 1px;
+  white-space: nowrap;
+}
+.role-tag--super {
+  background: #fdecec;
+  color: #b3261e;
+}
+.role-tag--master {
+  background: #eaf1fd;
+  color: #1a4fa0;
+}
+.role-tag--manager {
+  background: var(--paper-soft);
+  color: #0b6b60;
+}
+
+@media (max-width: 720px) {
+  .docs-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .docs-row__tools {
+    flex-direction: row;
+    justify-content: flex-end;
+  }
+  .doc-frame__view {
+    height: calc(100vh - 260px);
+  }
+}
