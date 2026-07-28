@@ -19,6 +19,7 @@ import {
   AdminRemoveUserFromGroupCommand,
   AdminInitiateAuthCommand,
   AdminRespondToAuthChallengeCommand,
+  AdminDeleteUserCommand,
 } from '@aws-sdk/client-cognito-identity-provider'
 import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses'
 
@@ -492,23 +493,80 @@ async function patchItem(cfg, id, body) {
   return { ok: true }
 }
 
+const delRow = (entity, id) =>
+  ddb.send(new DeleteCommand({ TableName: TABLE, Key: { pk: entity, sk: skOf(id) } }))
+
+// 회원 완전 삭제 — 흔적을 남기지 않는다.
+//
+// ⚠️ members 행만 지우면 Cognito 계정이 살아남아, 삭제된 사람이 그대로 로그인된다.
+// 그 상태에서는 회원 목록에 없는 유령 계정이 되어 관리도 차단도 되지 않는다.
+// 그래서 로그인 계정 → 부속 데이터 → 회원 행 순서로 모두 지운다.
+//
+// 지우지 않는 것: 대면 상담 회의록(consults)과 무료 상담 신청(consult_requests).
+// 회원 가입 전부터 쌓이는 회사의 업무 기록이라 탈퇴와 함께 사라지면 이력이 끊긴다.
+// 이것까지 지워야 하면 아래 주석 해제 지점에 추가하면 된다.
+async function purgeMember(member) {
+  const email = member?.email
+  const summary = { cognito: 'skipped', inquiries: 0, logs: 0, operator: false }
+
+  // 1) 로그인 계정 — 이게 남으면 삭제해도 로그인이 된다
+  if (email) {
+    try {
+      await cognito.send(new AdminDeleteUserCommand({ UserPoolId: USER_POOL_ID, Username: email }))
+      summary.cognito = 'deleted'
+    } catch (e) {
+      // 계정이 원래 없던 경우(수동 추가 회원 등)는 정상이므로 넘어간다
+      summary.cognito = e.name === 'UserNotFoundException' ? 'absent' : `failed:${e.name}`
+      if (e.name !== 'UserNotFoundException') console.error('cognito delete failed', email, e)
+    }
+  }
+
+  // 2) 관리자 권한 — 운영자였다면 역할 그룹과 운영자 행까지 정리
+  if (email) {
+    const op = (await listAll('operators')).find((o) => o.email === email)
+    if (op) {
+      await delRow('operators', op.id)
+      summary.operator = true
+    }
+    await clearRoleGroups(email)
+  }
+
+  // 3) 1:1 문의 — 이름·연락 내용이 들어 있는 개인정보다
+  if (email) {
+    const rows = (await listAll('inquiries')).filter((q) => q.email === email)
+    for (const q of rows) await delRow('inquiries', q.id)
+    summary.inquiries = rows.length
+  }
+
+  // 4) 회원 메모/이력
+  const logs = (await listAll('member_logs')).filter(
+    (l) => String(l.member_id) === String(member.id),
+  )
+  for (const log of logs) await delRow('member_logs', log.id)
+  summary.logs = logs.length
+
+  // 5) 회원 행 — 본인인증 해시(ci_hash/di)도 이 행에 있으므로 함께 사라진다
+  await delRow('members', member.id)
+
+  return summary
+}
+
 async function deleteItem(cfg, id) {
+  // 회원은 딸린 데이터가 많아 별도 경로로 처리한다
+  if (cfg.entity === 'members') {
+    const member = await getItem('members', id)
+    if (!member) return { ok: true } // 이미 없으면 성공으로 본다
+    const purged = await purgeMember(member)
+    console.log('member purged', { id, ...purged })
+    return { ok: true, purged }
+  }
+
   // 운영자는 역할 그룹 소속으로 관리 권한을 갖는다(inviteUser 참고). 행만 지우면
   // 계정이 그룹에 남아 관리자 권한이 그대로 유지되므로, 지우기 전에 이메일을 확보한다.
   const operatorEmail = cfg.entity === 'operators' ? (await getItem(cfg.entity, id))?.email : null
 
-  await ddb.send(new DeleteCommand({ TableName: TABLE, Key: { pk: cfg.entity, sk: skOf(id) } }))
+  await delRow(cfg.entity, id)
   await clearRoleGroups(operatorEmail)
-
-  // 회원 삭제 시 전화 로그도 함께 삭제 (기존 FK cascade 동작 유지)
-  if (cfg.entity === 'members') {
-    const logs = (await listAll('member_logs')).filter((l) => String(l.member_id) === String(id))
-    for (const log of logs) {
-      await ddb.send(
-        new DeleteCommand({ TableName: TABLE, Key: { pk: 'member_logs', sk: skOf(log.id) } }),
-      )
-    }
-  }
   return { ok: true }
 }
 

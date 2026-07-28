@@ -152,17 +152,54 @@ export default function MembersAdmin() {
     if (dbReady) updateMemberDb(id, { status: next })
   }
 
-  const removeMember = (id) => {
+  // 회원 삭제는 되돌릴 수 없고 로그인 계정까지 함께 사라진다 — 무엇이 지워지는지 먼저 알린다.
+  const removeMember = async (id) => {
     const target = members.find((m) => m.id === id)
-    if (window.confirm(`'${target?.name}' 회원을 삭제하시겠습니까?`)) {
-      setMembers((ms) => ms.filter((m) => m.id !== id))
-      setSelected((prev) => {
-        const next = new Set(prev)
-        next.delete(id)
-        return next
-      })
-      if (dbReady) deleteMemberDb(id)
+    const ok = window.confirm(
+      `'${target?.name}' 회원을 완전히 삭제합니다.\n\n` +
+        `· 로그인 계정 (다시 로그인할 수 없게 됩니다)\n` +
+        `· 회원 정보와 본인인증 기록\n` +
+        `· 이 회원이 남긴 1:1 문의\n` +
+        `· 회원 메모\n` +
+        `· 관리자 권한(있는 경우)\n\n` +
+        `되돌릴 수 없습니다. 진행하시겠습니까?`,
+    )
+    if (!ok) return
+
+    setMembers((ms) => ms.filter((m) => m.id !== id))
+    setSelected((prev) => {
+      const next = new Set(prev)
+      next.delete(id)
+      return next
+    })
+    if (!dbReady) return
+
+    const res = await deleteMemberDb(id)
+    if (res.error) {
+      setNotice({ type: 'warn', text: `회원 삭제 실패: ${res.error} — 목록을 새로고침해 주세요.` })
+      return
     }
+    // 1:1 문의도 함께 지워졌으므로 그 화면의 캐시를 버린다
+    clearCache(CK.inquiries)
+    const p = res.purged
+    // 로그인 계정 삭제가 실패하면 조용히 넘어가면 안 된다 — 그 계정은 아직 로그인된다
+    if (p?.cognito?.startsWith?.('failed')) {
+      setNotice({
+        type: 'warn',
+        text: `회원 정보는 삭제했으나 로그인 계정 삭제에 실패했습니다(${p.cognito}). 해당 계정이 아직 로그인 가능하니 다시 시도해 주세요.`,
+      })
+      return
+    }
+    const parts = [
+      p?.cognito === 'deleted' ? '로그인 계정' : null,
+      p?.inquiries ? `1:1 문의 ${p.inquiries}건` : null,
+      p?.logs ? `메모 ${p.logs}건` : null,
+      p?.operator ? '관리자 권한' : null,
+    ].filter(Boolean)
+    setNotice({
+      type: 'ok',
+      text: `'${target?.name}' 회원을 완전히 삭제했습니다${parts.length ? ` — 함께 삭제: ${parts.join(', ')}` : ''}.`,
+    })
   }
 
   const changeGrade = (id, grade) => {

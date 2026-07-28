@@ -62,9 +62,11 @@ export async function updateMemberDb(id, patch) {
   return r.error ? { error: r.error } : { ok: true }
 }
 
+// 회원 완전 삭제 — 서버가 로그인 계정·1:1 문의·회원 메모·운영자 권한까지 함께 지운다.
+// 무엇이 지워졌는지 purged 로 돌려받아 화면에서 확인시켜 준다.
 export async function deleteMemberDb(id) {
   const r = await apiSend('DELETE', `${PATH}/${id}`)
-  return r.error ? { error: r.error } : { ok: true }
+  return r.error ? { error: r.error } : { ok: true, purged: r.data?.purged }
 }
 
 // ── 회원 전화 로그 (DynamoDB member_logs) ──
