@@ -10,7 +10,16 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 STACK="medifront-backend"
-REGION="${AWS_REGION:-ap-northeast-2}"   # 서울
+
+# ⚠️ 리전은 서울로 고정한다. 예전에는 ${AWS_REGION:-ap-northeast-2} 였는데,
+# CloudShell 은 콘솔에서 보고 있던 리전을 AWS_REGION 에 자동으로 넣는다. 그래서 콘솔이
+# 버지니아(us-east-1)에 있으면 배포가 조용히 그쪽으로 가서, 서울의 운영 스택은 그대로인 채
+# 엉뚱한 리전에 새 스택이 생겼다(실패하면 ROLLBACK_COMPLETE 로 남아 다음 배포까지 막는다).
+# 다른 리전에 배포할 일이 생기면 MEDIFRONT_REGION 으로 명시적으로 지정한다.
+REGION="${MEDIFRONT_REGION:-ap-northeast-2}"   # 서울
+export AWS_REGION="${REGION}"
+export AWS_DEFAULT_REGION="${REGION}"
+echo "배포 리전: ${REGION}"
 
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 ARTIFACT_BUCKET="medifront-backend-artifacts-${ACCOUNT_ID}"
