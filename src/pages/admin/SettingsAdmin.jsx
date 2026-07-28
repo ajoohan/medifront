@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { apiSend, isApiConfigured } from '../../lib/api'
 import { fetchMembers } from '../../lib/membersDb'
 import {
@@ -7,6 +7,9 @@ import {
   updateOperatorDb,
   deleteOperatorDb,
 } from '../../lib/operatorsDb'
+import useAdminData from '../../hooks/useAdminData'
+import { CK, clearCache } from '../../lib/adminCache'
+import { SkeletonTable, LoadingRegion } from '../../components/admin/Skeleton'
 
 // 관리자 등급: 최고관리자 / 일반관리자 / 운영자
 // 세 등급의 권한은 현재 모두 동일하다 — 등급별 권한 분리는 이후 작업이며,
@@ -40,38 +43,34 @@ async function inviteNewOperator({ email, name, grade }) {
 }
 
 export default function SettingsAdmin() {
-  const [operators, setOperators] = useState([])
-  const [members, setMembers] = useState([]) // 운영자로 지정할 후보(등록된 회원)
-  const [dbReady, setDbReady] = useState(false) // operators 테이블 사용 가능 여부
-  const [checked, setChecked] = useState(false)
+  // DB 로드. 조회 실패 시 예전에는 브라우저 저장분으로 폴백했는데, 그 상태에서 운영자를
+  // 추가하면 목록에는 보이지만 Cognito 계정도 역할 그룹도 만들어지지 않아 관리자가
+  // 등록됐다고 오해하게 된다. 실패는 빈 목록 + 오류 안내로 정직하게 드러낸다.
+  const { data, status, fresh, setData } = useAdminData(CK.operators, fetchOperatorsDb)
+  const operators = data || []
+  const dbReady = !!data // operators 테이블 사용 가능 여부
+  const checked = status === 'ready'
+  const setOperators = (next) =>
+    setData((cur) => (typeof next === 'function' ? next(cur || []) : next))
+
+  // 운영자는 등록된 회원 중에서만 지정한다 → 회원 목록을 후보로 불러온다
+  const { data: memberData } = useAdminData(CK.members, fetchMembers)
+  const members = memberData || []
+
   const [adding, setAdding] = useState(false)
   const [draft, setDraft] = useState(EMPTY_DRAFT)
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState(null) // { type: 'ok' | 'warn', text }
-
-  // DB 로드. 조회 실패 시 예전에는 브라우저 저장분으로 폴백했는데, 그 상태에서 운영자를
-  // 추가하면 목록에는 보이지만 Cognito 계정도 역할 그룹도 만들어지지 않아 관리자가
-  // 등록됐다고 오해하게 된다. 실패는 빈 목록 + 오류 안내로 정직하게 드러낸다.
-  useEffect(() => {
-    fetchOperatorsDb().then((list) => {
-      if (list) {
-        setDbReady(true)
-        setOperators(list)
-      } else {
-        setOperators([])
-      }
-      setChecked(true)
-    })
-    // 운영자는 등록된 회원 중에서만 지정한다 → 회원 목록을 후보로 불러온다
-    fetchMembers().then((list) => setMembers(list || []))
-  }, [])
 
   // 아직 운영자가 아닌 회원만 후보로 (이미 운영자면 목록에서 제외)
   const candidates = members.filter((m) => !operators.some((o) => o.email === m.email))
 
   const setD = (key) => (e) => setDraft((d) => ({ ...d, [key]: e.target.value }))
 
-  const persist = (next) => setOperators(next)
+  const persist = (next) => {
+    setOperators(next)
+    clearCache(CK.dashboard) // 운영자 수가 대시보드에도 나온다
+  }
 
   const addOperator = async (e) => {
     e.preventDefault()
@@ -315,54 +314,62 @@ export default function SettingsAdmin() {
         </form>
       )}
 
-      <div className="admin-table-wrap">
-        <table className="admin-table">
-          <thead>
-            <tr>
-              <th>이름</th>
-              <th>이메일</th>
-              <th>전화번호</th>
-              <th>등급</th>
-              <th>등록일</th>
-              <th>관리</th>
-            </tr>
-          </thead>
-          <tbody>
-            {operators.map((o) => (
-              <tr key={o.id}>
-                <td>
-                  <span className="m-name">{o.name}</span>
-                </td>
-                <td>{o.email}</td>
-                <td>{o.phone}</td>
-                <td>
-                  <select
-                    className={`grade-select grade--${GRADE_CLASS[o.grade]}`}
-                    value={o.grade}
-                    onChange={(e) => changeGrade(o.id, e.target.value)}
-                    aria-label={`${o.name} 등급`}
-                  >
-                    {OPERATOR_GRADES.map((g) => (
-                      <option key={g} value={g}>
-                        {g}
-                      </option>
-                    ))}
-                  </select>
-                </td>
-                <td>{formatDate(o.createdAt)}</td>
-                <td>
-                  <div className="admin-actions">
-                    <button className="danger" onClick={() => removeOperator(o.id)}>
-                      삭제
-                    </button>
-                  </div>
-                </td>
+      {checked && !fresh && <div className="admin-refresh" aria-label="최신 목록을 받는 중" />}
+
+      {!checked ? (
+        <LoadingRegion label="운영자 목록 불러오는 중">
+          <SkeletonTable rows={4} cols={6} />
+        </LoadingRegion>
+      ) : (
+        <div className="admin-table-wrap admin-fade">
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>이름</th>
+                <th>이메일</th>
+                <th>전화번호</th>
+                <th>등급</th>
+                <th>등록일</th>
+                <th>관리</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-        {operators.length === 0 && <div className="admin-empty">등록된 운영자가 없습니다.</div>}
-      </div>
+            </thead>
+            <tbody>
+              {operators.map((o) => (
+                <tr key={o.id}>
+                  <td>
+                    <span className="m-name">{o.name}</span>
+                  </td>
+                  <td>{o.email}</td>
+                  <td>{o.phone}</td>
+                  <td>
+                    <select
+                      className={`grade-select grade--${GRADE_CLASS[o.grade]}`}
+                      value={o.grade}
+                      onChange={(e) => changeGrade(o.id, e.target.value)}
+                      aria-label={`${o.name} 등급`}
+                    >
+                      {OPERATOR_GRADES.map((g) => (
+                        <option key={g} value={g}>
+                          {g}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
+                  <td>{formatDate(o.createdAt)}</td>
+                  <td>
+                    <div className="admin-actions">
+                      <button className="danger" onClick={() => removeOperator(o.id)}>
+                        삭제
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {operators.length === 0 && <div className="admin-empty">등록된 운영자가 없습니다.</div>}
+        </div>
+      )}
     </>
   )
 }

@@ -1,10 +1,30 @@
-import { useEffect, useState } from 'react'
 import { fetchMembers } from '../../lib/membersDb'
 import { fetchArticlesDb } from '../../lib/articlesDb'
 import { fetchRequests } from '../../lib/requestsDb'
 import { fetchAllInquiries } from '../../lib/inquiriesDb'
 import { fetchConsultsDb } from '../../lib/consultsDb'
 import { fetchOperatorsDb } from '../../lib/operatorsDb'
+import useAdminData from '../../hooks/useAdminData'
+import { CK } from '../../lib/adminCache'
+import { SkeletonKpis, SkeletonCards, LoadingRegion } from '../../components/admin/Skeleton'
+
+// 대시보드가 쓰는 여섯 목록을 한 번에 받아온다
+const loadAll = () =>
+  Promise.all([
+    fetchMembers(),
+    fetchArticlesDb(),
+    fetchRequests(),
+    fetchAllInquiries(),
+    fetchConsultsDb(),
+    fetchOperatorsDb(),
+  ]).then(([members, articles, requests, inquiries, consults, operators]) => ({
+    members: members || [],
+    articles: articles || [],
+    requests: requests || [],
+    inquiries: inquiries || [],
+    consults: consults || [],
+    operators: operators || [],
+  }))
 
 function formatDateTime(iso) {
   if (!iso) return '-'
@@ -15,37 +35,29 @@ function formatDateTime(iso) {
 
 // 관리자 대시보드 — 전 영역 요약 (회원·상담·문의·콘텐츠·운영자)
 export default function DashboardAdmin({ onGo }) {
-  const [data, setData] = useState(null) // null = 로딩 중
+  const { data, status, fresh } = useAdminData(CK.dashboard, loadAll)
 
-  useEffect(() => {
-    Promise.all([
-      fetchMembers(),
-      fetchArticlesDb(),
-      fetchRequests(),
-      fetchAllInquiries(),
-      fetchConsultsDb(),
-      fetchOperatorsDb(),
-    ]).then(([members, articles, requests, inquiries, consults, operators]) => {
-      setData({
-        members: members || [],
-        articles: articles || [],
-        requests: requests || [],
-        inquiries: inquiries || [],
-        consults: consults || [],
-        operators: operators || [],
-      })
-    })
-  }, [])
+  const head = (
+    <div className="admin-head">
+      <div>
+        <h1>대시보드</h1>
+        <p>메디프론트 운영 현황을 한눈에 확인합니다.</p>
+      </div>
+    </div>
+  )
 
-  if (!data) {
+  // 최초 로드 — 실제 화면과 같은 자리에 스켈레톤을 깔아 레이아웃이 흔들리지 않게 한다
+  if (status === 'loading') {
     return (
       <>
-        <div className="admin-head">
-          <div>
-            <h1>대시보드</h1>
-            <p>불러오는 중...</p>
+        {head}
+        <LoadingRegion label="운영 현황 불러오는 중">
+          <SkeletonKpis />
+          <div className="dash-grid" style={{ marginTop: 14 }}>
+            <SkeletonCards count={1} lines={5} />
+            <SkeletonCards count={1} lines={5} />
           </div>
-        </div>
+        </LoadingRegion>
       </>
     )
   }
@@ -88,15 +100,12 @@ export default function DashboardAdmin({ onGo }) {
 
   return (
     <>
-      <div className="admin-head">
-        <div>
-          <h1>대시보드</h1>
-          <p>메디프론트 운영 현황을 한눈에 확인합니다.</p>
-        </div>
-      </div>
+      {head}
+      {/* 캐시를 먼저 보여주고 최신값을 받는 중 */}
+      {!fresh && <div className="admin-refresh" aria-label="최신 정보를 받는 중" />}
 
       {/* 핵심 지표 */}
-      <div className="dash-kpis">
+      <div className="dash-kpis admin-fade">
         {kpis.map((k) => (
           <button
             key={k.label}
@@ -111,7 +120,7 @@ export default function DashboardAdmin({ onGo }) {
       </div>
 
       {/* 최근 상담 신청 · 최근 1:1 문의 */}
-      <div className="dash-grid">
+      <div className="dash-grid admin-fade">
         <section className="dash-panel">
           <div className="dash-panel__head">
             <h3>최근 상담 신청</h3>
@@ -178,7 +187,7 @@ export default function DashboardAdmin({ onGo }) {
       </div>
 
       {/* 콘텐츠·운영 요약 */}
-      <div className="dash-mini">
+      <div className="dash-mini admin-fade">
         <button className="dash-mini__item" onClick={() => onGo?.('consult-meeting')}>
           <span>대면 상담 기록</span>
           <b>{consults.length}</b>

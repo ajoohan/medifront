@@ -13,18 +13,20 @@ const roleLabel = (user) => user.adminRole || `${user.grade} 회원`
 const navItemsWith = (docCount) =>
   NAV.map((item) => (item.to === '/consulting' ? { ...item, badge: docCount } : item))
 
-// 소셜 로그인으로 접속한 회원에게 어떤 계정으로 들어왔는지 알려준다
-// (이메일 가입자는 표시하지 않음 — 굳이 알릴 정보가 아니다)
+// 소셜 로그인으로 접속한 회원에게 어떤 계정으로 들어왔는지 알려준다.
+// 헤더 폭을 잡아먹지 않도록 머리글자 한 자(G/N)만 원형 배지로 표시하고,
+// 전체 이름은 title 로 알린다. (이메일 가입자는 표시하지 않음)
 const PROVIDERS = {
-  google: { label: 'Google', className: 'user-badge user-badge--google' },
-  naver: { label: 'NAVER', className: 'user-badge user-badge--naver' },
+  google: { initial: 'G', name: 'Google', className: 'user-badge user-badge--google' },
+  naver: { initial: 'N', name: 'NAVER', className: 'user-badge user-badge--naver' },
 }
 function ProviderBadge({ user }) {
   const p = PROVIDERS[user.provider]
   if (!p) return null
   return (
-    <span className={p.className} title={`${p.label} 계정으로 로그인`}>
-      {p.label}
+    <span className={p.className} title={`${p.name} 계정으로 로그인`}>
+      <span aria-hidden="true">{p.initial}</span>
+      <span className="sr-only">{p.name} 계정</span>
     </span>
   )
 }
@@ -57,7 +59,8 @@ export default function Header() {
   const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const { user, openLogin, logout } = useUser()
-  const navItems = navItemsWith(useConsultingDocs().length)
+  // 배지는 '지금 열람할 수 있는' 자료 수 — 준비 중(딤 처리)인 자료는 세지 않는다
+  const navItems = navItemsWith(useConsultingDocs().filter((d) => !d.hidden).length)
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20)
@@ -94,7 +97,7 @@ export default function Header() {
           {user ? (
             <>
               <span className="header__user">
-                <b>{user.name}</b> 님 ({roleLabel(user)})
+                <b>{user.name}</b> 님<span className="header__role"> ({roleLabel(user)})</span>
                 <ProviderBadge user={user} />
               </span>
               <button className="btn btn--login" onClick={handleLogout}>

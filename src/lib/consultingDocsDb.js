@@ -37,8 +37,9 @@ export async function setDocHidden(docId, hidden, rowId) {
   return { ok: true, rowId: res.data?.id ?? rowId }
 }
 
-// 정적 목록 + 노출 설정 → 방문자에게 보여줄 목록
-export function visibleDocs(docs, flags) {
-  if (!flags) return docs
-  return docs.filter((d) => !flags[d.id]?.hidden)
+// 정적 목록 + 노출 설정 → 각 자료에 hidden 여부를 붙인다.
+// 숨긴 자료도 목록에는 남는다 — 딤 처리해 보여주되 열리지는 않는다.
+// (설정을 못 받았으면 전부 열람 가능으로 본다)
+export function withDocFlags(docs, flags) {
+  return docs.map((d) => ({ ...d, hidden: !!flags?.[d.id]?.hidden }))
 }

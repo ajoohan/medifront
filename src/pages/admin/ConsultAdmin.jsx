@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { loadConsults, saveConsults } from '../../lib/consultStore'
 import { fileToDataUrl, MAX_IMAGE_BYTES } from '../../lib/imageUtils'
 import { SPECIALTIES, REGIONS } from '../../data'
@@ -11,6 +11,28 @@ import {
   updateConsultDb,
   deleteConsultDb,
 } from '../../lib/consultsDb'
+import useAdminData from '../../hooks/useAdminData'
+import { CK, clearCache } from '../../lib/adminCache'
+import { SkeletonTable, LoadingRegion } from '../../components/admin/Skeleton'
+
+// 대면 상담 목록 로드 — DB가 비어 있고 브라우저 저장분이 있으면 1회 자동 이전한다.
+// DB 미연결(null)이면 호출부가 브라우저 저장분으로 폴백한다.
+async function loadConsultsWithMigration() {
+  const list = await fetchConsultsDb()
+  if (!list) return null
+  const local = loadConsults()
+  if (list.length > 0 || local.length === 0) return list
+
+  const uploaded = []
+  let allOk = true
+  for (const c of local) {
+    const r = await insertConsultDb(c)
+    if (r.ok) uploaded.push(r.consult)
+    else allOk = false
+  }
+  if (allOk) saveConsults([]) // 이전 완료 → 브라우저 저장 비움
+  return uploaded
+}
 
 // 개원희망시기 옵션 — 오늘이 속한 분기부터 향후 12개 분기(3년)
 const QUARTERS = (() => {
@@ -296,51 +318,27 @@ function ConsultEditor({ consult, onSave, onCancel }) {
 // 상담 관리 > 대면 상담 — 회의록 목록
 // ─────────────────────────────────────────────────────────
 export default function ConsultMeetingAdmin() {
-  const [consults, setConsults] = useState([])
-  const [dbReady, setDbReady] = useState(false) // consults 테이블 사용 가능 여부
-  const [checked, setChecked] = useState(false)
+  const { data, status, setData } = useAdminData(CK.consults, loadConsultsWithMigration)
+  const dbReady = !!data // consults 테이블 사용 가능 여부
+  const checked = status === 'ready'
+  const consults = useMemo(() => data || (checked ? loadConsults() : []), [data, checked])
+  const setConsults = (next) =>
+    setData((cur) => (typeof next === 'function' ? next(cur || []) : next))
   // writing: null | { mode: 'new', fromRequest?, prefill? } | { mode: 'edit', consult }
   const [writing, setWriting] = useState(null)
+
   // 상담 신청 접수 (consult_requests)
-  const [requests, setRequests] = useState([])
-  const [reqAvailable, setReqAvailable] = useState(true)
-
-  useEffect(() => {
-    fetchRequests().then((rows) => {
-      if (rows === null) setReqAvailable(false)
-      else setRequests(rows)
-    })
-  }, [])
-
-  // DB 로드 — 테이블 미생성 시 브라우저 저장 폴백.
-  // DB가 비어 있고 브라우저 저장분이 있으면 1회 자동 이전한다.
-  useEffect(() => {
-    fetchConsultsDb().then(async (list) => {
-      if (list) {
-        setDbReady(true)
-        const local = loadConsults()
-        if (list.length === 0 && local.length > 0) {
-          const uploaded = []
-          let allOk = true
-          for (const c of local) {
-            const r = await insertConsultDb(c)
-            if (r.ok) uploaded.push(r.consult)
-            else allOk = false
-          }
-          if (allOk) saveConsults([]) // 이전 완료 → 브라우저 저장 비움
-          setConsults(uploaded)
-        } else {
-          setConsults(list)
-        }
-      } else {
-        setConsults(loadConsults())
-      }
-      setChecked(true)
-    })
-  }, [])
+  const { data: reqData, setData: setReqData } = useAdminData(CK.requests, fetchRequests)
+  const requests = reqData || []
+  const reqAvailable = reqData !== null
+  const setRequests = (next) => {
+    setReqData((cur) => (typeof next === 'function' ? next(cur || []) : next))
+    clearCache(CK.dashboard) // 신규 상담 신청 수가 대시보드에도 나온다
+  }
 
   const update = (list) => {
     setConsults(list)
+    clearCache(CK.dashboard)
     if (!dbReady && !saveConsults(list)) {
       window.alert(
         '브라우저 저장 공간이 부족해 저장하지 못했습니다.\n첨부 이미지·파일 수를 줄여 주세요.',
@@ -456,13 +454,17 @@ export default function ConsultMeetingAdmin() {
         )}
       </h3>
 
-      {!reqAvailable ? (
+      {reqData === undefined ? (
+        <LoadingRegion label="상담 신청 불러오는 중">
+          <SkeletonTable rows={4} cols={9} />
+        </LoadingRegion>
+      ) : !reqAvailable ? (
         <div className="admin-notice admin-notice--warn">
           상담 신청 DB(consult_requests)에 연결되지 않았습니다. AWS 백엔드 배포와 환경변수
           설정(docs/aws-backend.md)을 확인해 주세요.
         </div>
       ) : (
-        <div className="admin-table-wrap" style={{ marginBottom: 28 }}>
+        <div className="admin-table-wrap admin-fade" style={{ marginBottom: 28 }}>
           <table className="admin-table">
             <thead>
               <tr>
@@ -522,46 +524,52 @@ export default function ConsultMeetingAdmin() {
       {/* ── 상담 기록 (회의록) ── */}
       <h3 className="admin-section-title">상담 기록</h3>
 
-      <div className="admin-table-wrap">
-        <table className="admin-table">
-          <thead>
-            <tr>
-              <th>일시</th>
-              <th>원장</th>
-              <th>전공과목</th>
-              <th>개원희망지역</th>
-              <th>개원희망시기</th>
-              <th>장소</th>
-              <th>관리</th>
-            </tr>
-          </thead>
-          <tbody>
-            {consults.map((c) => (
-              <tr key={c.id}>
-                <td>{formatDateTime(c.fields.datetime)}</td>
-                <td>
-                  <span className="m-name">{c.fields.doctorName}</span>
-                </td>
-                <td>{c.fields.specialty || '-'}</td>
-                <td>{c.fields.region || '-'}</td>
-                <td>{c.fields.period || '-'}</td>
-                <td>{c.fields.place || '-'}</td>
-                <td>
-                  <div className="admin-actions">
-                    <button onClick={() => setWriting({ mode: 'edit', consult: c })}>
-                      보기·수정
-                    </button>
-                    <button className="danger" onClick={() => removeConsult(c.id)}>
-                      삭제
-                    </button>
-                  </div>
-                </td>
+      {!checked ? (
+        <LoadingRegion label="상담 기록 불러오는 중">
+          <SkeletonTable rows={5} cols={7} />
+        </LoadingRegion>
+      ) : (
+        <div className="admin-table-wrap admin-fade">
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>일시</th>
+                <th>원장</th>
+                <th>전공과목</th>
+                <th>개원희망지역</th>
+                <th>개원희망시기</th>
+                <th>장소</th>
+                <th>관리</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-        {consults.length === 0 && <div className="admin-empty">작성된 상담 기록이 없습니다.</div>}
-      </div>
+            </thead>
+            <tbody>
+              {consults.map((c) => (
+                <tr key={c.id}>
+                  <td>{formatDateTime(c.fields.datetime)}</td>
+                  <td>
+                    <span className="m-name">{c.fields.doctorName}</span>
+                  </td>
+                  <td>{c.fields.specialty || '-'}</td>
+                  <td>{c.fields.region || '-'}</td>
+                  <td>{c.fields.period || '-'}</td>
+                  <td>{c.fields.place || '-'}</td>
+                  <td>
+                    <div className="admin-actions">
+                      <button onClick={() => setWriting({ mode: 'edit', consult: c })}>
+                        보기·수정
+                      </button>
+                      <button className="danger" onClick={() => removeConsult(c.id)}>
+                        삭제
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {consults.length === 0 && <div className="admin-empty">작성된 상담 기록이 없습니다.</div>}
+        </div>
+      )}
     </>
   )
 }
@@ -576,17 +584,16 @@ function formatLogTime(iso) {
 }
 
 export function ConsultDirectAdmin() {
-  const [items, setItems] = useState([])
-  const [available, setAvailable] = useState(true) // inquiries 테이블 사용 가능 여부
+  const { data, status, fresh, setData } = useAdminData(CK.inquiries, fetchAllInquiries)
+  const items = data || []
+  const available = data !== null // inquiries 테이블 사용 가능 여부
+  const loading = status === 'loading'
+  const setItems = (next) => {
+    setData((cur) => (typeof next === 'function' ? next(cur || []) : next))
+    clearCache(CK.dashboard) // 미답변 문의 수가 대시보드에도 나온다
+  }
   const [drafts, setDrafts] = useState({}) // id → 답변 초안
   const [busyId, setBusyId] = useState(null)
-
-  useEffect(() => {
-    fetchAllInquiries().then((rows) => {
-      if (rows === null) setAvailable(false)
-      else setItems(rows)
-    })
-  }, [])
 
   const saveAnswer = async (q) => {
     const answer = (drafts[q.id] ?? q.answer).trim()
@@ -620,14 +627,20 @@ export function ConsultDirectAdmin() {
         </div>
       </div>
 
-      {!available ? (
+      {!fresh && !loading && <div className="admin-refresh" aria-label="최신 목록을 받는 중" />}
+
+      {loading ? (
+        <LoadingRegion label="1:1 문의 불러오는 중">
+          <SkeletonTable rows={5} cols={4} />
+        </LoadingRegion>
+      ) : !available ? (
         <div className="admin-notice admin-notice--warn">
           1:1 문의 DB(inquiries)에 연결되지 않았습니다. AWS 백엔드 배포와 환경변수
           설정(docs/aws-backend.md)을 확인해 주세요.
         </div>
       ) : (
         <>
-          <div className="admin-stats">
+          <div className="admin-stats admin-fade">
             <div className="admin-stat">
               <b>{items.length}</b>
               <span>전체 문의</span>

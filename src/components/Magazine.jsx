@@ -68,10 +68,35 @@ export default function Magazine() {
         )}
 
         {loaded && !hasArticles && (
-          <p className="magazine__note reveal">아직 등록된 게시물이 없습니다.</p>
+          <div className="mag-empty reveal">
+            <span className="mag-empty__icon" aria-hidden="true">
+              <svg
+                width="30"
+                height="30"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H15l5 5v9.5A1.5 1.5 0 0 1 18.5 20h-13A1.5 1.5 0 0 1 4 18.5Z" />
+                <path d="M15 4v5h5" />
+                <path d="M8.5 13h7M8.5 16.5h4.5" />
+              </svg>
+            </span>
+            <h3>아직 등록된 매거진이 없습니다</h3>
+            <p>
+              병원 마케팅·경영·개원 인사이트를 준비하고 있습니다.
+              <br />첫 번째 글로 곧 찾아뵙겠습니다.
+            </p>
+          </div>
         )}
         {loaded && hasArticles && items.length === 0 && (
-          <p className="magazine__note reveal">이 카테고리에 등록된 게시물이 없습니다.</p>
+          <div className="mag-empty mag-empty--sm reveal">
+            <h3>이 카테고리에 등록된 글이 없습니다</h3>
+            <p>다른 카테고리를 선택해 보세요.</p>
+          </div>
         )}
 
         <div className="magazine__grid">

@@ -26,6 +26,7 @@ export default function ConsultingDocsPage() {
   }, [openDoc])
 
   const pick = (doc) => {
+    if (doc.hidden) return // 준비 중 — 열람 불가
     if (!user) {
       setGateOpen(true)
       return
@@ -51,35 +52,46 @@ export default function ConsultingDocsPage() {
           <ul className="docs-list reveal">
             {docs.map((d) => (
               <li key={d.file}>
-                <button type="button" className="docs-item" onClick={() => pick(d)}>
+                {/* 준비 중인 자료도 목록에는 남긴다 — 딤 처리하고 열리지는 않게 */}
+                <button
+                  type="button"
+                  className={`docs-item ${d.hidden ? 'is-off' : ''}`}
+                  onClick={() => pick(d)}
+                  disabled={d.hidden}
+                  aria-disabled={d.hidden || undefined}
+                >
                   <div className="docs-item__body">
                     <span className="docs-item__kicker">{d.kicker}</span>
                     <h3>{d.title}</h3>
                     <p>{d.desc}</p>
                   </div>
-                  <span className="docs-item__go" aria-hidden="true">
-                    <svg viewBox="0 0 120 12" width="120" height="12" fill="none">
-                      <path
-                        d="M2 6h108"
-                        stroke="currentColor"
-                        strokeWidth="1.6"
-                        strokeLinecap="round"
-                      />
-                      <path
-                        d="M104 1.5 110.5 6 104 10.5"
-                        stroke="currentColor"
-                        strokeWidth="1.6"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </span>
+                  {d.hidden ? (
+                    <span className="docs-item__off">준비 중</span>
+                  ) : (
+                    <span className="docs-item__go" aria-hidden="true">
+                      <svg viewBox="0 0 120 12" width="120" height="12" fill="none">
+                        <path
+                          d="M2 6h108"
+                          stroke="currentColor"
+                          strokeWidth="1.6"
+                          strokeLinecap="round"
+                        />
+                        <path
+                          d="M104 1.5 110.5 6 104 10.5"
+                          stroke="currentColor"
+                          strokeWidth="1.6"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </span>
+                  )}
                 </button>
               </li>
             ))}
           </ul>
-          {docs.length === 0 && (
-            <p className="docs-empty">현재 공개된 컨설팅 자료가 없습니다. 곧 준비하겠습니다.</p>
+          {docs.every((d) => d.hidden) && (
+            <p className="docs-empty">현재 열람 가능한 자료를 준비하고 있습니다.</p>
           )}
         </div>
       </section>

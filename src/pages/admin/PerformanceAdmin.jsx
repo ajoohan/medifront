@@ -1,6 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { openingLabel } from '../../data'
 import { fetchPerformances, insertPerformance, deletePerformance } from '../../lib/performancesDb'
+import useAdminData from '../../hooks/useAdminData'
+import { CK } from '../../lib/adminCache'
+import { SkeletonTable, LoadingRegion } from '../../components/admin/Skeleton'
 
 // 개원시기 선택지 — 2020년부터 올해까지
 const YEARS = (() => {
@@ -14,20 +17,15 @@ const EMPTY_DRAFT = { hospital: '', size: '', openingYear: String(new Date().get
 
 // 콘텐츠 관리 > 성과 관리 — 홈페이지 '성과' 섹션 게시물 관리
 export default function PerformanceAdmin() {
-  const [items, setItems] = useState([])
-  const [available, setAvailable] = useState(true) // performances 테이블 사용 가능 여부
-  const [checked, setChecked] = useState(false)
+  const { data, status, fresh, setData } = useAdminData(CK.performances, fetchPerformances)
+  const items = data || []
+  const available = data !== null // performances 테이블 사용 가능 여부
+  const checked = status === 'ready'
   const [adding, setAdding] = useState(false)
   const [draft, setDraft] = useState(EMPTY_DRAFT)
   const [busy, setBusy] = useState(false)
 
-  useEffect(() => {
-    fetchPerformances().then((list) => {
-      if (list === null) setAvailable(false)
-      else setItems(list)
-      setChecked(true)
-    })
-  }, [])
+  const setItems = (next) => setData((cur) => (typeof next === 'function' ? next(cur || []) : next))
 
   const setD = (key) => (e) => setDraft((d) => ({ ...d, [key]: e.target.value }))
 
@@ -138,41 +136,49 @@ export default function PerformanceAdmin() {
         </form>
       )}
 
-      <div className="admin-table-wrap">
-        <table className="admin-table">
-          <thead>
-            <tr>
-              <th>병원명</th>
-              <th>평수</th>
-              <th>개원시기</th>
-              <th>홈페이지 표기</th>
-              <th>관리</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((p) => (
-              <tr key={p.id}>
-                <td>
-                  <span className="m-name">{p.hospital}</span>
-                </td>
-                <td>{p.size}평</td>
-                <td>{p.openingYear}년</td>
-                <td>{openingLabel(p.openingYear)}</td>
-                <td>
-                  <div className="admin-actions">
-                    <button className="danger" onClick={() => remove(p)}>
-                      삭제
-                    </button>
-                  </div>
-                </td>
+      {checked && !fresh && <div className="admin-refresh" aria-label="최신 목록을 받는 중" />}
+
+      {!checked ? (
+        <LoadingRegion label="성과 목록 불러오는 중">
+          <SkeletonTable rows={5} cols={5} />
+        </LoadingRegion>
+      ) : (
+        <div className="admin-table-wrap admin-fade">
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>병원명</th>
+                <th>평수</th>
+                <th>개원시기</th>
+                <th>홈페이지 표기</th>
+                <th>관리</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-        {available && items.length === 0 && (
-          <div className="admin-empty">등록된 성과가 없습니다.</div>
-        )}
-      </div>
+            </thead>
+            <tbody>
+              {items.map((p) => (
+                <tr key={p.id}>
+                  <td>
+                    <span className="m-name">{p.hospital}</span>
+                  </td>
+                  <td>{p.size}평</td>
+                  <td>{p.openingYear}년</td>
+                  <td>{openingLabel(p.openingYear)}</td>
+                  <td>
+                    <div className="admin-actions">
+                      <button className="danger" onClick={() => remove(p)}>
+                        삭제
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {available && items.length === 0 && (
+            <div className="admin-empty">등록된 성과가 없습니다.</div>
+          )}
+        </div>
+      )}
     </>
   )
 }

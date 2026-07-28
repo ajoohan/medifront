@@ -4,9 +4,12 @@
 // 채워 커밋해 두면 환경변수 없이도 동작한다. (모두 프론트 공개용 설계 값)
 const FALLBACK = {
   region: 'ap-northeast-2',
-  userPoolId: '', // 예: ap-northeast-2_XXXXXXXXX
-  clientId: '', // 예: 1a2b3c4d5e6f7g8h9i0jklmnop
-  apiBaseUrl: '', // 예: https://xxxxxxxxxx.execute-api.ap-northeast-2.amazonaws.com
+  // ⚠️ 비워 두면 .env.production.local 없이 빌드했을 때 로그인·데이터가 전부 죽은 채로
+  // 배포된다(화면은 멀쩡해 보여서 알아채기 어렵다). 세 값 모두 브라우저 번들에 그대로
+  // 실려 나가는 공개 값이므로 여기 적어 두는 것이 설계된 사용법이다.
+  userPoolId: 'ap-northeast-2_FZmGqppFJ',
+  clientId: '5kvdnaupm71s44r7om0ir0ufs3',
+  apiBaseUrl: 'https://hea39xiiph.execute-api.ap-northeast-2.amazonaws.com',
   // 소셜 로그인(Hosted UI) 도메인 — backend/template.yaml 의 UserPoolDomain 과 같아야 한다
   authDomain: 'medifront-auth.auth.ap-northeast-2.amazoncognito.com',
   // 네이버 로그인 — developers.naver.com 애플리케이션의 Client ID (공개 값).

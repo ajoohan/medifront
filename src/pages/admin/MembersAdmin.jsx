@@ -1,10 +1,13 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { formatPhone } from '../../lib/phone'
 import { apiSend, isApiConfigured } from '../../lib/api'
 import { fetchMembers, upsertMember, updateMemberDb, deleteMemberDb } from '../../lib/membersDb'
 import MemberDetail from './MemberDetail'
 import LicenseReview from './LicenseReview'
 import { isPendingDoctor } from '../../lib/license'
+import useAdminData from '../../hooks/useAdminData'
+import { CK, clearCache } from '../../lib/adminCache'
+import { SkeletonTable, LoadingRegion } from '../../components/admin/Skeleton'
 
 // ⚠️ 공용 기본 비밀번호를 두지 마세요.
 // 이 파일은 클라이언트 번들에 그대로 실리므로, 여기에 기본값을 두면 그 문자열이
@@ -57,9 +60,20 @@ const EMPTY_DRAFT = {
 }
 
 export default function MembersAdmin() {
-  // 초기엔 빈 목록으로 시작 — DB 응답 전에 더미/임시 데이터가 잠깐 보이는 깜빡임 방지
-  const [members, setMembers] = useState([])
-  const [loaded, setLoaded] = useState(false) // 최초 로드(DB 또는 폴백) 완료 여부
+  // 목록은 캐시를 거쳐 받는다 — 다른 메뉴에 갔다 와도 화면이 비었다가 채워지지 않는다.
+  // 최초 로드일 때만 스켈레톤을 보여주고, 캐시가 있으면 그걸 그린 뒤 조용히 최신값으로 바꾼다.
+  const { data, status, fresh, setData } = useAdminData(CK.members, fetchMembers)
+  // useMemo 로 감싸 참조가 매 렌더 바뀌지 않게 한다 (아래 필터링 useMemo 의 의존성)
+  const members = useMemo(() => data || [], [data])
+  const dbReady = !!data // members 테이블 사용 가능 여부
+  const loaded = status === 'ready'
+  const setMembers = useCallback(
+    (next) => {
+      setData((cur) => (typeof next === 'function' ? next(cur || []) : next))
+      clearCache(CK.dashboard) // 회원이 바뀌면 대시보드 숫자도 다시 세야 한다
+    },
+    [setData],
+  )
   const [queryInput, setQueryInput] = useState('')
   const [q, setQ] = useState('')
   const [filter, setFilter] = useState('all')
@@ -71,27 +85,18 @@ export default function MembersAdmin() {
   const [draft, setDraft] = useState(EMPTY_DRAFT)
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState(null) // { type: 'ok' | 'warn', text }
-  const [dbReady, setDbReady] = useState(false) // members 테이블 사용 가능 여부
   const [detailId, setDetailId] = useState(null) // 상세 보기 중인 회원 id
 
-  // DB(members 테이블)에서 실목록 로드.
   // 조회 실패 시 예전에는 목업 회원 28명을 대신 보여줬는데, 관리자가 이를 실제 회원으로
   // 오해할 수 있어 제거했다. 실패는 빈 목록 + 오류 안내로 정직하게 드러낸다.
   useEffect(() => {
-    fetchMembers().then((list) => {
-      if (list) {
-        setMembers(list)
-        setDbReady(true)
-      } else {
-        setMembers([])
-        setNotice({
-          type: 'warn',
-          text: '회원 DB(members)를 불러오지 못했습니다. 잠시 후 새로고침해 주세요. 계속되면 관리자에게 문의해 주세요.',
-        })
-      }
-      setLoaded(true)
-    })
-  }, [])
+    if (loaded && data === null) {
+      setNotice({
+        type: 'warn',
+        text: '회원 DB(members)를 불러오지 못했습니다. 잠시 후 새로고침해 주세요. 계속되면 관리자에게 문의해 주세요.',
+      })
+    }
+  }, [loaded, data])
 
   // 의사 승인 대기 = 가입 때 '의사'를 신청해 면허번호를 냈지만 아직 등급이 '의사'가 아닌 회원.
   // 면허 확인(보건복지부 기관조회) 후 등급을 '의사'로 바꾸면 목록에서 빠진다.
@@ -497,11 +502,19 @@ export default function MembersAdmin() {
         </div>
       )}
 
-      {/* 의사 승인 대기 필터에서는 목록 대신 면허 확인 화면을 보여준다 */}
-      {filter === 'pending-doctor' ? (
+      {/* 캐시를 먼저 보여주고 최신 목록을 받는 중 */}
+      {loaded && !fresh && <div className="admin-refresh" aria-label="최신 목록을 받는 중" />}
+
+      {/* 최초 로드 — 표와 같은 자리에 스켈레톤 */}
+      {!loaded ? (
+        <LoadingRegion label="회원 목록 불러오는 중">
+          <SkeletonTable rows={8} cols={6} />
+        </LoadingRegion>
+      ) : /* 의사 승인 대기 필터에서는 목록 대신 면허 확인 화면을 보여준다 */
+      filter === 'pending-doctor' ? (
         <LicenseReview members={filtered} onApprove={(m) => changeGrade(m.id, '의사')} />
       ) : (
-        <div className="admin-table-wrap">
+        <div className="admin-table-wrap admin-fade">
           <table className="admin-table">
             <thead>
               <tr>
@@ -592,11 +605,7 @@ export default function MembersAdmin() {
               ))}
             </tbody>
           </table>
-          {!loaded ? (
-            <div className="admin-empty">회원 목록을 불러오는 중…</div>
-          ) : (
-            filtered.length === 0 && <div className="admin-empty">조건에 맞는 회원이 없습니다.</div>
-          )}
+          {filtered.length === 0 && <div className="admin-empty">조건에 맞는 회원이 없습니다.</div>}
         </div>
       )}
 

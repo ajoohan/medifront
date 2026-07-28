@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { MAGAZINE_CATEGORIES } from '../../data'
 import { loadArticles, saveArticles } from '../../lib/magazineStore'
 import { fileToDataUrl } from '../../lib/imageUtils'
@@ -8,6 +8,9 @@ import {
   updateArticleDb,
   deleteArticleDb,
 } from '../../lib/articlesDb'
+import useAdminData from '../../hooks/useAdminData'
+import { CK, clearCache } from '../../lib/adminCache'
+import { SkeletonCards, LoadingRegion } from '../../components/admin/Skeleton'
 
 const todayStr = () => {
   const d = new Date()
@@ -168,27 +171,18 @@ function MagazineEditor({ article, onSave, onCancel }) {
 // 매거진 관리 — 썸네일 그리드 (PC 5열)
 // ─────────────────────────────────────────────────────────
 export default function MagazineAdmin() {
-  const [articles, setArticles] = useState([])
-  const [dbReady, setDbReady] = useState(false) // articles 테이블 사용 가능 여부
-  const [checked, setChecked] = useState(false) // DB 확인 완료 여부
+  // DB에서 게시물 로드 — 테이블 미생성 시 브라우저 저장 폴백.
+  // 캐시를 거치므로 메뉴를 오갈 때 목록이 사라졌다 나타나지 않는다.
+  const { data, status, fresh, setData } = useAdminData(CK.articles, fetchArticlesDb)
+  const dbReady = !!data // articles 테이블 사용 가능 여부
+  const checked = status === 'ready'
+  const articles = useMemo(() => data || (checked ? loadArticles() : []), [data, checked])
   // writing: null | { mode: 'new' } | { mode: 'edit', article }
   const [writing, setWriting] = useState(null)
 
-  // DB에서 게시물 로드 — 테이블 미생성 시 브라우저 저장 폴백
-  useEffect(() => {
-    fetchArticlesDb().then((list) => {
-      if (list) {
-        setArticles(list)
-        setDbReady(true)
-      } else {
-        setArticles(loadArticles())
-      }
-      setChecked(true)
-    })
-  }, [])
-
   const update = (list) => {
-    setArticles(list)
+    setData(list)
+    clearCache(CK.dashboard) // 매거진 수가 대시보드에도 나온다
     if (!dbReady && !saveArticles(list)) {
       window.alert(
         '브라우저 저장 공간이 부족해 저장하지 못했습니다.\n이미지 수를 줄이거나 기존 글을 정리해 주세요.',
@@ -266,10 +260,16 @@ export default function MagazineAdmin() {
         </div>
       )}
 
-      {articles.length === 0 ? (
+      {!fresh && checked && <div className="admin-refresh" aria-label="최신 목록을 받는 중" />}
+
+      {!checked ? (
+        <LoadingRegion label="매거진 목록 불러오는 중">
+          <SkeletonCards count={4} lines={2} />
+        </LoadingRegion>
+      ) : articles.length === 0 ? (
         <div className="mag-admin-empty">등록된 매거진이 없습니다</div>
       ) : (
-        <div className="mag-admin-grid">
+        <div className="mag-admin-grid admin-fade">
           {articles.map((a) => (
             <article className="mag-admin-card" key={a.id}>
               <div
