@@ -4666,8 +4666,16 @@ button.docs-item:hover .docs-item__go {
   }
 }
 
-/* ── 내부 자료실: 파일형 자료 ────────────────────────────────────── */
-/* 카드 옆에 링크복사·다운로드 아이콘을 세운다 (카드 안에 버튼을 넣으면 중첩이 된다) */
+/* ── 내부 자료실 ──────────────────────────────────────────────────
+   목록 자체는 컨설팅 자료 화면(.docs-list/.docs-item)과 같은 카드를 쓴다.
+   다만 공개 페이지의 .docs-list 는 가운데 정렬(max-width + margin auto)이라,
+   왼쪽부터 시작하는 관리자 화면에서는 목록만 붕 떠 보인다 → 여기서 풀어 준다. */
+.docs-list--admin {
+  max-width: none;
+  margin: 0;
+}
+
+/* 카드 옆에 링크복사·다운로드 아이콘 (카드 안에 버튼을 넣으면 중첩이 된다) */
 .docs-row {
   display: flex;
   align-items: center;
@@ -4679,7 +4687,7 @@ button.docs-item:hover .docs-item__go {
 }
 .docs-row__tools {
   display: flex;
-  flex-direction: column;
+  align-items: center;
   gap: 8px;
   flex-shrink: 0;
 }
@@ -4804,4 +4812,19 @@ button.docs-item:hover .docs-item__go {
   .doc-frame__view {
     height: calc(100vh - 260px);
   }
+}
+
+/* 내부 자료실 — 관리자 화면 요소는 모두 왼쪽 기준으로 맞춘다.
+   (공개 페이지에서 빌려 쓰는 컴포넌트들이 가운데 정렬이라 그대로 두면 목록만 붕 뜬다) */
+.internal-filter {
+  justify-content: flex-start;
+}
+.doc-read--admin {
+  margin-left: 0;
+  margin-right: 0;
+  max-width: 900px;
+}
+.doc-frame--admin {
+  margin-left: 0;
+  margin-right: 0;
 }

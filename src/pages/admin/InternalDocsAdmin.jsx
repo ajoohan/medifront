@@ -263,7 +263,7 @@ export default function InternalDocsAdmin() {
           </div>
         </div>
 
-        <div className="doc-frame admin-fade">
+        <div className="doc-frame doc-frame--admin admin-fade">
           <div className="doc-frame__head">
             <span className="doc-read__cat">{viewing.category}</span>
             <b>{viewing.title}</b>
@@ -290,7 +290,7 @@ export default function InternalDocsAdmin() {
           </div>
         </div>
 
-        <article className="doc-read admin-fade">
+        <article className="doc-read doc-read--admin admin-fade">
           <span className="doc-read__cat">{viewing.category}</span>
           <h1>{viewing.title}</h1>
           {viewing.summary && <p className="doc-read__summary">{viewing.summary}</p>}
@@ -348,7 +348,7 @@ export default function InternalDocsAdmin() {
 
       {/* 분류 필터 — 자료가 있을 때만 */}
       {docs.length > 0 && (
-        <div className="magazine__filter" style={{ marginBottom: 18 }}>
+        <div className="magazine__filter internal-filter" style={{ marginBottom: 18 }}>
           {['전체', ...INTERNAL_DOC_CATEGORIES].map((c) => (
             <button
               key={c}
@@ -400,7 +400,7 @@ export default function InternalDocsAdmin() {
           )}
         </div>
       ) : (
-        <ul className="docs-list admin-fade">
+        <ul className="docs-list docs-list--admin admin-fade">
           {shown.map((d) => (
             <li key={d.file || d.id} className="docs-row">
               <button type="button" className="docs-item" onClick={() => setViewing(d)}>
