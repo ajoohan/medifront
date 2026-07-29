@@ -567,6 +567,27 @@ async function deleteItem(cfg, id) {
 
   await delRow(cfg.entity, id)
   await clearRoleGroups(operatorEmail)
+
+  // 운영자 두 종류를 구분해 처리한다.
+  //   · 기존 회원을 운영자로 지정한 경우(grantOperator) → 권한만 회수하고 계정은 둔다.
+  //     회원 자격은 그대로이므로 계정을 지우면 회원이 사라진다.
+  //   · 미가입자를 초대한 경우(inviteUser) → 이 계정은 관리용으로만 만든 것이라
+  //     운영자에서 빼면 쓸 데가 없다. 남겨 두면 로그인 가능한 유령 계정이 된다.
+  // 회원 행이 없으면 후자로 본다.
+  if (operatorEmail) {
+    const isMember = (await listAll('members')).some((m) => m.email === operatorEmail)
+    if (!isMember) {
+      try {
+        await cognito.send(
+          new AdminDeleteUserCommand({ UserPoolId: USER_POOL_ID, Username: operatorEmail }),
+        )
+      } catch (e) {
+        if (e.name !== 'UserNotFoundException') {
+          console.error('operator cognito delete failed', operatorEmail, e)
+        }
+      }
+    }
+  }
   return { ok: true }
 }
 

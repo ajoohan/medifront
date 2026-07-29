@@ -2,4 +2,14 @@ User-agent: *
 Allow: /
 Disallow: /admin
 
+# 내부 자료실 파일 — 관리자만 보는 사내 문서.
+# 링크를 받은 사람은 열 수 있지만(대외 공유용), 검색 결과에 뜨면 안 된다.
+Disallow: /internal/
+
+# 회원 전용 컨설팅 자료 — 로그인한 회원만 열람하도록 만든 자료다.
+# 검색으로 바로 들어올 수 있으면 그 제한이 무의미해진다.
+Disallow: /consulting_1.html
+Disallow: /consulting_2.html
+Disallow: /docs/
+
 Sitemap: https://medifront.co.kr/sitemap.xml
