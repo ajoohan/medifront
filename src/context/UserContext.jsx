@@ -38,6 +38,8 @@ export function UserProvider({ children }) {
   // 저장된 세션 복원이 끝났는지. 이 값이 false 인 동안 user 가 null 인 것은
   // '비로그인'이 아니라 '아직 모름'이다 — 권한 화면이 이를 구분해야 깜빡임이 없다.
   const [authReady, setAuthReady] = useState(false)
+  // 화면 상단 알림 (자동 로그아웃 등 사용자가 누르지 않았는데 생긴 변화를 알린다)
+  const [toast, setToast] = useState(null)
   // 소셜 로그인 복귀(?code=) 처리 중 — 토큰 교환이 끝날 때까지 '로그인 처리 중' 오버레이를
   // 띄워, 그 사이 메인 화면만 보여 로그인이 안 된 것처럼 오해하는 일을 막는다.
   const [oauthProcessing, setOauthProcessing] = useState(
@@ -86,6 +88,25 @@ export function UserProvider({ children }) {
           return
         }
         apiGet('/members', { email: base.email }).then((rows) => {
+          // 탈퇴·삭제된 계정 방어.
+          // 로그인 토큰은 브라우저에 남아 있고 만료 전까지는 그대로 통하므로, 관리자가
+          // 회원을 지워도 그 브라우저에서는 계속 로그인 상태로 보인다. 회원 행이 사라진
+          // 것을 확인하면 세션을 끊는다.
+          //   - rows 가 null 이면 조회 실패(네트워크·미설정)이므로 건드리지 않는다.
+          //   - 관리자·운영자는 초대 계정이라 회원 행이 없을 수 있어 제외한다.
+          if (Array.isArray(rows) && rows.length === 0 && !base.isAdmin) {
+            auth.signOut()
+            setUser(null)
+            setProfilePending(false)
+            setToast({
+              id: Date.now(),
+              type: 'warn',
+              title: '가입 정보가 없습니다',
+              text: '탈퇴 처리된 계정이라 로그아웃되었습니다. 다시 가입 후 이용해 주세요.',
+              duration: 7000,
+            })
+            return
+          }
           const row = rows?.[0]
           if (row?.grade || row?.provider) {
             setUser((cur) =>
@@ -239,6 +260,13 @@ export function UserProvider({ children }) {
     setUser(null)
   }, [])
 
+  // 화면 상단 알림 — 사용자가 누르지 않았는데 상태가 바뀐 경우를 알린다
+  const showToast = useCallback(
+    (text, opts = {}) => setToast({ id: Date.now(), text, ...opts }),
+    [],
+  )
+  const hideToast = useCallback(() => setToast(null), [])
+
   // notice: 로그인 창에 함께 띄울 안내 문구 (onClick 핸들러로 직접 쓰면 이벤트 객체가 오므로 문자열만 채택)
   const openLogin = useCallback((notice) => {
     setLoginNotice(typeof notice === 'string' ? notice : '')
@@ -252,6 +280,9 @@ export function UserProvider({ children }) {
         user,
         authReady,
         oauthProcessing,
+        toast,
+        showToast,
+        hideToast,
         loginOpen,
         loginNotice,
         profilePending,

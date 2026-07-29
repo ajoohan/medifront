@@ -4,6 +4,7 @@ import Header from './components/Header'
 import Footer from './components/Footer'
 import ScrollToTop from './components/ScrollToTop'
 import LoginModal from './components/LoginModal'
+import Toast from './components/Toast'
 import FloatingInquiry from './components/FloatingInquiry'
 import HomePage from './pages/HomePage'
 import MagazinePage from './pages/MagazinePage'
@@ -23,7 +24,7 @@ function Shell() {
   const { pathname } = useLocation()
   // 대소문자 무관 판정 (/ADMIN 등으로 접속해도 헤더/푸터 숨김)
   const isAdmin = pathname.toLowerCase().startsWith('/admin')
-  const { loginOpen, closeLogin, oauthProcessing } = useUser()
+  const { loginOpen, closeLogin, oauthProcessing, toast, hideToast } = useUser()
 
   return (
     <>
@@ -53,6 +54,7 @@ function Shell() {
       {!isAdmin && <Footer />}
       {!isAdmin && <FloatingInquiry />}
       <LoginModal open={loginOpen} onClose={closeLogin} />
+      <Toast toast={toast} onClose={hideToast} />
       {/* 소셜 로그인 복귀 처리 중 — 완료 전까지 메인이 그대로 보여 오해하지 않도록 */}
       {oauthProcessing && (
         <div className="oauth-wait" role="status" aria-live="polite">
