@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 184" role="img" aria-label="AI와 병원을 결합한 픽토그램">
+  <title>AI 기반 병원 컨설팅</title>
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0b4b45" />
+      <stop offset="1" stop-color="#04211f" />
+    </linearGradient>
+    <pattern id="dots" width="18" height="18" patternUnits="userSpaceOnUse">
+      <circle cx="1.6" cy="1.6" r="1.2" fill="#ffffff" opacity="0.07" />
+    </pattern>
+  </defs>
+
+  <rect width="300" height="184" fill="url(#tile)" />
+  <rect width="300" height="184" fill="url(#dots)" />
+
+  <!-- 프로세서 핀 — AI 연산을 뜻한다. 칩 바깥으로 뻗는 짧은 선과 접점. -->
+  <g stroke="#2ed9c6" stroke-width="2" stroke-linecap="round" opacity="0.55">
+    <path d="M128 38v10M150 34v14M172 38v10" />
+    <path d="M128 136v10M150 136v14M172 136v10" />
+    <path d="M96 70h10M96 114h10" />
+    <path d="M194 70h10M194 114h10" />
+  </g>
+  <g fill="#2ed9c6" opacity="0.75">
+    <circle cx="128" cy="36" r="2.4" />
+    <circle cx="150" cy="32" r="2.4" />
+    <circle cx="172" cy="36" r="2.4" />
+    <circle cx="128" cy="148" r="2.4" />
+    <circle cx="150" cy="152" r="2.4" />
+    <circle cx="172" cy="148" r="2.4" />
+    <circle cx="94" cy="70" r="2.4" />
+    <circle cx="94" cy="114" r="2.4" />
+    <circle cx="206" cy="70" r="2.4" />
+    <circle cx="206" cy="114" r="2.4" />
+  </g>
+
+  <!-- 칩 본체 -->
+  <rect
+    x="106"
+    y="48"
+    width="88"
+    height="88"
+    rx="18"
+    fill="#ffffff"
+    fill-opacity="0.05"
+    stroke="#2ed9c6"
+    stroke-width="2"
+  />
+
+  <!-- 의료 십자 — 병원 -->
+  <g fill="#2ed9c6">
+    <rect x="141" y="66" width="18" height="52" rx="5" />
+    <rect x="124" y="83" width="52" height="18" rx="5" />
+  </g>
+</svg>

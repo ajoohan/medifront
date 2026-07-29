@@ -13,9 +13,9 @@ export default function FloatingInquiry() {
     <>
       <aside className="cta-bar" role="complementary" aria-label="무료 상담 안내">
         <div className="cta-bar__inner">
-          {/* 좌측 — 신뢰 이미지 */}
+          {/* 좌측 — AI·병원 픽토그램 (칩 안에 의료 십자) */}
           <div className="cta-bar__visual" aria-hidden="true">
-            <img src="/cta-visual.webp" alt="" />
+            <img src="/cta-visual.svg" alt="" />
           </div>
 
           {/* 중앙 — 메시지 */}

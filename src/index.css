@@ -3033,15 +3033,14 @@ button.docs-item:hover .docs-item__go {
   padding: 16px 56px 16px 24px;
 }
 /* 좌측 이미지 */
+/* 픽토그램 타일 — 배경색은 SVG 안에 있으므로 테두리 없이 그대로 얹는다 */
 .cta-bar__visual {
   flex-shrink: 0;
   width: 150px;
   height: 92px;
   border-radius: 10px;
   overflow: hidden;
-  background: #fff;
-  border: 1px solid rgba(4, 33, 31, 0.08);
-  box-shadow: 0 2px 8px rgba(4, 33, 31, 0.08);
+  box-shadow: 0 3px 12px rgba(4, 33, 31, 0.14);
 }
 .cta-bar__visual img {
   width: 100%;
