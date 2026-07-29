@@ -7,7 +7,8 @@ export const BRAND = {
   name: '메디프론트',
   nameEn: 'MEDIFRONT',
   tagline: '병원 성장의 모든 것',
-  // TODO: 실제 연락처로 교체
+  // 대표 연락처 — 사이트 푸터·문의 안내에 쓰인다.
+  // 메일은 컨설팅 디렉터(cd)로 간다. 담당자별 주소는 컨설팅 자료 마지막 장에 있다.
   phone: '070-4105-0678',
   email: 'medifront.cd@gmail.com',
   address: '경기도 하남시 미사대로550 현대지식산업센터1차 3층 77호',
