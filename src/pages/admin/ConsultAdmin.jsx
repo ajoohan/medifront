@@ -4,6 +4,7 @@ import { fileToDataUrl, MAX_IMAGE_BYTES } from '../../lib/imageUtils'
 import { SPECIALTIES, REGIONS } from '../../data'
 import { formatPhone } from '../../lib/phone'
 import { fetchAllInquiries, answerInquiry, deleteInquiry } from '../../lib/inquiriesDb'
+import { fetchMembers } from '../../lib/membersDb'
 import { fetchRequests, updateRequestStatus, deleteRequest } from '../../lib/requestsDb'
 import {
   fetchConsultsDb,
@@ -33,6 +34,24 @@ async function loadConsultsWithMigration() {
   if (allOk) saveConsults([]) // 이전 완료 → 브라우저 저장 비움
   return uploaded
 }
+
+// 상담 시각 옵션 — 30분 단위. 06:00~23:30 이면 이른 조찬부터 늦은 저녁 상담까지 담긴다.
+const TIME_SLOTS = (() => {
+  const list = []
+  for (let m = 6 * 60; m <= 23 * 60 + 30; m += 30) {
+    const h = String(Math.floor(m / 60)).padStart(2, '0')
+    list.push(`${h}:${m % 60 === 0 ? '00' : '30'}`)
+  }
+  return list
+})()
+
+// 저장 형식은 기존 그대로 'YYYY-MM-DDTHH:mm' 이다.
+// 화면에서만 날짜(달력)와 시각(30분 단위)으로 나눠 받는다.
+const splitDateTime = (v) => {
+  const [date = '', time = ''] = String(v || '').split('T')
+  return { date, time: time.slice(0, 5) }
+}
+const joinDateTime = (date, time) => (date && time ? `${date}T${time}` : '')
 
 // 개원희망시기 옵션 — 오늘이 속한 분기부터 향후 12개 분기(3년)
 const QUARTERS = (() => {
@@ -97,6 +116,36 @@ function ConsultEditor({ consult, onSave, onCancel }) {
   }
   const keep = (e) => e.preventDefault()
 
+  // 일시 — 저장은 'YYYY-MM-DDTHH:mm' 한 값이고, 입력만 날짜/시각으로 나눈다
+  const when = splitDateTime(draft.datetime)
+  const setWhen = (date, time) => setDraft((d) => ({ ...d, datetime: joinDateTime(date, time) }))
+
+  // 원장 후보 — 면허 확인을 마친 '의사' 등급 회원 (회원관리와 같은 캐시를 쓴다)
+  const { data: memberData } = useAdminData(CK.members, fetchMembers)
+  const doctors = useMemo(
+    () =>
+      (memberData || [])
+        .filter((m) => m.grade === '의사')
+        .sort((a, b) => a.name.localeCompare(b.name, 'ko')),
+    [memberData],
+  )
+  // 이미 채워진 이메일이 회원 목록에 있으면 그 회원이 선택된 것으로 본다(수정 화면 대응)
+  const pickedDoctor = doctors.some((m) => m.email === draft.doctorEmail) ? draft.doctorEmail : ''
+
+  const pickDoctor = (email) => {
+    if (!email) return // '직접 입력' — 이미 적은 값을 지우지 않는다
+    const m = doctors.find((d) => d.email === email)
+    if (!m) return
+    setDraft((d) => ({
+      ...d,
+      doctorName: m.name,
+      doctorPhone: m.phone && m.phone !== '-' ? formatPhone(m.phone) : '',
+      doctorEmail: m.email,
+      // 회원 정보에 진료과목이 있으면 상담 개요도 함께 채워 준다
+      specialty: m.specialty && m.specialty !== '-' ? m.specialty : d.specialty,
+    }))
+  }
+
   // 이미지 첨부 — 자동 압축(1장당 5MB 미만), 여러 장 동시 등록
   const addImages = async (e) => {
     const files = [...e.target.files]
@@ -159,7 +208,7 @@ function ConsultEditor({ consult, onSave, onCancel }) {
 
   const save = () => {
     if (!draft.datetime) {
-      window.alert('상담 일시를 입력해 주세요.')
+      window.alert('상담 날짜와 시각을 모두 선택해 주세요.')
       return
     }
     if (!draft.doctorName.trim()) {
@@ -186,14 +235,32 @@ function ConsultEditor({ consult, onSave, onCancel }) {
         <div className="admin-add__grid">
           <label className="admin-add__field">
             <span>
-              일시 <b className="req">*</b>
+              날짜 <b className="req">*</b>
             </span>
             <input
-              type="datetime-local"
+              type="date"
               required
-              value={draft.datetime}
-              onChange={setD('datetime')}
+              value={when.date}
+              onChange={(e) => setWhen(e.target.value, when.time)}
             />
+          </label>
+          <label className="admin-add__field">
+            <span>
+              시각 <b className="req">*</b>
+            </span>
+            <select required value={when.time} onChange={(e) => setWhen(when.date, e.target.value)}>
+              <option value="">선택</option>
+              {/* 30분 단위로 바꾸기 전에 저장된 기록은 14:20 같은 시각일 수 있다.
+                  목록에 없다고 버리면 수정할 때 조용히 사라지므로 그 값도 함께 넣는다. */}
+              {when.time && !TIME_SLOTS.includes(when.time) && (
+                <option value={when.time}>{when.time} (기존 기록)</option>
+              )}
+              {TIME_SLOTS.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </select>
           </label>
           <label className="admin-add__field">
             <span>장소</span>
@@ -207,6 +274,27 @@ function ConsultEditor({ consult, onSave, onCancel }) {
         </div>
 
         <h3 className="consult-editor__section">원장 정보</h3>
+        {/* 가입된 의사 회원에서 고르면 아래 세 칸이 자동으로 채워진다.
+            미가입 원장은 '직접 입력'으로 그대로 타이핑하면 된다. */}
+        <div className="admin-add__grid">
+          <label className="admin-add__field admin-add__field--wide">
+            <span>가입 회원에서 선택</span>
+            <select value={pickedDoctor} onChange={(e) => pickDoctor(e.target.value)}>
+              <option value="">직접 입력</option>
+              {doctors.map((m) => (
+                <option key={m.id} value={m.email}>
+                  {m.name}
+                  {m.hospital && m.hospital !== '-' ? ` · ${m.hospital}` : ''} ({m.email})
+                </option>
+              ))}
+            </select>
+            {doctors.length === 0 && (
+              <small className="admin-add__note">
+                의사 등급 회원이 아직 없습니다. 회원관리에서 면허를 확인해 승인하면 여기에 나옵니다.
+              </small>
+            )}
+          </label>
+        </div>
         <div className="admin-add__grid">
           <label className="admin-add__field">
             <span>

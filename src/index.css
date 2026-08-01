@@ -4970,3 +4970,14 @@ button.docs-item:hover .docs-item__go {
     animation: none;
   }
 }
+
+/* 상담 기록 작성 — 회원 선택처럼 한 줄을 다 쓰는 입력 */
+.admin-add__field--wide {
+  grid-column: 1 / -1;
+}
+.admin-add__note {
+  margin-top: 6px;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--ink-300);
+}
