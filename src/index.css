@@ -2975,14 +2975,28 @@ button.docs-item:hover .docs-item__go {
   }
 }
 /* 대면 상담 회의록 에디터 */
+/* 섹션 제목 — 앞에 브랜드 틱을 세워 구획이 한눈에 나뉘게 */
 .consult-editor__section {
-  margin: 0 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0 0 14px;
   font-size: 0.98rem;
   font-weight: 800;
+  letter-spacing: -0.01em;
   color: var(--ink-900);
 }
+.consult-editor__section::before {
+  content: '';
+  width: 4px;
+  height: 15px;
+  border-radius: 2px;
+  background: var(--primary);
+}
 .admin-add .consult-editor__section:not(:first-child) {
-  margin-top: 20px;
+  margin-top: 26px;
+  padding-top: 22px;
+  border-top: 1px solid var(--paper-soft);
 }
 .consult-editor > .consult-editor__section {
   margin: 22px 0 10px;
@@ -4980,4 +4994,20 @@ button.docs-item:hover .docs-item__go {
   font-size: 0.78rem;
   line-height: 1.5;
   color: var(--ink-300);
+}
+/* 회원 정보가 자동 입력된 상태 — 초록 체크 문구와 청록 테두리로 알린다 */
+.admin-add__note--ok {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #0b6b60;
+  font-weight: 600;
+}
+.admin-add__note--ok::before {
+  content: '✓';
+  font-weight: 800;
+}
+.admin-add__field select.is-linked {
+  border-color: var(--primary);
+  background: var(--paper-soft);
 }

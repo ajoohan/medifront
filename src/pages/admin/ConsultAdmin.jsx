@@ -279,7 +279,11 @@ function ConsultEditor({ consult, onSave, onCancel }) {
         <div className="admin-add__grid">
           <label className="admin-add__field admin-add__field--wide">
             <span>가입 회원에서 선택</span>
-            <select value={pickedDoctor} onChange={(e) => pickDoctor(e.target.value)}>
+            <select
+              className={pickedDoctor ? 'is-linked' : undefined}
+              value={pickedDoctor}
+              onChange={(e) => pickDoctor(e.target.value)}
+            >
               <option value="">직접 입력</option>
               {doctors.map((m) => (
                 <option key={m.id} value={m.email}>
@@ -288,6 +292,11 @@ function ConsultEditor({ consult, onSave, onCancel }) {
                 </option>
               ))}
             </select>
+            {pickedDoctor && (
+              <small className="admin-add__note admin-add__note--ok">
+                회원 정보로 자동 입력되었습니다. 아래 값은 이 기록에서만 자유롭게 고칠 수 있습니다.
+              </small>
+            )}
             {doctors.length === 0 && (
               <small className="admin-add__note">
                 의사 등급 회원이 아직 없습니다. 회원관리에서 면허를 확인해 승인하면 여기에 나옵니다.
