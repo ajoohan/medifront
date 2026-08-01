@@ -116,9 +116,12 @@ function ConsultEditor({ consult, onSave, onCancel }) {
   }
   const keep = (e) => e.preventDefault()
 
-  // 일시 — 저장은 'YYYY-MM-DDTHH:mm' 한 값이고, 입력만 날짜/시각으로 나눈다
-  const when = splitDateTime(draft.datetime)
-  const setWhen = (date, time) => setDraft((d) => ({ ...d, datetime: joinDateTime(date, time) }))
+  // 일시 — 날짜와 시각을 각각의 상태로 들고, 저장할 때 'YYYY-MM-DDTHH:mm' 로 합친다.
+  // ⚠️ 하나의 문자열에 바로 합쳐 넣으면 안 된다. 날짜만 고른 순간에는 시각이 비어
+  // 합친 값이 ''(빈 문자열)이 되고, 그 값을 되읽어 화면에 그리므로 방금 고른 날짜가
+  // 즉시 지워진다 — 둘 다 영영 채울 수 없게 된다.
+  const [date, setDate] = useState(() => splitDateTime(consult?.fields?.datetime).date)
+  const [time, setTime] = useState(() => splitDateTime(consult?.fields?.datetime).time)
 
   // 원장 후보 — 면허 확인을 마친 '의사' 등급 회원 (회원관리와 같은 캐시를 쓴다)
   const { data: memberData } = useAdminData(CK.members, fetchMembers)
@@ -207,15 +210,17 @@ function ConsultEditor({ consult, onSave, onCancel }) {
   }
 
   const save = () => {
-    if (!draft.datetime) {
-      window.alert('상담 날짜와 시각을 모두 선택해 주세요.')
+    // 저장할 때만 합친다 — 입력 중에는 날짜·시각이 서로를 지우지 않도록 따로 둔다
+    const datetime = joinDateTime(date, time)
+    if (!datetime) {
+      window.alert(!date ? '상담 날짜를 선택해 주세요.' : '상담 시각을 선택해 주세요.')
       return
     }
     if (!draft.doctorName.trim()) {
       window.alert('원장 이름을 입력해 주세요.')
       return
     }
-    onSave({ fields: { ...draft }, content: bodyRef.current?.innerHTML || '' })
+    onSave({ fields: { ...draft, datetime }, content: bodyRef.current?.innerHTML || '' })
   }
 
   return (
@@ -237,23 +242,18 @@ function ConsultEditor({ consult, onSave, onCancel }) {
             <span>
               날짜 <b className="req">*</b>
             </span>
-            <input
-              type="date"
-              required
-              value={when.date}
-              onChange={(e) => setWhen(e.target.value, when.time)}
-            />
+            <input type="date" required value={date} onChange={(e) => setDate(e.target.value)} />
           </label>
           <label className="admin-add__field">
             <span>
               시각 <b className="req">*</b>
             </span>
-            <select required value={when.time} onChange={(e) => setWhen(when.date, e.target.value)}>
+            <select required value={time} onChange={(e) => setTime(e.target.value)}>
               <option value="">선택</option>
               {/* 30분 단위로 바꾸기 전에 저장된 기록은 14:20 같은 시각일 수 있다.
                   목록에 없다고 버리면 수정할 때 조용히 사라지므로 그 값도 함께 넣는다. */}
-              {when.time && !TIME_SLOTS.includes(when.time) && (
-                <option value={when.time}>{when.time} (기존 기록)</option>
+              {time && !TIME_SLOTS.includes(time) && (
+                <option value={time}>{time} (기존 기록)</option>
               )}
               {TIME_SLOTS.map((t) => (
                 <option key={t} value={t}>
