@@ -5011,3 +5011,50 @@ button.docs-item:hover .docs-item__go {
   border-color: var(--primary);
   background: var(--paper-soft);
 }
+
+/* 자료 열람 화면의 공유 버튼 — 링크를 복사해 그대로 전달할 수 있게 */
+.doc-viewer__share {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-family: inherit;
+  font-size: 0.84rem;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+}
+.doc-viewer__share:hover {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.45);
+}
+.doc-viewer__share.is-done {
+  background: var(--primary);
+  border-color: var(--primary);
+}
+
+/* 회원 전용 안내의 보조 링크 — 이미 회원인 사람을 위한 출구 */
+.docs-modal__alt {
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+  padding: 6px;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 0.86rem;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+.docs-modal__alt:hover {
+  color: var(--primary);
+  text-decoration: underline;
+}

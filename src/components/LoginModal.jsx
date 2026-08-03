@@ -112,6 +112,7 @@ export default function LoginModal({ open, onClose }) {
     confirmPasswordReset,
     getLoginPrefs,
     loginNotice,
+    loginStart,
   } = useUser()
 
   // mode: 'login' | 'signup' | 'verify'(인증 코드 입력) | 'recover'(아이디/비밀번호 찾기)
@@ -165,7 +166,8 @@ export default function LoginModal({ open, onClose }) {
       }
       // 저장된 아이디(이메일)와 자동 로그인 설정 프리필
       const prefs = getLoginPrefs()
-      setMode('login')
+      // openSignup() 으로 열었으면 회원가입 화면부터 보여 준다
+      setMode(loginStart === 'signup' ? 'signup' : 'login')
       setForm({
         email: prefs.savedEmail,
         password: '',
@@ -184,7 +186,7 @@ export default function LoginModal({ open, onClose }) {
       setMsg('')
       setInfo(loginNotice || '')
     }
-  }, [open, getLoginPrefs, loginNotice, profilePending, user])
+  }, [open, getLoginPrefs, loginNotice, loginStart, profilePending, user])
 
   useEffect(() => {
     if (!open) return

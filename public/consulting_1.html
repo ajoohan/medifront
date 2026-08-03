@@ -113,7 +113,7 @@ a.contact-link:hover,a.contact-link:active{text-decoration:underline}
 .progress-bar{position:fixed;top:0;left:0;height:3px;background:var(--gold);transition:width .3s;z-index:1000}
 .nav-controls{position:fixed;bottom:18px;right:18px;display:flex;align-items:center;gap:10px;z-index:1000;opacity:.85}
 .nav-btn{background:rgba(7,46,43,.8);border:none;color:#FAF8F4;width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:14px}
-/* PDF 다운로드 — 보고 있는 기기에 맞는 판본을 받는다 */
+/* 공유 버튼 — 알약 모양으로 넓게 */
 .nav-btn--dl{width:auto;border-radius:17px;padding:0 14px;font-size:12px;font-weight:700;white-space:nowrap}
 .nav-btn:hover{background:var(--green)}
 .slide-counter{color:rgba(120,130,128,.9);font-size:13px;font-family:var(--font-head)}
@@ -415,7 +415,7 @@ a.contact-link:hover,a.contact-link:active{text-decoration:underline}
   <button class="nav-btn" onclick="prevSlide()">←</button>
   <span class="slide-counter"><span id="current">1</span> / <span id="total">16</span></span>
   <button class="nav-btn" onclick="nextSlide()">→</button>
-  <button class="nav-btn nav-btn--dl" onclick="downloadPdf()" title="PDF 내려받기">PDF</button>
+  <button class="nav-btn nav-btn--dl" id="shareBtn" onclick="shareLink()" title="공유 링크 복사">공유</button>
 </div>
 
 <script>
@@ -430,13 +430,17 @@ document.addEventListener('keydown',e=>{if(e.key==='ArrowRight'){e.preventDefaul
 const io=new IntersectionObserver(es=>{es.forEach(en=>{if(en.isIntersecting){en.target.classList.add('inview');current=slides.indexOf(en.target)+1;document.getElementById('current').textContent=current;document.getElementById('progressBar').style.width=(current/total*100)+'%';}});},{threshold:.45});
 slides.forEach(sl=>io.observe(sl));
 
-/* PDF 내려받기 — 화면 폭으로 PC/모바일 판본을 고른다 */
-function downloadPdf(){
-  var mobile = window.matchMedia('(max-width: 768px)').matches;
-  var a = document.createElement('a');
-  a.href = '/docs/consulting_1_' + (mobile ? 'mobile' : 'pc') + '.pdf';
-  a.download = '메디프론트_개원컨설팅' + (mobile ? '_모바일' : '_PC') + '.pdf';
-  document.body.appendChild(a); a.click(); a.remove();
+/* 공유 링크 복사 — 자료 본문 주소가 아니라 컨설팅 목록 주소를 넘긴다.
+   받은 사람이 비회원이면 목록에서 가입 안내를 만나고, 회원이면 이 자료가 바로 펼쳐진다. */
+function shareLink(){
+  var url = 'https://medifront.co.kr/consulting?doc=opening-process';
+  var btn = document.getElementById('shareBtn');
+  function done(){ if(!btn) return; btn.textContent='복사됨'; setTimeout(function(){btn.textContent='공유'},2000); }
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(url).then(done, function(){ window.prompt('아래 주소를 복사해 공유하세요', url) });
+  } else {
+    window.prompt('아래 주소를 복사해 공유하세요', url);
+  }
 }
 
 /* 입지분석 예시 차트 */

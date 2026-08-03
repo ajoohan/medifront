@@ -40,6 +40,8 @@ export function UserProvider({ children }) {
   const [authReady, setAuthReady] = useState(false)
   // 화면 상단 알림 (자동 로그아웃 등 사용자가 누르지 않았는데 생긴 변화를 알린다)
   const [toast, setToast] = useState(null)
+  // 로그인 창을 어느 화면으로 열지 — 'login' | 'signup'
+  const [loginStart, setLoginStart] = useState('login')
   // 소셜 로그인 복귀(?code=) 처리 중 — 토큰 교환이 끝날 때까지 '로그인 처리 중' 오버레이를
   // 띄워, 그 사이 메인 화면만 보여 로그인이 안 된 것처럼 오해하는 일을 막는다.
   const [oauthProcessing, setOauthProcessing] = useState(
@@ -270,6 +272,13 @@ export function UserProvider({ children }) {
   // notice: 로그인 창에 함께 띄울 안내 문구 (onClick 핸들러로 직접 쓰면 이벤트 객체가 오므로 문자열만 채택)
   const openLogin = useCallback((notice) => {
     setLoginNotice(typeof notice === 'string' ? notice : '')
+    setLoginStart('login')
+    setLoginOpen(true)
+  }, [])
+  // 가입을 권해야 하는 자리(공유 링크로 들어온 비회원 등)에서는 회원가입 화면으로 바로 연다
+  const openSignup = useCallback((notice) => {
+    setLoginNotice(typeof notice === 'string' ? notice : '')
+    setLoginStart('signup')
     setLoginOpen(true)
   }, [])
   const closeLogin = useCallback(() => setLoginOpen(false), [])
@@ -285,6 +294,8 @@ export function UserProvider({ children }) {
         hideToast,
         loginOpen,
         loginNotice,
+        loginStart,
+        openSignup,
         profilePending,
         openLogin,
         closeLogin,

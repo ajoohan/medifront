@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import useReveal from '../hooks/useReveal'
 import { useUser } from '../context/UserContext'
 import useConsultingDocs from '../hooks/useConsultingDocs'
@@ -7,10 +8,14 @@ import useConsultingDocs from '../hooks/useConsultingDocs'
 // 회원이 자료를 고르면 같은 페이지 안(iframe)에서 바로 펼쳐 본다.
 export default function ConsultingDocsPage() {
   useReveal()
-  const { user, openLogin } = useUser()
+  const { user, openLogin, openSignup } = useUser()
   const docs = useConsultingDocs() // 관리자가 숨긴 자료는 빠진 목록
   const [openDoc, setOpenDoc] = useState(null) // 지금 보고 있는 자료
   const [gateOpen, setGateOpen] = useState(false) // 비회원 안내
+  const [copied, setCopied] = useState(false) // 공유 링크 복사 피드백
+  const [params, setParams] = useSearchParams()
+  const sharedId = params.get('doc') // 공유 링크로 지목된 자료
+  const handledShare = useRef(false)
 
   // 자료를 보는 동안에는 뒤 배경이 스크롤되지 않게 한다
   useEffect(() => {
@@ -33,6 +38,32 @@ export default function ConsultingDocsPage() {
     }
     setOpenDoc(doc)
   }
+
+  // 공유 링크 만들기 — 자료 본문 주소가 아니라 컨설팅 목록 주소를 넘긴다.
+  // 받은 사람이 비회원이면 목록에서 가입 안내를 만나고, 회원이면 그 자료가 바로 펼쳐진다.
+  const shareDoc = async (doc) => {
+    const url = `${window.location.origin}/consulting?doc=${encodeURIComponent(doc.id)}`
+    try {
+      await navigator.clipboard.writeText(url)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      window.prompt('아래 주소를 복사해 공유하세요', url)
+    }
+  }
+
+  // 공유 링크(/consulting?doc=…)로 들어온 경우 —
+  // 회원이면 그 자료를 바로 펼치고, 비회원이면 가입을 권하는 안내를 띄운다.
+  // 한 번만 처리하고 주소에서 파라미터를 지운다(새로고침해도 다시 뜨지 않게).
+  useEffect(() => {
+    if (!sharedId || handledShare.current || docs.length === 0) return
+    const doc = docs.find((d) => d.id === sharedId)
+    handledShare.current = true
+    setParams({}, { replace: true })
+    if (!doc || doc.hidden) return
+    if (user) setOpenDoc(doc)
+    else setGateOpen(true)
+  }, [sharedId, docs, user, setParams])
 
   return (
     <>
@@ -105,6 +136,46 @@ export default function ConsultingDocsPage() {
               <b>{openDoc.title}</b>
             </div>
             <div className="doc-viewer__actions">
+              <button
+                type="button"
+                className={`doc-viewer__share ${copied ? 'is-done' : ''}`}
+                onClick={() => shareDoc(openDoc)}
+              >
+                {copied ? (
+                  <>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <path
+                        d="m5 12.5 4.5 4.5L19 7.5"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                    링크 복사됨
+                  </>
+                ) : (
+                  <>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <path
+                        d="M10 13a4 4 0 0 0 5.7.3l3-3A4 4 0 0 0 13 4.7l-1.2 1.2"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      <path
+                        d="M14 11a4 4 0 0 0-5.7-.3l-3 3A4 4 0 0 0 11 19.3l1.2-1.2"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                    공유하기
+                  </>
+                )}
+              </button>
               <a className="doc-viewer__link" href={openDoc.file} target="_blank" rel="noreferrer">
                 새 창으로 보기 ↗
               </a>
@@ -157,17 +228,27 @@ export default function ConsultingDocsPage() {
             <p>
               메디프론트 컨설팅 자료는 회원만 열람할 수 있습니다.
               <br />
-              로그인 후 이용 부탁드립니다.
+              무료로 가입하시면 바로 보실 수 있습니다.
             </p>
             <button
               className="btn btn--primary btn--lg"
               style={{ width: '100%' }}
               onClick={() => {
                 setGateOpen(false)
+                openSignup()
+              }}
+            >
+              무료 회원가입
+            </button>
+            <button
+              type="button"
+              className="docs-modal__alt"
+              onClick={() => {
+                setGateOpen(false)
                 openLogin()
               }}
             >
-              로그인 / 회원가입
+              이미 회원이신가요? 로그인
             </button>
           </div>
         </div>
