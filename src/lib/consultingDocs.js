@@ -29,7 +29,7 @@ export const CONSULTING_DOCS = [
 // 그대로 쓰일 수 있다. 특히 과거 배포가 이 파일에 1년 immutable 캐시를 걸어 둔 탓에,
 // 서버 파일을 바꿔도 방문자 화면은 옛날 그대로 남는다(PDF 버튼이 계속 보이던 원인).
 // 주소 뒤에 판본을 붙이면 브라우저가 다른 자원으로 보고 새로 받아온다.
-export const DOC_REV = '20260803'
+export const DOC_REV = '20260803b'
 
 // 자료를 열 때 쓰는 주소 — 항상 이 함수를 거쳐 판본이 붙게 한다
 export const docUrl = (doc) => `${doc.file}?v=${DOC_REV}`
