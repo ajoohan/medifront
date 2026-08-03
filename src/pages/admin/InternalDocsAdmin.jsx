@@ -9,8 +9,10 @@ import {
 import { INTERNAL_DOCS_SEED, INTERNAL_DOC_CATEGORIES } from '../../lib/internalDocsSeed'
 import { INTERNAL_FILES } from '../../lib/internalFiles'
 import useAdminData from '../../hooks/useAdminData'
+import useBackClose from '../../hooks/useBackClose'
 import { CK } from '../../lib/adminCache'
 import { SkeletonCards, LoadingRegion } from '../../components/admin/Skeleton'
+import DocThread from '../../components/admin/DocThread'
 
 function formatDate(iso) {
   if (!iso) return ''
@@ -155,6 +157,12 @@ export default function InternalDocsAdmin() {
 
   const [viewing, setViewing] = useState(null) // 열람 중인 자료
   const [writing, setWriting] = useState(null) // null | { mode:'new' } | { mode:'edit', doc }
+
+  // 브라우저 뒤로가기로 목록에 돌아온다 (사이트 밖으로 나가지 않게)
+  useBackClose(!!viewing || !!writing, () => {
+    setWriting(null)
+    setViewing(null)
+  })
   const [busy, setBusy] = useState(false)
   const [filter, setFilter] = useState('전체')
   const [copied, setCopied] = useState('') // 방금 링크를 복사한 자료 id
@@ -270,6 +278,8 @@ export default function InternalDocsAdmin() {
           </div>
           <iframe className="doc-frame__view" src={viewing.file} title={viewing.title} />
         </div>
+
+        <DocThread doc={viewing} />
       </>
     )
   }
@@ -300,6 +310,8 @@ export default function InternalDocsAdmin() {
             dangerouslySetInnerHTML={{ __html: viewing.content || '<p>내용이 없습니다.</p>' }}
           />
         </article>
+
+        <DocThread doc={viewing} />
       </>
     )
   }

@@ -5058,3 +5058,162 @@ button.docs-item:hover .docs-item__go {
   color: var(--primary);
   text-decoration: underline;
 }
+
+/* ── 내부 자료 의견 스레드 ──────────────────────────────────────────
+   운영자끼리 자료를 두고 나누는 대화. 자료 본문 아래에 이어 붙는다. */
+.thread {
+  max-width: 900px;
+  margin: 20px 0 40px;
+  padding: 24px 26px 22px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fff;
+}
+.thread__title {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 16px;
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--ink-900);
+}
+.thread__title::before {
+  content: '';
+  width: 4px;
+  height: 15px;
+  border-radius: 2px;
+  background: var(--primary);
+}
+.thread__count {
+  min-width: 20px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--paper-soft);
+  color: var(--primary);
+  font-size: 0.76rem;
+  font-weight: 800;
+  text-align: center;
+}
+.thread__empty {
+  padding: 18px 0 22px;
+  font-size: 0.9rem;
+  color: var(--ink-300);
+}
+
+.thread__list {
+  list-style: none;
+  display: grid;
+  gap: 16px;
+  margin-bottom: 22px;
+}
+.thread__item {
+  display: flex;
+  gap: 12px;
+}
+/* 이름 첫 글자 표식 — 누가 썼는지 빠르게 구분된다 */
+.thread__avatar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--paper-soft);
+  border: 1px solid var(--line);
+  color: var(--primary);
+  font-size: 0.88rem;
+  font-weight: 800;
+}
+.thread__body {
+  flex: 1;
+  min-width: 0;
+}
+.thread__meta {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 4px;
+}
+.thread__meta b {
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: var(--ink-900);
+}
+.thread__meta time {
+  font-size: 0.78rem;
+  color: var(--ink-300);
+}
+.thread__del {
+  margin-left: auto;
+  border: 0;
+  background: none;
+  padding: 2px 4px;
+  color: var(--ink-300);
+  font-family: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+.thread__del:hover {
+  color: #b3261e;
+  text-decoration: underline;
+}
+/* 줄바꿈을 적은 그대로 살린다 — 메모라 목록·단락이 잦다 */
+.thread__body p {
+  font-size: 0.92rem;
+  line-height: 1.7;
+  color: var(--ink-700);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.thread__form {
+  padding-top: 20px;
+  border-top: 1px solid var(--paper-soft);
+}
+.thread__form textarea {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  font-family: inherit;
+  font-size: 0.92rem;
+  line-height: 1.7;
+  color: var(--text);
+  resize: vertical;
+}
+.thread__form textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(16, 166, 150, 0.15);
+}
+.thread__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 14px;
+  margin-top: 10px;
+}
+.thread__hint {
+  font-size: 0.76rem;
+  color: var(--ink-300);
+}
+.thread__actions .btn {
+  padding: 10px 22px;
+  font-size: 0.9rem;
+}
+.thread__actions .btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+@media (max-width: 560px) {
+  .thread {
+    padding: 20px 16px 18px;
+  }
+  .thread__actions {
+    justify-content: space-between;
+  }
+}

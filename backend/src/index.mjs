@@ -267,6 +267,14 @@ const RESOURCES = {
     fields: ['title', 'summary', 'category', 'content', 'updated_at'],
     defaults: () => ({ category: '운영', summary: '', content: '' }),
   },
+  // 내부 자료에 운영자들이 남기는 의견. doc_key 로 자료와 잇는다
+  // (DB 자료는 'd:12', 파일 자료는 'f:hxd' 형태 — 두 종류가 섞여도 겹치지 않는다).
+  // ⚠️ internal-docs 와 같은 사내 데이터다. ADMIN_READ_ONLY_RESOURCES 에서 빠지면 안 된다.
+  'internal-comments': {
+    entity: 'internal_comments',
+    fields: ['doc_key', 'author', 'author_email', 'content'],
+    defaults: () => ({ author: '', author_email: '', content: '' }),
+  },
 }
 
 const now = () => new Date().toISOString()
@@ -1102,6 +1110,7 @@ const ADMIN_READ_ONLY_RESOURCES = [
   'consult-requests',
   // 내부 자료실 — 회원이 로그인 토큰으로 읽어가지 못하게 막는다
   'internal-docs',
+  'internal-comments',
 ]
 
 function getAuth(event) {
@@ -1202,6 +1211,21 @@ export async function handler(event) {
       }
       return json(200, items.map(toPublic))
     }
+    // 자료 의견 — 작성자는 로그인 토큰에서 확정한다(본문 값은 믿지 않는다).
+    // 삭제는 본인 것만. 같은 운영자끼리라도 남의 글이 지워지면 대화가 끊긴다.
+    if (seg1 === 'internal-comments') {
+      if (method === 'POST' && !seg2) {
+        const body = parseBody(event)
+        return json(200, await createItem(cfg, { ...body, author_email: auth.email || '' }))
+      }
+      if (method === 'DELETE' && seg2) {
+        const row = await getItem(cfg.entity, seg2)
+        if (row?.author_email && row.author_email !== auth.email) {
+          return json(403, { error: 'not-your-comment' })
+        }
+      }
+    }
+
     if (method === 'POST' && !seg2) return json(200, await createItem(cfg, parseBody(event)))
     if (method === 'PATCH' && seg2) return json(200, await patchItem(cfg, seg2, parseBody(event)))
     if (method === 'DELETE' && seg2) return json(200, await deleteItem(cfg, seg2))
