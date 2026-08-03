@@ -20,13 +20,23 @@ echo "1) 프로덕션 빌드..."
 npm run build
 
 echo "2) S3 업로드 (기존 파일과 동기화, 삭제 반영)..."
-# 정적 에셋은 오래 캐시, HTML(index.html·admin)은 항상 최신
-aws s3 sync dist/ "s3://${BUCKET}/" --delete \
-  --exclude "index.html" \
-  --exclude "admin" \
+
+# ── 캐시 정책 ───────────────────────────────────────────────────────
+# assets/ 안의 파일만 영구 캐시한다. Vite 가 내용이 바뀌면 파일명(해시)을 바꿔 주므로
+# 브라우저가 옛 파일을 붙들고 있어도 새 이름을 새로 받아 문제가 없다.
+#
+# ⚠️ 그 외(HTML·robots.txt·sitemap.xml·이미지·PDF)는 이름이 고정이다. 여기에
+# immutable 을 걸면 브라우저가 1년 동안 재확인조차 하지 않아, CloudFront 를 비워도
+# 방문자 화면은 옛날 그대로 남는다. 실제로 컨설팅 자료를 고쳤는데 예전 버튼이 계속
+# 보이는 일이 있었다. 이 파일들은 no-cache(쓰기 전 서버에 확인)로 올린다.
+# ────────────────────────────────────────────────────────────────────
+aws s3 sync dist/assets/ "s3://${BUCKET}/assets/" --delete \
   --cache-control "public,max-age=31536000,immutable"
-aws s3 cp dist/index.html "s3://${BUCKET}/index.html" \
+
+aws s3 sync dist/ "s3://${BUCKET}/" --delete \
+  --exclude "assets/*" \
   --cache-control "no-cache"
+
 # /admin 전용 OG 카드 — 확장자 없는 오브젝트라 Content-Type 을 명시해야 브라우저가 렌더함
 aws s3 cp dist/admin "s3://${BUCKET}/admin" \
   --content-type "text/html" \
