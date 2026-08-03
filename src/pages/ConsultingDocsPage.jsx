@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import useReveal from '../hooks/useReveal'
 import { useUser } from '../context/UserContext'
 import useConsultingDocs from '../hooks/useConsultingDocs'
+import { docUrl } from '../lib/consultingDocs'
 
 // 컨설팅 자료 — 목록은 누구나 보고, 열람은 로그인 회원만.
 // 회원이 자료를 고르면 같은 페이지 안(iframe)에서 바로 펼쳐 본다.
@@ -176,7 +177,12 @@ export default function ConsultingDocsPage() {
                   </>
                 )}
               </button>
-              <a className="doc-viewer__link" href={openDoc.file} target="_blank" rel="noreferrer">
+              <a
+                className="doc-viewer__link"
+                href={docUrl(openDoc)}
+                target="_blank"
+                rel="noreferrer"
+              >
                 새 창으로 보기 ↗
               </a>
               <button
@@ -189,7 +195,7 @@ export default function ConsultingDocsPage() {
               </button>
             </div>
           </div>
-          <iframe className="doc-viewer__frame" src={openDoc.file} title={openDoc.title} />
+          <iframe className="doc-viewer__frame" src={docUrl(openDoc)} title={openDoc.title} />
         </div>
       )}
 
