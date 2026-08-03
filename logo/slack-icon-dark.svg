@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="MEDIFRONT">
+  <title>MEDIFRONT 슬랙 아이콘</title>
+  <!--
+    슬랙 워크스페이스 아이콘 (512×512).
+    사이드바에서는 36px 안팎으로 줄어들므로 글자는 넣지 않고, 로고의 십자 마크만 크게 쓴다.
+    십자 path 는 공식 로고(logo-1line-dark.svg)에서 그대로 가져와 배율만 맞췄다 — 획 두께
+    비율과 오른쪽 아래 라운드가 원본과 동일하다.
+    모서리는 둥글리지 않는다. 슬랙이 자체 마스크로 둥글게 잘라내기 때문이다.
+  -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0b4b45" />
+      <stop offset="1" stop-color="#04211f" />
+    </linearGradient>
+  </defs>
+
+  <rect width="512" height="512" fill="url(#bg)" />
+
+  <g transform="translate(-528.82,63.56) scale(9.1312)">
+    <path
+      fill="#2ed9c6"
+      d="M99.55,16.31h-9.91V6.4h-7.38v9.91h-9.91v7.38h9.91v12.06h0c4.08,0,7.38-3.3,7.38-7.38v-4.68h9.91v-7.38Z"
+    />
+  </g>
+</svg>
