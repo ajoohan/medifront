@@ -5360,3 +5360,10 @@ button.docs-item:hover .docs-item__go {
     padding: 40px 16px;
   }
 }
+
+/* 목록에서 바로 지우는 버튼 — 잘못 올린 자료를 빠르게 정리한다 */
+.icon-btn--danger:hover {
+  border-color: #b3261e;
+  color: #b3261e;
+  background: #fdecec;
+}

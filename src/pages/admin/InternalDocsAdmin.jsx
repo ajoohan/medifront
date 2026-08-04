@@ -8,6 +8,7 @@ import {
 } from '../../lib/internalDocsDb'
 import { INTERNAL_DOCS_SEED, INTERNAL_DOC_CATEGORIES } from '../../lib/internalDocsSeed'
 import { INTERNAL_FILES } from '../../lib/internalFiles'
+import { useUser } from '../../context/UserContext'
 import useAdminData from '../../hooks/useAdminData'
 import useBackClose from '../../hooks/useBackClose'
 import { CK } from '../../lib/adminCache'
@@ -152,6 +153,7 @@ function DocEditor({ doc, onSave, onCancel, busy }) {
 // (일반 회원은 서버에서 조회 자체가 막혀 있다)
 // ─────────────────────────────────────────────────────────
 export default function InternalDocsAdmin() {
+  const { showToast } = useUser()
   const { data, status, fresh, setData } = useAdminData(CK.internalDocs, fetchInternalDocs)
   // useMemo 로 감싸 참조가 매 렌더 바뀌지 않게 한다 (아래 동기화 useEffect 의 의존성)
   const docs = useMemo(() => data || [], [data])
@@ -200,6 +202,12 @@ export default function InternalDocsAdmin() {
       setBusy(false)
       if (!res.ok) return { error: res.error }
       setDocs((ls) => [res.doc, ...ls])
+      // 저장되면 그 자료를 바로 펼친다.
+      // 목록으로만 돌아가면 등록됐는지 알기 어려워, 안 된 줄 알고 다시 누르게 된다.
+      setWriting(null)
+      setViewing(res.doc)
+      showToast('자료를 등록했습니다.', { type: 'ok', title: fields.title })
+      return { ok: true }
     } else {
       const id = writing.doc.id
       const res = await updateInternalDoc(id, fields)
@@ -531,6 +539,30 @@ export default function InternalDocsAdmin() {
                       />
                     </svg>
                   </a>
+                </div>
+              )}
+
+              {/* 직접 등록한 자료 — 목록에서 바로 지운다.
+                  잘못 올린 자료가 여러 건일 때 한 건씩 열어 지우면 번거롭다. */}
+              {!d.file && (
+                <div className="docs-row__tools">
+                  <button
+                    type="button"
+                    className="icon-btn icon-btn--danger"
+                    onClick={() => remove(d)}
+                    title="삭제"
+                    aria-label={`${d.title} 삭제`}
+                  >
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <path
+                        d="M5 7h14M10 7V5h4v2M9 11v6M15 11v6M6 7l1 12h10l1-12"
+                        stroke="currentColor"
+                        strokeWidth="1.7"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </button>
                 </div>
               )}
             </li>
