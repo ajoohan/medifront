@@ -11,6 +11,10 @@ import JSZip from 'jszip'
 
 // DynamoDB 한 항목의 한계는 400KB 다. 여유를 두고 이 선에서 멈춘다.
 const MAX_CONTENT_BYTES = 300 * 1024
+
+// 저장 크기는 UTF-8 바이트로 센다. 한글은 한 글자가 3바이트라
+// 문자열 길이(html.length)로 재면 실제 크기를 크게 낮춰 본다.
+const utf8Bytes = (s) => new TextEncoder().encode(s).length
 // 이미지 한 장의 상한 — 여러 장이 들어가도 전체가 넘치지 않도록 작게 잡는다
 const MAX_IMAGE_BYTES = 90 * 1024
 
@@ -177,14 +181,29 @@ export async function pptxToDeck(file) {
     slides.push({ kicker, title, lines, images })
   }
 
-  // 저장 한계를 넘으면 뒤쪽 그림부터 덜어낸다 — 글은 모두 남긴다
+  // 저장 한계를 넘으면 뒤쪽 그림부터 덜어낸다 — 글은 모두 남긴다.
+  // ⚠️ 글자 수가 아니라 UTF-8 바이트로 재야 한다. 한글은 한 글자가 3바이트라
+  // 글자 수로 재면 실제 크기를 절반 이하로 잘못 본다.
   let html = buildHtml(slides)
-  while (html.length > MAX_CONTENT_BYTES) {
+  while (utf8Bytes(html) > MAX_CONTENT_BYTES) {
     const withPic = [...slides].reverse().find((s) => s.images.length)
     if (!withPic) break
     withPic.images.pop()
     dropped += 1
     html = buildHtml(slides)
+  }
+
+  const bytes = utf8Bytes(html)
+  if (bytes > MAX_CONTENT_BYTES) {
+    // 그림을 다 덜어내도 글만으로 한계를 넘는 경우 — 저장이 실패할 것이 확실하므로 미리 막는다
+    return {
+      error: `내용이 너무 많습니다(${Math.round(bytes / 1024)}KB). 한 자료는 ${Math.round(
+        MAX_CONTENT_BYTES / 1024,
+      )}KB 까지 저장됩니다. PPT를 나눠서 등록해 주세요.`,
+    }
+  }
+  if (!html) {
+    return { error: '슬라이드에서 글을 찾지 못했습니다. 이미지로만 된 PPT 는 등록할 수 없습니다.' }
   }
 
   return {
@@ -194,7 +213,7 @@ export async function pptxToDeck(file) {
     // 첫 슬라이드 제목을 자료 제목 기본값으로 제안한다
     title: slides.find((s) => s.title)?.title || '',
     dropped,
-    bytes: html.length,
+    bytes,
   }
 }
 

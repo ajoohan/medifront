@@ -56,18 +56,20 @@ function DocEditor({ doc, onSave, onCancel, busy }) {
     }
   }
 
-  const save = () => {
+  const save = async () => {
     const t = title.trim()
     if (!t) {
       window.alert('제목을 입력해 주세요.')
       return
     }
-    onSave({
+    const res = await onSave({
       title: t,
       summary: summary.trim(),
       category,
       content: bodyRef.current?.innerHTML || '',
     })
+    // 실패하면 화면을 그대로 두고 사유를 알린다 — 쓰던 글이 날아가지 않게
+    if (res?.error) window.alert(`저장하지 못했습니다 — ${res.error}`)
   }
 
   return (
@@ -191,14 +193,12 @@ export default function InternalDocsAdmin() {
 
   const handleSave = async (fields) => {
     setBusy(true)
-    // 직접 쓴 자료('new')와 PPT 로 만든 자료('upload') 모두 새 자료다
+    // 직접 쓴 자료('new')와 PPT 로 만든 자료('upload') 모두 새 자료다.
+    // 실패하면 사유를 호출한 화면에 돌려준다 — 화면이 그대로 남아 다시 시도할 수 있게.
     if (writing.mode !== 'edit') {
       const res = await insertInternalDoc(fields)
       setBusy(false)
-      if (!res.ok) {
-        window.alert(`자료 저장 실패: ${res.error}`)
-        return
-      }
+      if (!res.ok) return { error: res.error }
       setDocs((ls) => [res.doc, ...ls])
     } else {
       const id = writing.doc.id
@@ -206,7 +206,7 @@ export default function InternalDocsAdmin() {
       setBusy(false)
       if (!res.ok) {
         window.alert(`자료 수정 실패: ${res.error}`)
-        return
+        return { error: res.error }
       }
       const updatedAt = new Date().toISOString()
       setDocs((ls) => ls.map((d) => (d.id === id ? { ...d, ...fields, updatedAt } : d)))

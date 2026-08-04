@@ -32,13 +32,16 @@ export default function PptxUpload({ onSave, onCancel, busy }) {
     setTitle(res.title || file.name.replace(/\.pptx?$/i, ''))
   }
 
-  const save = () => {
+  const save = async () => {
     const t = title.trim()
     if (!t) {
-      window.alert('자료 제목을 입력해 주세요.')
+      setError('자료 제목을 입력해 주세요.')
       return
     }
-    onSave({ title: t, summary: summary.trim(), category, content: result.html })
+    setError('')
+    // 실패 사유를 화면에 남긴다 — 알림창은 닫으면 사라져 원인을 알 수 없다
+    const res = await onSave({ title: t, summary: summary.trim(), category, content: result.html })
+    if (res?.error) setError(`저장하지 못했습니다 — ${res.error}`)
   }
 
   return (
@@ -101,6 +104,8 @@ export default function PptxUpload({ onSave, onCancel, busy }) {
               다른 파일 선택
             </button>
           </div>
+
+          {error && <div className="admin-notice admin-notice--warn">{error}</div>}
 
           <div className="mag-editor__head">
             <select
