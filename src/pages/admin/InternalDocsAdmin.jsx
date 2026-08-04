@@ -13,6 +13,7 @@ import useBackClose from '../../hooks/useBackClose'
 import { CK } from '../../lib/adminCache'
 import { SkeletonCards, LoadingRegion } from '../../components/admin/Skeleton'
 import DocThread from '../../components/admin/DocThread'
+import PptxUpload from '../../components/admin/PptxUpload'
 
 function formatDate(iso) {
   if (!iso) return ''
@@ -190,7 +191,8 @@ export default function InternalDocsAdmin() {
 
   const handleSave = async (fields) => {
     setBusy(true)
-    if (writing.mode === 'new') {
+    // 직접 쓴 자료('new')와 PPT 로 만든 자료('upload') 모두 새 자료다
+    if (writing.mode !== 'edit') {
       const res = await insertInternalDoc(fields)
       setBusy(false)
       if (!res.ok) {
@@ -236,6 +238,11 @@ export default function InternalDocsAdmin() {
       return
     }
     setDocs((ls) => [...added.reverse(), ...ls])
+  }
+
+  // ── PPT 등록 화면 ──
+  if (writing?.mode === 'upload') {
+    return <PptxUpload onSave={handleSave} onCancel={() => setWriting(null)} busy={busy} />
   }
 
   // ── 자료 작성/수정 화면 ──
@@ -338,12 +345,18 @@ export default function InternalDocsAdmin() {
               {busy ? '등록 중...' : `기본 자료 ${INTERNAL_DOCS_SEED.length}건 불러오기`}
             </button>
           )}
+          {/* 두 가지 경로 — 직접 쓰거나(작성), 이미 만든 PPT 를 올리거나(등록) */}
+          {available && (
+            <button className="btn admin-head__action" onClick={() => setWriting({ mode: 'new' })}>
+              + 자료 작성
+            </button>
+          )}
           {available && (
             <button
               className="btn btn--primary admin-head__action"
-              onClick={() => setWriting({ mode: 'new' })}
+              onClick={() => setWriting({ mode: 'upload' })}
             >
-              + 자료 등록
+              + 자료 등록 (PPT)
             </button>
           )}
         </div>

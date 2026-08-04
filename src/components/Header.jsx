@@ -100,6 +100,12 @@ export default function Header() {
                 <b>{user.name}</b> 님<span className="header__role"> ({roleLabel(user)})</span>
                 <ProviderBadge user={user} />
               </span>
+              {/* 관리 권한이 있으면 사이트에서 바로 관리자 화면으로 */}
+              {user.isAdmin && (
+                <a className="btn btn--admin" href="/admin">
+                  관리자
+                </a>
+              )}
               <button className="btn btn--login" onClick={handleLogout}>
                 로그아웃
               </button>
@@ -129,6 +135,11 @@ export default function Header() {
               <b>{user.name}</b> 님 ({roleLabel(user)})
               <ProviderBadge user={user} />
             </div>
+            {user.isAdmin && (
+              <a className="mobile-login mobile-login--admin" href="/admin" onClick={closeMenu}>
+                관리자 화면
+              </a>
+            )}
             <button className="mobile-login" onClick={handleLogout}>
               로그아웃
             </button>
