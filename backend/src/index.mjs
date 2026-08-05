@@ -1074,6 +1074,78 @@ async function completeProfile(auth, body) {
   return json(200, toPublic(updated))
 }
 
+// ── PPT 내용을 메디프론트 자료로 다듬기 (Gemini) ──
+//
+// 브라우저가 PPT 에서 뽑아낸 장표별 글을 보내면, 여기서 제목을 다듬고 문장을
+// 정리해 되돌려 준다. API 키는 서버에만 있으므로 호출도 서버에서 한다.
+// 키가 없으면 400 을 돌려주고, 화면은 규칙 기반 변환 결과를 그대로 쓴다.
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || ''
+const GEMINI_MODEL = 'gemini-2.0-flash'
+
+const DECK_PROMPT = `너는 병원 컨설팅 회사 '메디프론트'의 편집자다.
+발표자료(PPT)에서 뽑아낸 장표별 텍스트를 받아, 사내 자료로 읽기 좋게 다듬어라.
+
+규칙:
+- 내용을 지어내지 마라. 주어진 문장에 없는 사실·숫자를 만들면 안 된다.
+- 각 장표의 title 은 그 장의 핵심을 나타내는 짧은 명사구로 다듬어라(20자 이내).
+  원문에 제목이 없거나 로고·회사명뿐이면 본문에서 핵심을 뽑아 제목을 지어라.
+- lead 는 그 장을 한 문장으로 요약한다(60자 이내). 요약할 내용이 없으면 빈 문자열.
+- points 는 핵심 항목들이다. 원문의 긴 문장을 읽기 쉬운 길이로 다듬되 뜻을 바꾸지 마라.
+  목차·페이지번호·중복 문구는 버려라. 한 장에 최대 8개.
+- 모든 문장은 한국어 '~다'체 또는 명사형으로 간결하게.
+
+반드시 아래 JSON 형태로만 답하라. 설명·코드블록 표시 없이 JSON 만.
+{"slides":[{"title":"...","lead":"...","points":["...","..."]}]}`
+
+async function formatDeck(body) {
+  if (!GEMINI_API_KEY) {
+    return json(400, { error: 'ai-not-configured' })
+  }
+  const slides = Array.isArray(body?.slides) ? body.slides : null
+  if (!slides?.length) return json(400, { error: 'slides required' })
+
+  // 보낼 양을 제한한다 — 요금과 응답 시간이 입력 길이에 비례한다
+  const input = slides.slice(0, 40).map((s) => ({
+    title: String(s.title || '').slice(0, 200),
+    lines: (Array.isArray(s.lines) ? s.lines : []).slice(0, 40).map((l) => String(l).slice(0, 300)),
+  }))
+
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`,
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-goog-api-key': GEMINI_API_KEY },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: DECK_PROMPT }] },
+          contents: [{ role: 'user', parts: [{ text: JSON.stringify({ slides: input }) }] }],
+          generationConfig: { temperature: 0.2, responseMimeType: 'application/json' },
+        }),
+      },
+    )
+    if (!res.ok) {
+      const detail = await res.text()
+      console.error('gemini failed', res.status, detail.slice(0, 500))
+      // 키·할당량 문제는 관리자가 바로 알아야 고칠 수 있다
+      return json(502, { error: `gemini-${res.status}` })
+    }
+    const data = await res.json()
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || ''
+    let parsed
+    try {
+      parsed = JSON.parse(text)
+    } catch {
+      console.error('gemini returned non-json', text.slice(0, 300))
+      return json(502, { error: 'gemini-bad-format' })
+    }
+    if (!Array.isArray(parsed?.slides)) return json(502, { error: 'gemini-bad-format' })
+    return json(200, { slides: parsed.slides })
+  } catch (e) {
+    console.error('gemini call failed', e)
+    return json(502, { error: 'gemini-unreachable' })
+  }
+}
+
 // ─────────────────────────────────────────────────────────────
 // 인가(authorization)
 //
@@ -1165,6 +1237,16 @@ export async function handler(event) {
     // 본인인증 사용 여부 — 프론트가 버튼 노출/필수 여부를 판단하는 데 쓴다
     if (method === 'GET' && seg1 === 'auth' && seg2 === 'verify-config') {
       return json(200, { enabled: isVerifyConfigured() })
+    }
+
+    // PPT 내용을 메디프론트 자료로 다듬는다 — 관리자만.
+    // 키가 서버에만 있으므로 변환도 서버에서 한다.
+    if (method === 'POST' && seg1 === 'ai' && seg2 === 'format-deck') {
+      if (!auth.isAdmin) return json(403, { error: 'forbidden' })
+      return await formatDeck(parseBody(event))
+    }
+    if (method === 'GET' && seg1 === 'ai' && seg2 === 'config') {
+      return json(200, { enabled: !!GEMINI_API_KEY })
     }
 
     const isPublic = !seg2 && PUBLIC_ROUTES.some((p) => p.method === method && p.resource === seg1)

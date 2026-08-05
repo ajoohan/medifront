@@ -63,6 +63,15 @@ if [ -n "${VERIFY_API_SECRET:-}" ]; then
   OVERRIDES+=("VerifyApiSecret=${VERIFY_API_SECRET}")
   echo "   (휴대폰 본인인증 포함 배포)"
 fi
+# PPT → 자료 AI 변환(Gemini) — 키를 넣으면 '#AI로 다듬기'가 켜진다
+#   GEMINI_API_KEY=... bash scripts/deploy-backend.sh
+#
+# ⚠️ 한 번 넣으면 스택에 남는다. 다음 배포에서 이 변수를 빼도 기존 값이 유지되므로
+# 매번 다시 넣을 필요는 없다. 키를 바꾸거나 지울 때만 다시 지정한다.
+if [ -n "${GEMINI_API_KEY:-}" ]; then
+  OVERRIDES+=("GeminiApiKey=${GEMINI_API_KEY}")
+  echo "   (Gemini AI 변환 포함 배포)"
+fi
 PARAMS=()
 if [ ${#OVERRIDES[@]} -gt 0 ]; then
   PARAMS=(--parameter-overrides "${OVERRIDES[@]}")

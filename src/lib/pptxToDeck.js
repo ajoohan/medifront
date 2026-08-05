@@ -214,7 +214,28 @@ export async function pptxToDeck(file) {
     title: slides.find((s) => s.title)?.title || '',
     dropped,
     bytes,
+    // AI 로 다시 다듬을 때 쓸 원본 — 그림은 그대로 두고 글만 보낸다
+    slides,
   }
+}
+
+// AI 가 다듬어 준 결과({title, lead, points})를 원래 그림과 합쳐 다시 조판한다.
+// 장 수가 다르면 앞에서부터 짝지어, AI 가 장을 합치거나 빠뜨려도 그림이 어긋나지 않게 한다.
+export function applyFormatted(slides, formatted) {
+  const merged = formatted.map((f, i) => ({
+    kicker: slides[i]?.kicker || '',
+    title: String(f.title || '').trim(),
+    lines: [
+      ...(f.lead ? [String(f.lead).trim()] : []),
+      ...(Array.isArray(f.points) ? f.points.map((p) => String(p).trim()).filter(Boolean) : []),
+    ],
+    images: slides[i]?.images || [],
+  }))
+  // AI 응답이 원본보다 짧으면 남은 장은 원본 그대로 둔다 — 내용이 사라지지 않게
+  if (merged.length < slides.length) merged.push(...slides.slice(merged.length))
+
+  const html = buildHtml(merged)
+  return { html, bytes: utf8Bytes(html), slideCount: merged.length }
 }
 
 export const pptxLimits = { MAX_CONTENT_BYTES, MAX_IMAGE_BYTES }

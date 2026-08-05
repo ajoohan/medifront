@@ -1,5 +1,6 @@
-import { useRef, useState } from 'react'
-import { pptxToDeck } from '../../lib/pptxToDeck'
+import { useEffect, useRef, useState } from 'react'
+import { pptxToDeck, applyFormatted } from '../../lib/pptxToDeck'
+import { fetchAiEnabled, formatDeckWithAi, aiErrorMessage } from '../../lib/aiDeckDb'
 import { INTERNAL_DOC_CATEGORIES } from '../../lib/internalDocsSeed'
 
 // 자료 등록 — PPT 를 올려 메디프론트 서식 자료로 바꾼다.
@@ -13,6 +14,38 @@ export default function PptxUpload({ onSave, onCancel, busy }) {
   const [summary, setSummary] = useState('')
   const [category, setCategory] = useState(INTERNAL_DOC_CATEGORIES[0])
   const [error, setError] = useState('')
+  const [aiEnabled, setAiEnabled] = useState(false)
+  const [aiBusy, setAiBusy] = useState(false)
+  const [aiDone, setAiDone] = useState(false)
+  const [raw, setRaw] = useState(null) // AI 전 원본 — 되돌리기용
+
+  // AI 변환을 쓸 수 있는지(서버에 키가 있는지) 확인해 버튼 노출을 정한다
+  useEffect(() => {
+    fetchAiEnabled().then(setAiEnabled)
+  }, [])
+
+  // PPT 에서 뽑은 글을 AI 로 다듬어 다시 조판한다
+  const runAi = async () => {
+    if (!result?.slides) return
+    setAiBusy(true)
+    setError('')
+    const res = await formatDeckWithAi(result.slides)
+    setAiBusy(false)
+    if (res.error) {
+      setError(aiErrorMessage(res.error))
+      return
+    }
+    if (!raw) setRaw(result) // 처음 한 번만 원본을 보관
+    const next = applyFormatted(result.slides, res.slides)
+    setResult({ ...result, ...next })
+    setAiDone(true)
+  }
+
+  const undoAi = () => {
+    if (!raw) return
+    setResult(raw)
+    setAiDone(false)
+  }
 
   const pick = async (e) => {
     const file = e.target.files?.[0]
@@ -106,6 +139,34 @@ export default function PptxUpload({ onSave, onCancel, busy }) {
           </div>
 
           {error && <div className="admin-notice admin-notice--warn">{error}</div>}
+
+          {/* AI 다듬기 — 서버에 키가 있을 때만 보인다.
+              누르지 않으면 규칙 기반 변환 결과가 그대로 저장된다. */}
+          <div className="pptx-ai">
+            <div className="pptx-ai__text">
+              <b>AI로 다듬기</b>
+              <span>
+                {aiEnabled
+                  ? '장표마다 제목을 다시 뽑고 문장을 정리합니다. 없는 내용을 만들지 않습니다.'
+                  : 'Gemini API 키가 서버에 등록되면 사용할 수 있습니다.'}
+              </span>
+            </div>
+            <div className="pptx-ai__actions">
+              {aiDone && raw && (
+                <button type="button" className="pptx-summary__again" onClick={undoAi}>
+                  원래대로
+                </button>
+              )}
+              <button
+                type="button"
+                className="btn btn--primary"
+                onClick={runAi}
+                disabled={!aiEnabled || aiBusy}
+              >
+                {aiBusy ? 'AI가 다듬는 중...' : aiDone ? '다시 다듬기' : 'AI로 다듬기'}
+              </button>
+            </div>
+          </div>
 
           <div className="mag-editor__head">
             <select

@@ -48,6 +48,15 @@ Parameters:
     NoEcho: true
     Description: 본인인증 서비스 API 시크릿. 배포 시 VERIFY_API_SECRET 환경변수로 전달.
 
+  # PPT → 메디프론트 자료 변환에 쓰는 Gemini API 키.
+  # 비어 있으면 AI 변환이 꺼진 채로 동작한다(규칙 기반 변환은 그대로 됨).
+  # ⚠️ 브라우저로 내려보내면 안 되는 값이라 Lambda 환경변수로만 둔다.
+  GeminiApiKey:
+    Type: String
+    Default: ''
+    NoEcho: true
+    Description: Google AI Studio 에서 발급한 Gemini API 키. 배포 시 GEMINI_API_KEY 환경변수로 전달.
+
 Conditions:
   HasGoogle: !Not [!Equals [!Ref GoogleClientSecret, '']]
 
@@ -529,6 +538,8 @@ Resources:
           # 휴대폰 본인인증 — 비어 있으면 기능이 꺼진 상태로 동작
           VERIFY_API_KEY: !Ref VerifyApiKey
           VERIFY_API_SECRET: !Ref VerifyApiSecret
+          # PPT → 자료 변환(Gemini) — 비어 있으면 규칙 기반 변환만 쓴다
+          GEMINI_API_KEY: !Ref GeminiApiKey
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref DataTable

@@ -5367,3 +5367,45 @@ button.docs-item:hover .docs-item__go {
   color: #b3261e;
   background: #fdecec;
 }
+
+/* PPT 등록 — AI 다듬기 안내줄 */
+.pptx-ai {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+  padding: 16px 18px;
+  border: 1px solid rgba(16, 166, 150, 0.3);
+  border-radius: var(--radius-sm);
+  background: var(--paper-soft);
+}
+.pptx-ai__text {
+  flex: 1;
+  min-width: 220px;
+}
+.pptx-ai__text b {
+  display: block;
+  margin-bottom: 3px;
+  font-size: 0.94rem;
+  font-weight: 800;
+  color: var(--ink-900);
+}
+.pptx-ai__text span {
+  font-size: 0.82rem;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.pptx-ai__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.pptx-ai__actions .btn {
+  padding: 10px 20px;
+  font-size: 0.9rem;
+}
+.pptx-ai__actions .btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
