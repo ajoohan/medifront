@@ -8,6 +8,7 @@ import {
 } from '../../lib/internalDocsDb'
 import { INTERNAL_DOCS_SEED, INTERNAL_DOC_CATEGORIES } from '../../lib/internalDocsSeed'
 import { INTERNAL_FILES } from '../../lib/internalFiles'
+import { pptxToDeck } from '../../lib/pptxToDeck'
 import { useUser } from '../../context/UserContext'
 import useAdminData from '../../hooks/useAdminData'
 import useBackClose from '../../hooks/useBackClose'
@@ -172,6 +173,25 @@ export default function InternalDocsAdmin() {
   const [filter, setFilter] = useState('전체')
   const [copied, setCopied] = useState('') // 방금 링크를 복사한 자료 id
 
+  // PPT 등록 — 버튼을 누르면 바로 파일 창이 열린다.
+  // 중간에 '파일 선택' 화면을 두면 누를 것이 뻔한 단계를 한 번 더 거치게 된다.
+  const pptRef = useRef(null)
+  const [reading, setReading] = useState(false)
+
+  const readPpt = async (e) => {
+    const file = e.target.files?.[0]
+    e.target.value = '' // 같은 파일을 다시 골라도 change 가 나게 비운다
+    if (!file) return
+    setReading(true)
+    const res = await pptxToDeck(file)
+    setReading(false)
+    if (res.error) {
+      showToast(res.error, { type: 'warn', title: 'PPT를 읽지 못했습니다' })
+      return
+    }
+    setWriting({ mode: 'upload', parsed: res, fileName: file.name })
+  }
+
   // 파일 주소를 전체 주소(https://…)로 만들어 클립보드에 넣는다 — 그대로 공유할 수 있게
   const copyLink = async (doc) => {
     const url = `${window.location.origin}${doc.file}`
@@ -248,9 +268,18 @@ export default function InternalDocsAdmin() {
     setDocs((ls) => [...added.reverse(), ...ls])
   }
 
-  // ── PPT 등록 화면 ──
+  // ── PPT 등록 화면 (파일은 목록에서 이미 골랐다) ──
   if (writing?.mode === 'upload') {
-    return <PptxUpload onSave={handleSave} onCancel={() => setWriting(null)} busy={busy} />
+    return (
+      <PptxUpload
+        parsed={writing.parsed}
+        fileName={writing.fileName}
+        onSave={handleSave}
+        onCancel={() => setWriting(null)}
+        onRepick={() => pptRef.current?.click()}
+        busy={busy}
+      />
+    )
   }
 
   // ── 자료 작성/수정 화면 ──
@@ -360,12 +389,22 @@ export default function InternalDocsAdmin() {
             </button>
           )}
           {available && (
-            <button
-              className="btn btn--primary admin-head__action"
-              onClick={() => setWriting({ mode: 'upload' })}
-            >
-              + 자료 등록 (PPT)
-            </button>
+            <>
+              <input
+                ref={pptRef}
+                type="file"
+                accept=".pptx,application/vnd.openxmlformats-officedocument.presentationml.presentation"
+                hidden
+                onChange={readPpt}
+              />
+              <button
+                className="btn btn--primary admin-head__action"
+                onClick={() => pptRef.current?.click()}
+                disabled={reading}
+              >
+                {reading ? 'PPT 읽는 중...' : '+ 자료 등록 (PPT)'}
+              </button>
+            </>
           )}
         </div>
       </div>

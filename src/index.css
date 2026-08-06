@@ -5409,3 +5409,8 @@ button.docs-item:hover .docs-item__go {
   opacity: 0.45;
   cursor: not-allowed;
 }
+
+/* 오류 문구에 줄바꿈이 있으면 그대로 보여 준다 (외부 서비스가 알려준 사유 등) */
+.admin-notice {
+  white-space: pre-wrap;
+}

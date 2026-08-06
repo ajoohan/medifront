@@ -1124,10 +1124,18 @@ async function formatDeck(body) {
       },
     )
     if (!res.ok) {
-      const detail = await res.text()
-      console.error('gemini failed', res.status, detail.slice(0, 500))
-      // 키·할당량 문제는 관리자가 바로 알아야 고칠 수 있다
-      return json(502, { error: `gemini-${res.status}` })
+      const raw = await res.text()
+      console.error('gemini failed', res.status, raw.slice(0, 800))
+      // 구글이 알려주는 사유를 그대로 전달한다. '한도 초과'만 보여 주면 키 문제인지
+      // 진짜 사용량 문제인지 구분이 안 돼 다음에 뭘 해야 할지 알 수 없다.
+      // (관리자 전용 경로라 상세를 내보내도 안전하다)
+      let detail = ''
+      try {
+        detail = JSON.parse(raw)?.error?.message || ''
+      } catch {
+        detail = raw.slice(0, 300)
+      }
+      return json(502, { error: `gemini-${res.status}`, detail })
     }
     const data = await res.json()
     const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || ''

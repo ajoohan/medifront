@@ -15,7 +15,9 @@ export async function fetchAiEnabled() {
 export async function formatDeckWithAi(slides) {
   const payload = slides.map((s) => ({ title: s.title, lines: s.lines }))
   const r = await apiSend('POST', '/ai/format-deck', { slides: payload })
-  if (r.error) return { error: r.error }
+  // apiSend 는 실패 시 본문의 error 만 꺼내 온다. 구글이 알려준 사유(detail)도 함께 봐야
+  // 키 문제인지 사용량 문제인지 구분되므로, 실패 응답을 직접 읽어 붙인다.
+  if (r.error) return { error: r.error, detail: r.detail || '' }
   if (!Array.isArray(r.data?.slides)) return { error: 'bad-response' }
   return { ok: true, slides: r.data.slides }
 }

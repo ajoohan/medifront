@@ -37,7 +37,9 @@ export async function apiSend(method, path, body) {
       body: body === undefined ? undefined : JSON.stringify(body),
     })
     const data = await res.json().catch(() => ({}))
-    if (!res.ok) return { error: data.error || `HTTP ${res.status}` }
+    // detail 은 외부 서비스(예: Gemini)가 알려준 사유다. 있으면 함께 넘겨
+    // 호출부가 "무엇 때문에 실패했는지"까지 보여 줄 수 있게 한다.
+    if (!res.ok) return { error: data.error || `HTTP ${res.status}`, detail: data.detail || '' }
     return { ok: true, data }
   } catch (e) {
     return { error: e.message || 'network error' }
