@@ -6,7 +6,10 @@ import { apiGet, apiSend, isApiConfigured } from './api'
 
 // 한 번에 보내는 장 수. API Gateway 가 30초에 연결을 끊으므로, 큰 자료를 통째로
 // 보내면 모델이 끝내기 전에 잘린다. 나눠 보내면 장 수와 무관하게 안정적이다.
-const BATCH = 3
+//
+// 3장으로도 24초를 넘겨 2장까지 낮췄다. 만드는 글이 줄어드는 만큼 한 번의
+// 응답이 빨라지고, 아래처럼 겹쳐 보내므로 전체 시간은 크게 늘지 않는다.
+const BATCH = 2
 
 // 동시에 보내는 묶음 수. 차례대로 보내면 묶음 수만큼 시간이 곱해져
 // 큰 자료는 1분을 넘긴다. 서로 딸린 데가 없는 작업이라 겹쳐 보내도 되고,
@@ -20,7 +23,7 @@ export async function fetchAiEnabled() {
   return !!r?.enabled
 }
 
-// slides: [{ title, lines }] → 다듬어진 [{ title, lead, points }]
+// slides: [{ title, lines }] → 다듬어진 장표
 //
 // onProgress(done, total) 로 진행 상황을 알린다 — 여러 번 나눠 부르므로
 // 화면이 멈춘 것처럼 보이지 않게 한다.
@@ -37,30 +40,42 @@ export async function formatDeckWithAi(slides, onProgress) {
   let done = 0 // 끝낸 묶음 수 (진행 표시용)
   let failed = null
 
-  async function worker() {
-    for (;;) {
-      // 하나라도 실패하면 나머지는 보내지 않는다. 이미 다듬은 부분과 원본이
-      // 섞이면 무엇이 AI를 거쳤는지 알 수 없어 확인하고 등록하기 어려워진다.
-      if (failed) return
-      const i = taken++
-      if (i >= batches.length) return
+  // 묶음 하나를 보낸다. 다음에 보낼 묶음이 없거나 이미 실패했으면 그냥 끝낸다.
+  // 하나라도 실패하면 나머지는 보내지 않는다 — 이미 다듬은 부분과 원본이 섞이면
+  // 무엇이 AI를 거쳤는지 알 수 없어 확인하고 등록하기 어려워진다.
+  async function sendNext() {
+    if (failed) return false
+    const i = taken++
+    if (i >= batches.length) return false
 
-      const r = await apiSend('POST', '/ai/format-deck', { slides: batches[i] })
-      if (r.error) {
-        failed = failed || { error: r.error, detail: r.detail || '' }
-        return
-      }
-      if (!Array.isArray(r.data?.slides)) {
-        failed = failed || { error: 'bad-response' }
-        return
-      }
-      results[i] = r.data.slides
-      done += 1
-      onProgress?.(Math.min(done * BATCH, slides.length), slides.length)
+    const r = await apiSend('POST', '/ai/format-deck', { slides: batches[i] })
+    if (r.error) {
+      failed = failed || { error: r.error, detail: r.detail || '' }
+      return false
     }
+    if (!Array.isArray(r.data?.slides)) {
+      failed = failed || { error: 'bad-response' }
+      return false
+    }
+    results[i] = r.data.slides
+    done += 1
+    onProgress?.(Math.min(done * BATCH, slides.length), slides.length)
+    return true
   }
 
-  await Promise.all(Array.from({ length: Math.min(CONCURRENCY, batches.length) }, worker))
+  const worker = async () => {
+    while (await sendNext());
+  }
+
+  // 첫 묶음은 혼자 보낸다.
+  //
+  // 응답 형태(스키마)는 처음 쓸 때 한 번 준비 과정을 거치고 그 뒤로는 재사용된다.
+  // 처음부터 여러 개를 한꺼번에 보내면 모두가 그 준비를 각자 기다려 다 같이
+  // 시간 초과로 떨어진다. 하나를 먼저 보내 준비를 끝내 두면 나머지는 빠르다.
+  await sendNext()
+  if (failed) return failed
+
+  await Promise.all(Array.from({ length: CONCURRENCY }, worker))
   if (failed) return failed
   return { ok: true, slides: results.flat() }
 }
