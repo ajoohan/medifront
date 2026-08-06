@@ -100,19 +100,28 @@ CLIENT_ID=$(get UserPoolClientId)
 TABLE=$(get TableName)
 
 # 프론트 빌드용 환경변수 파일 (git 에는 올라가지 않음 — *.local)
-cat > .env.production.local <<EOF
-VITE_AWS_REGION=${REGION}
+NEW_ENV="VITE_AWS_REGION=${REGION}
 VITE_COGNITO_USER_POOL_ID=${POOL_ID}
 VITE_COGNITO_CLIENT_ID=${CLIENT_ID}
-VITE_API_BASE_URL=${API_URL}
-EOF
+VITE_API_BASE_URL=${API_URL}"
+
+# 값이 그대로면 프론트를 다시 배포할 이유가 없다. 늘 "다음 단계"를 찍으면
+# 할 일이 없는데도 있는 줄 알고 찾게 되므로, 실제로 바뀌었을 때만 알린다.
+OLD_ENV=""
+[ -f .env.production.local ] && OLD_ENV=$(cat .env.production.local)
+printf '%s\n' "${NEW_ENV}" > .env.production.local
 
 echo
-echo "완료 — 프론트 환경변수를 .env.production.local 에 기록했습니다:"
+echo "완료 — 서버가 배포되었습니다."
 echo "  VITE_AWS_REGION=${REGION}"
 echo "  VITE_COGNITO_USER_POOL_ID=${POOL_ID}"
 echo "  VITE_COGNITO_CLIENT_ID=${CLIENT_ID}"
 echo "  VITE_API_BASE_URL=${API_URL}"
 echo "  (데이터 이전용 TABLE_NAME=${TABLE})"
 echo
-echo "다음 단계: bash scripts/deploy-aws.sh 로 프론트를 다시 빌드/배포하세요."
+if [ "${OLD_ENV}" = "${NEW_ENV}" ]; then
+  echo "프론트 설정값은 그대로입니다 — 홈페이지는 다시 배포하지 않아도 됩니다."
+else
+  echo "⚠️ 프론트 설정값이 바뀌었습니다. 홈페이지도 다시 배포해야 합니다:"
+  echo "     bash scripts/deploy-aws.sh"
+fi
