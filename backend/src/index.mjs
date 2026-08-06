@@ -1074,13 +1074,24 @@ async function completeProfile(auth, body) {
   return json(200, toPublic(updated))
 }
 
-// ── PPT 내용을 메디프론트 자료로 다듬기 (Gemini) ──
+// ── PPT 내용을 메디프론트 자료로 다듬기 (Claude 또는 Gemini) ──
 //
 // 브라우저가 PPT 에서 뽑아낸 장표별 글을 보내면, 여기서 제목을 다듬고 문장을
 // 정리해 되돌려 준다. API 키는 서버에만 있으므로 호출도 서버에서 한다.
 // 키가 없으면 400 을 돌려주고, 화면은 규칙 기반 변환 결과를 그대로 쓴다.
+//
+// 두 서비스를 모두 지원한다. 한쪽 계정에 문제가 생겨도 다른 쪽 키만 넣으면
+// 코드를 고치지 않고 이어서 쓸 수 있다. 둘 다 있으면 Claude 를 쓴다.
+//
+// ⚠️ Lambda 는 공식 SDK 없이 런타임 기본 fetch 로 호출한다. 이 백엔드에는
+// package.json 이 없어 의존성을 번들하지 않는다(같은 파일의 네이버·본인인증
+// 호출도 같은 방식). SDK 를 넣으려면 패키징 절차부터 바꿔야 한다.
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || ''
 const GEMINI_MODEL = 'gemini-2.0-flash'
+const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || ''
+const CLAUDE_MODEL = 'claude-opus-5'
+
+const AI_PROVIDER = ANTHROPIC_API_KEY ? 'claude' : GEMINI_API_KEY ? 'gemini' : ''
 
 const DECK_PROMPT = `너는 병원 컨설팅 회사 '메디프론트'의 편집자다.
 발표자료(PPT)에서 뽑아낸 장표별 텍스트를 받아, 사내 자료로 읽기 좋게 다듬어라.
@@ -1097,10 +1108,119 @@ const DECK_PROMPT = `너는 병원 컨설팅 회사 '메디프론트'의 편집�
 반드시 아래 JSON 형태로만 답하라. 설명·코드블록 표시 없이 JSON 만.
 {"slides":[{"title":"...","lead":"...","points":["...","..."]}]}`
 
-async function formatDeck(body) {
-  if (!GEMINI_API_KEY) {
-    return json(400, { error: 'ai-not-configured' })
+// 응답 형태를 스키마로 고정한다 — 형식이 어긋나 되묻는 일이 없어진다
+const DECK_SCHEMA = {
+  type: 'object',
+  properties: {
+    slides: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          title: { type: 'string' },
+          lead: { type: 'string' },
+          points: { type: 'array', items: { type: 'string' } },
+        },
+        required: ['title', 'lead', 'points'],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ['slides'],
+  additionalProperties: false,
+}
+
+// 외부 서비스가 알려준 사유를 꺼낸다. '한도 초과'만 보여 주면 키 문제인지
+// 진짜 사용량 문제인지 구분이 안 돼 다음에 뭘 해야 할지 알 수 없다.
+// (관리자 전용 경로라 상세를 내보내도 안전하다)
+function errorDetail(raw) {
+  try {
+    return JSON.parse(raw)?.error?.message || ''
+  } catch {
+    return raw.slice(0, 300)
   }
+}
+
+// ── Claude (Anthropic Messages API) ──
+async function formatWithClaude(input) {
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-api-key': ANTHROPIC_API_KEY,
+      'anthropic-version': '2023-06-01',
+    },
+    body: JSON.stringify({
+      model: CLAUDE_MODEL,
+      max_tokens: 8000,
+      system: DECK_PROMPT,
+      // API Gateway 가 30초에 연결을 끊으므로 얕게 생각하도록 맞춘다.
+      // 화면에서 장을 나눠 보내니 한 번에 처리할 양도 적다.
+      output_config: {
+        effort: 'low',
+        format: { type: 'json_schema', schema: DECK_SCHEMA },
+      },
+      messages: [{ role: 'user', content: JSON.stringify({ slides: input }) }],
+    }),
+  })
+  if (!res.ok) {
+    const raw = await res.text()
+    console.error('claude failed', res.status, raw.slice(0, 800))
+    return json(502, { error: `claude-${res.status}`, detail: errorDetail(raw) })
+  }
+  const data = await res.json()
+  // 안전 판단으로 거절되면 본문이 비거나 잘려 있다 — 내용을 읽기 전에 먼저 본다
+  if (data?.stop_reason === 'refusal') {
+    return json(502, { error: 'claude-refusal', detail: data?.stop_details?.category || '' })
+  }
+  // 생각 블록이 앞에 올 수 있으므로 첫 블록이 아니라 text 블록을 찾는다
+  const text = (data?.content || []).find((b) => b?.type === 'text')?.text || ''
+  let parsed
+  try {
+    parsed = JSON.parse(text)
+  } catch {
+    console.error('claude returned non-json', text.slice(0, 300))
+    return json(502, { error: 'claude-bad-format' })
+  }
+  if (!Array.isArray(parsed?.slides)) return json(502, { error: 'claude-bad-format' })
+  return json(200, { slides: parsed.slides })
+}
+
+// ── Gemini (Google AI Studio) ──
+async function formatWithGemini(input) {
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`,
+    {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-goog-api-key': GEMINI_API_KEY },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: DECK_PROMPT }] },
+        contents: [{ role: 'user', parts: [{ text: JSON.stringify({ slides: input }) }] }],
+        generationConfig: { temperature: 0.2, responseMimeType: 'application/json' },
+      }),
+    },
+  )
+  if (!res.ok) {
+    const raw = await res.text()
+    console.error('gemini failed', res.status, raw.slice(0, 800))
+    return json(502, { error: `gemini-${res.status}`, detail: errorDetail(raw) })
+  }
+  const data = await res.json()
+  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || ''
+  let parsed
+  try {
+    parsed = JSON.parse(text)
+  } catch {
+    console.error('gemini returned non-json', text.slice(0, 300))
+    return json(502, { error: 'gemini-bad-format' })
+  }
+  if (!Array.isArray(parsed?.slides)) return json(502, { error: 'gemini-bad-format' })
+  return json(200, { slides: parsed.slides })
+}
+
+async function formatDeck(body) {
+  if (!AI_PROVIDER) return json(400, { error: 'ai-not-configured' })
+
   const slides = Array.isArray(body?.slides) ? body.slides : null
   if (!slides?.length) return json(400, { error: 'slides required' })
 
@@ -1111,46 +1231,10 @@ async function formatDeck(body) {
   }))
 
   try {
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`,
-      {
-        method: 'POST',
-        headers: { 'content-type': 'application/json', 'x-goog-api-key': GEMINI_API_KEY },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: DECK_PROMPT }] },
-          contents: [{ role: 'user', parts: [{ text: JSON.stringify({ slides: input }) }] }],
-          generationConfig: { temperature: 0.2, responseMimeType: 'application/json' },
-        }),
-      },
-    )
-    if (!res.ok) {
-      const raw = await res.text()
-      console.error('gemini failed', res.status, raw.slice(0, 800))
-      // 구글이 알려주는 사유를 그대로 전달한다. '한도 초과'만 보여 주면 키 문제인지
-      // 진짜 사용량 문제인지 구분이 안 돼 다음에 뭘 해야 할지 알 수 없다.
-      // (관리자 전용 경로라 상세를 내보내도 안전하다)
-      let detail = ''
-      try {
-        detail = JSON.parse(raw)?.error?.message || ''
-      } catch {
-        detail = raw.slice(0, 300)
-      }
-      return json(502, { error: `gemini-${res.status}`, detail })
-    }
-    const data = await res.json()
-    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || ''
-    let parsed
-    try {
-      parsed = JSON.parse(text)
-    } catch {
-      console.error('gemini returned non-json', text.slice(0, 300))
-      return json(502, { error: 'gemini-bad-format' })
-    }
-    if (!Array.isArray(parsed?.slides)) return json(502, { error: 'gemini-bad-format' })
-    return json(200, { slides: parsed.slides })
+    return AI_PROVIDER === 'claude' ? await formatWithClaude(input) : await formatWithGemini(input)
   } catch (e) {
-    console.error('gemini call failed', e)
-    return json(502, { error: 'gemini-unreachable' })
+    console.error(`${AI_PROVIDER} call failed`, e)
+    return json(502, { error: `${AI_PROVIDER}-unreachable` })
   }
 }
 
@@ -1254,7 +1338,7 @@ export async function handler(event) {
       return await formatDeck(parseBody(event))
     }
     if (method === 'GET' && seg1 === 'ai' && seg2 === 'config') {
-      return json(200, { enabled: !!GEMINI_API_KEY })
+      return json(200, { enabled: !!AI_PROVIDER, provider: AI_PROVIDER })
     }
 
     const isPublic = !seg2 && PUBLIC_ROUTES.some((p) => p.method === method && p.resource === seg1)

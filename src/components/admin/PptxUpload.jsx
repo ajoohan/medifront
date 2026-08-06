@@ -15,6 +15,7 @@ export default function PptxUpload({ parsed, fileName, onSave, onCancel, onRepic
   const [error, setError] = useState('')
   const [aiEnabled, setAiEnabled] = useState(false)
   const [aiBusy, setAiBusy] = useState(false)
+  const [aiProgress, setAiProgress] = useState(null) // { done, total }
   const [aiDone, setAiDone] = useState(false)
   const [raw, setRaw] = useState(null) // AI 전 원본 — 되돌리기용
 
@@ -23,12 +24,16 @@ export default function PptxUpload({ parsed, fileName, onSave, onCancel, onRepic
     fetchAiEnabled().then(setAiEnabled)
   }, [])
 
-  // PPT 에서 뽑은 글을 AI 로 다듬어 다시 조판한다
+  // PPT 에서 뽑은 글을 AI 로 다듬어 다시 조판한다.
+  // 장을 나눠 보내므로 몇 초씩 걸린다 — 어디까지 왔는지 버튼에 표시한다.
   const runAi = async () => {
     if (!result?.slides) return
     setAiBusy(true)
+    setAiProgress({ done: 0, total: result.slides.length })
     setError('')
-    const res = await formatDeckWithAi(result.slides)
+    const res = await formatDeckWithAi(result.slides, (done, total) =>
+      setAiProgress({ done, total }),
+    )
     setAiBusy(false)
     if (res.error) {
       // 구글이 알려준 사유가 있으면 함께 보여 준다 — 다음에 뭘 해야 할지가 거기 있다
@@ -110,7 +115,13 @@ export default function PptxUpload({ parsed, fileName, onSave, onCancel, onRepic
                 onClick={runAi}
                 disabled={!aiEnabled || aiBusy}
               >
-                {aiBusy ? 'AI가 다듬는 중...' : aiDone ? '다시 다듬기' : 'AI로 다듬기'}
+                {aiBusy
+                  ? aiProgress
+                    ? `AI가 다듬는 중... ${aiProgress.done}/${aiProgress.total}장`
+                    : 'AI가 다듬는 중...'
+                  : aiDone
+                    ? '다시 다듬기'
+                    : 'AI로 다듬기'}
               </button>
             </div>
           </div>

@@ -72,6 +72,12 @@ if [ -n "${GEMINI_API_KEY:-}" ]; then
   OVERRIDES+=("GeminiApiKey=${GEMINI_API_KEY}")
   echo "   (Gemini AI 변환 포함 배포)"
 fi
+# 같은 용도의 대안 — 둘 다 넣으면 Claude 를 쓴다
+#   ANTHROPIC_API_KEY=... bash scripts/deploy-backend.sh
+if [ -n "${ANTHROPIC_API_KEY:-}" ]; then
+  OVERRIDES+=("AnthropicApiKey=${ANTHROPIC_API_KEY}")
+  echo "   (Claude AI 변환 포함 배포)"
+fi
 PARAMS=()
 if [ ${#OVERRIDES[@]} -gt 0 ]; then
   PARAMS=(--parameter-overrides "${OVERRIDES[@]}")

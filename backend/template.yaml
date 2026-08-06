@@ -57,6 +57,14 @@ Parameters:
     NoEcho: true
     Description: Google AI Studio 에서 발급한 Gemini API 키. 배포 시 GEMINI_API_KEY 환경변수로 전달.
 
+  # 같은 용도의 대안. 둘 다 있으면 Claude 를 쓴다 — 한쪽 계정에 문제가 생겨도
+  # 코드를 고치지 않고 다른 쪽 키만 넣어 이어서 쓸 수 있다.
+  AnthropicApiKey:
+    Type: String
+    Default: ''
+    NoEcho: true
+    Description: Anthropic Console 에서 발급한 Claude API 키. 배포 시 ANTHROPIC_API_KEY 환경변수로 전달.
+
 Conditions:
   HasGoogle: !Not [!Equals [!Ref GoogleClientSecret, '']]
 
@@ -64,7 +72,10 @@ Globals:
   Function:
     Runtime: nodejs22.x
     MemorySize: 256
-    Timeout: 15
+    # AI 자료 변환은 모델 응답을 기다리므로 15초로는 모자란다.
+    # HTTP API 가 30초에 연결을 끊으므로 그보다 짧게 잡아, 게이트웨이가 끊기 전에
+    # 람다가 먼저 끝나며 사유가 있는 오류를 남기게 한다.
+    Timeout: 29
     Environment:
       Variables:
         TABLE_NAME: !Ref DataTable
@@ -538,8 +549,9 @@ Resources:
           # 휴대폰 본인인증 — 비어 있으면 기능이 꺼진 상태로 동작
           VERIFY_API_KEY: !Ref VerifyApiKey
           VERIFY_API_SECRET: !Ref VerifyApiSecret
-          # PPT → 자료 변환(Gemini) — 비어 있으면 규칙 기반 변환만 쓴다
+          # PPT → 자료 변환 — 둘 다 비어 있으면 규칙 기반 변환만 쓴다
           GEMINI_API_KEY: !Ref GeminiApiKey
+          ANTHROPIC_API_KEY: !Ref AnthropicApiKey
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref DataTable
