@@ -28,6 +28,29 @@ function isNew(iso) {
   return Date.now() - t < NEW_DAYS * 24 * 60 * 60 * 1000
 }
 
+// 목록 행의 삭제 버튼 — 덱 자료와 글 자료 양쪽에서 같은 모양으로 쓴다
+function DeleteDocButton({ doc, onDelete }) {
+  return (
+    <button
+      type="button"
+      className="icon-btn icon-btn--danger"
+      onClick={() => onDelete(doc)}
+      title="삭제"
+      aria-label={`${doc.title} 삭제`}
+    >
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path
+          d="M5 7h14M10 7V5h4v2M9 11v6M15 11v6M6 7l1 12h10l1-12"
+          stroke="currentColor"
+          strokeWidth="1.7"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    </button>
+  )
+}
+
 function formatDate(iso) {
   if (!iso) return ''
   const d = new Date(iso)
@@ -666,10 +689,10 @@ export default function InternalDocsAdmin() {
                 </div>
               )}
 
-              {/* 직접 등록한 자료 — 파일형 자료와 같은 도구를 둔다.
+              {/* PPT 로 만든 덱 자료 — 파일형 자료와 같은 도구를 둔다.
                   링크는 그 자료가 열리는 관리자 주소, 다운로드는 서식이 들어 있는
-                  완성된 HTML 이다. 삭제는 여러 건을 정리할 때 한 건씩 열지 않게. */}
-              {!d.file && (
+                  완성된 HTML 이다. 에디터로 쓴 글은 남에게 건넬 형태가 아니라 제외한다. */}
+              {!d.file && isDeck(d.content) && (
                 <div className="docs-row__tools">
                   <button
                     type="button"
@@ -742,23 +765,15 @@ export default function InternalDocsAdmin() {
                       />
                     </svg>
                   </button>
-                  <button
-                    type="button"
-                    className="icon-btn icon-btn--danger"
-                    onClick={() => remove(d)}
-                    title="삭제"
-                    aria-label={`${d.title} 삭제`}
-                  >
-                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                      <path
-                        d="M5 7h14M10 7V5h4v2M9 11v6M15 11v6M6 7l1 12h10l1-12"
-                        stroke="currentColor"
-                        strokeWidth="1.7"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </button>
+                  <DeleteDocButton doc={d} onDelete={remove} />
+                </div>
+              )}
+
+              {/* 에디터로 쓴 글 — 건네줄 형태가 아니라 삭제만 둔다.
+                  여러 건을 정리할 때 한 건씩 열어 지우지 않아도 되게. */}
+              {!d.file && !isDeck(d.content) && (
+                <div className="docs-row__tools">
+                  <DeleteDocButton doc={d} onDelete={remove} />
                 </div>
               )}
             </li>
