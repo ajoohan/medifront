@@ -6,7 +6,7 @@ import { apiGet, apiSend, isApiConfigured } from './api'
 
 // 한 번에 보내는 장 수. API Gateway 가 30초에 연결을 끊으므로, 큰 자료를 통째로
 // 보내면 모델이 끝내기 전에 잘린다. 나눠 보내면 장 수와 무관하게 안정적이다.
-const BATCH = 5
+const BATCH = 3
 
 // 동시에 보내는 묶음 수. 차례대로 보내면 묶음 수만큼 시간이 곱해져
 // 큰 자료는 1분을 넘긴다. 서로 딸린 데가 없는 작업이라 겹쳐 보내도 되고,
@@ -79,6 +79,11 @@ export function aiErrorMessage(code) {
 
   if (code.endsWith('-bad-format')) return 'AI 응답을 해석하지 못했습니다. 다시 시도해 주세요.'
   if (code.endsWith('-unreachable')) return 'AI 서버에 연결하지 못했습니다.'
+  if (code.endsWith('-timeout'))
+    return 'AI 응답이 제한 시간을 넘겼습니다. 다시 시도하거나, 장표가 많으면 PPT를 나눠 등록해 주세요.'
+  // 사유가 담기지 않은 500 은 서버가 응답 자체를 못 준 경우다
+  if (code === 'HTTP 500')
+    return '서버가 시간 안에 응답하지 못했습니다. 다시 시도해 주세요. 반복되면 PPT를 나눠 등록해 주세요.'
   if (code === 'claude-refusal')
     return '이 내용은 AI가 처리를 거절했습니다. 해당 장을 빼고 다시 시도해 주세요.'
   return `AI 변환에 실패했습니다 (${code}).`

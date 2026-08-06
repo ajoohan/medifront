@@ -1167,6 +1167,14 @@ const DECK_SCHEMA = {
   additionalProperties: false,
 }
 
+// 람다가 끝나기 전에 우리가 먼저 포기한다.
+//
+// 시간 안에 못 끝내면 람다가 그냥 죽고, 게이트웨이는 사유 없는 500 을 돌려준다 —
+// 화면에는 'HTTP 500' 만 남아 무엇이 문제인지 알 수 없다. 조금 일찍 끊어
+// '시간이 모자랐다'는 사유를 남기는 편이 낫다.
+const CALL_TIMEOUT_MS = 24_000
+const callDeadline = () => AbortSignal.timeout(CALL_TIMEOUT_MS)
+
 // 외부 서비스가 알려준 사유를 꺼낸다. '한도 초과'만 보여 주면 키 문제인지
 // 진짜 사용량 문제인지 구분이 안 돼 다음에 뭘 해야 할지 알 수 없다.
 // (관리자 전용 경로라 상세를 내보내도 안전하다)
@@ -1182,6 +1190,7 @@ function errorDetail(raw) {
 async function formatWithClaude(input) {
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
+    signal: callDeadline(),
     headers: {
       'content-type': 'application/json',
       'x-api-key': ANTHROPIC_API_KEY,
@@ -1189,10 +1198,13 @@ async function formatWithClaude(input) {
     },
     body: JSON.stringify({
       model: CLAUDE_MODEL,
-      max_tokens: 8000,
+      max_tokens: 4000,
       system: DECK_PROMPT,
-      // API Gateway 가 30초에 연결을 끊으므로 얕게 생각하도록 맞춘다.
-      // 화면에서 장을 나눠 보내니 한 번에 처리할 양도 적다.
+      // API Gateway 가 30초에 연결을 끊는다. 생각까지 켜면 그 안에 끝나지 않아
+      // 사유 없는 500 으로 떨어졌다 — 생각을 끄고 얕은 노력으로 맞춘다.
+      // 출력 형태를 스키마로 묶어 두었으므로 형식이 흐트러지지도 않는다.
+      // (모델이 도구를 쓰지 않는 작업이라 생각을 꺼도 잃는 것이 적다)
+      thinking: { type: 'disabled' },
       output_config: {
         effort: 'low',
         format: { type: 'json_schema', schema: DECK_SCHEMA },
@@ -1229,6 +1241,7 @@ async function formatWithGemini(input) {
     `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`,
     {
       method: 'POST',
+      signal: callDeadline(),
       headers: { 'content-type': 'application/json', 'x-goog-api-key': GEMINI_API_KEY },
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: DECK_PROMPT }] },
@@ -1261,17 +1274,27 @@ async function formatDeck(body) {
   const slides = Array.isArray(body?.slides) ? body.slides : null
   if (!slides?.length) return json(400, { error: 'slides required' })
 
-  // 보낼 양을 제한한다 — 요금과 응답 시간이 입력 길이에 비례한다
+  // 보낼 양을 제한한다 — 요금과 응답 시간이 입력 길이에 비례한다.
+  // 화면에서 이미 나눠 보내지만, 서버 단에서도 상한을 둔다.
   const input = slides.slice(0, 40).map((s) => ({
     title: String(s.title || '').slice(0, 200),
     lines: (Array.isArray(s.lines) ? s.lines : []).slice(0, 40).map((l) => String(l).slice(0, 300)),
   }))
 
+  const started = Date.now()
   try {
     return AI_PROVIDER === 'claude' ? await formatWithClaude(input) : await formatWithGemini(input)
   } catch (e) {
-    console.error(`${AI_PROVIDER} call failed`, e)
-    return json(502, { error: `${AI_PROVIDER}-unreachable` })
+    const ms = Date.now() - started
+    console.error(`${AI_PROVIDER} call failed after ${ms}ms`, e)
+    // 시간이 모자란 것과 연결이 안 되는 것은 할 일이 다르다 — 나눠서 알린다
+    if (e?.name === 'TimeoutError' || e?.name === 'AbortError') {
+      return json(502, {
+        error: `${AI_PROVIDER}-timeout`,
+        detail: `${Math.round(ms / 1000)}초 안에 응답이 오지 않았습니다`,
+      })
+    }
+    return json(502, { error: `${AI_PROVIDER}-unreachable`, detail: e?.message || '' })
   }
 }
 
