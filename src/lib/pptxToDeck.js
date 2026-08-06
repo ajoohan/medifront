@@ -228,22 +228,32 @@ export async function pptxToDeck(file) {
 // AI 가 고른 유형·문구를 원래 그림과 합쳐 다시 조판한다.
 // 장 수가 다르면 앞에서부터 짝지어, AI 가 장을 합치거나 빠뜨려도 그림이 어긋나지 않게 한다.
 export function applyFormatted(slides, formatted) {
-  const spec = formatted.map((f, i) => ({
-    layout: f.layout || 'list',
-    tag: String(f.tag || 'MEDIFRONT').trim() || 'MEDIFRONT',
-    kicker: String(f.kicker || '').trim(),
-    title: String(f.title || '').trim(),
-    lead: String(f.lead || '').trim(),
-    items: (Array.isArray(f.items) ? f.items : [])
-      .map((it) => ({
-        title: String(it?.title || '').trim(),
-        desc: String(it?.desc || '').trim(),
-        value: String(it?.value || '').trim(),
-        label: String(it?.label || '').trim(),
-      }))
-      .filter((it) => it.title || it.value),
-    images: slides[i]?.images || [],
-  }))
+  const spec = formatted.map((f, i) => {
+    // 서버가 아직 옛 형식(points 배열)을 돌려줄 수 있다 — 화면만 먼저 배포된 동안에도
+    // 결과가 비어 보이지 않게 항목으로 옮겨 준다.
+    const items = Array.isArray(f.items)
+      ? f.items
+      : Array.isArray(f.points)
+        ? f.points.map((p) => ({ title: p }))
+        : []
+
+    return {
+      layout: f.layout || 'list',
+      tag: String(f.tag || 'MEDIFRONT').trim() || 'MEDIFRONT',
+      kicker: String(f.kicker || '').trim(),
+      title: String(f.title || '').trim(),
+      lead: String(f.lead || '').trim(),
+      items: items
+        .map((it) => ({
+          title: String(it?.title || '').trim(),
+          desc: String(it?.desc || '').trim(),
+          value: String(it?.value || '').trim(),
+          label: String(it?.label || '').trim(),
+        }))
+        .filter((it) => it.title || it.value),
+      images: slides[i]?.images || [],
+    }
+  })
 
   // AI 응답이 원본보다 짧으면 남은 장은 규칙 기반 결과를 그대로 둔다 — 내용이 사라지지 않게
   if (spec.length < slides.length) spec.push(...toSpec(slides).slice(spec.length))
