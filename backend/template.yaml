@@ -65,6 +65,15 @@ Parameters:
     NoEcho: true
     Description: Anthropic Console 에서 발급한 Claude API 키. 배포 시 ANTHROPIC_API_KEY 환경변수로 전달.
 
+  # 속도·품질·비용을 바꾸는 손잡이. 게이트웨이가 30초에 끊으므로 속도가 중요하다.
+  #   claude-sonnet-5  (기본) 균형점
+  #   claude-haiku-4-5 가장 빠르고 저렴
+  #   claude-opus-5    가장 좋지만 이 제한 시간 안에는 끝내지 못했다
+  ClaudeModel:
+    Type: String
+    Default: claude-sonnet-5
+    Description: PPT 자료 변환에 쓸 Claude 모델. 배포 시 CLAUDE_MODEL 환경변수로 바꿀 수 있다.
+
 Conditions:
   HasGoogle: !Not [!Equals [!Ref GoogleClientSecret, '']]
 
@@ -552,6 +561,7 @@ Resources:
           # PPT → 자료 변환 — 둘 다 비어 있으면 규칙 기반 변환만 쓴다
           GEMINI_API_KEY: !Ref GeminiApiKey
           ANTHROPIC_API_KEY: !Ref AnthropicApiKey
+          CLAUDE_MODEL: !Ref ClaudeModel
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref DataTable

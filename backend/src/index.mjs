@@ -1089,7 +1089,11 @@ async function completeProfile(auth, body) {
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || ''
 const GEMINI_MODEL = 'gemini-2.0-flash'
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || ''
-const CLAUDE_MODEL = 'claude-opus-5'
+
+// 이 작업은 정해진 형식에 맞춰 문장을 정리하는 일이라 최상위 모델이 필요하지 않다.
+// 게이트웨이가 30초에 끊으므로 속도가 곧 성패를 가른다 — opus 는 그 안에 못 끝냈다.
+// 바꿀 일이 생기면 코드가 아니라 배포 때 CLAUDE_MODEL 로 지정한다.
+const CLAUDE_MODEL = process.env.CLAUDE_MODEL || 'claude-sonnet-5'
 
 const AI_PROVIDER = ANTHROPIC_API_KEY ? 'claude' : GEMINI_API_KEY ? 'gemini' : ''
 

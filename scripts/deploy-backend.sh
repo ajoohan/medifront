@@ -78,6 +78,12 @@ if [ -n "${ANTHROPIC_API_KEY:-}" ]; then
   OVERRIDES+=("AnthropicApiKey=${ANTHROPIC_API_KEY}")
   echo "   (Claude AI 변환 포함 배포)"
 fi
+# 쓰는 모델을 바꿀 때만 지정한다 (기본 claude-sonnet-5)
+#   CLAUDE_MODEL=claude-haiku-4-5 bash scripts/deploy-backend.sh
+if [ -n "${CLAUDE_MODEL:-}" ]; then
+  OVERRIDES+=("ClaudeModel=${CLAUDE_MODEL}")
+  echo "   (모델: ${CLAUDE_MODEL})"
+fi
 PARAMS=()
 if [ ${#OVERRIDES[@]} -gt 0 ]; then
   PARAMS=(--parameter-overrides "${OVERRIDES[@]}")
