@@ -1093,22 +1093,40 @@ const CLAUDE_MODEL = 'claude-opus-5'
 
 const AI_PROVIDER = ANTHROPIC_API_KEY ? 'claude' : GEMINI_API_KEY ? 'gemini' : ''
 
-const DECK_PROMPT = `너는 병원 컨설팅 회사 '메디프론트'의 편집자다.
-발표자료(PPT)에서 뽑아낸 장표별 텍스트를 받아, 사내 자료로 읽기 좋게 다듬어라.
+const DECK_PROMPT = `너는 병원 컨설팅 회사 '메디프론트'의 발표자료 디자이너다.
+PPT 에서 뽑아낸 장표별 텍스트를 받아, 메디프론트 공식 자료의 슬라이드로 다시 구성한다.
+장마다 내용에 어울리는 레이아웃을 골라야 한다 — 모든 장을 같은 형태로 만들지 마라.
 
-규칙:
+레이아웃(layout) 종류와 고르는 기준:
+- cover: 자료 전체의 표지. 첫 장에만 쓴다.
+- section: 큰 구획을 여는 장. 제목만 있고 항목이 거의 없는 장에 쓴다.
+- cards: 나란히 놓고 비교하거나 병렬로 설명하는 2~6개 항목. 가장 많이 쓰인다.
+  items 의 title 은 항목 이름(15자 이내), desc 는 설명(80자 이내).
+- metrics: 숫자·금액·비율이 핵심인 장. items 의 value 는 숫자(예 "3.2억", "87%"),
+  label 은 그 숫자가 무엇인지(20자 이내). 숫자가 없으면 절대 쓰지 마라.
+- timeline: 순서·단계·일정이 있는 장. items 의 label 은 시점(예 "1주차", "STEP 1"),
+  desc 는 그 시점에 하는 일.
+- list: 조건·체크 항목을 죽 나열하는 장. items 의 title 이 항목, desc 는 부연(없어도 된다).
+- text: 위 어디에도 맞지 않는 서술형 장.
+
+공통 규칙:
 - 내용을 지어내지 마라. 주어진 문장에 없는 사실·숫자를 만들면 안 된다.
-- 각 장표의 title 은 그 장의 핵심을 나타내는 짧은 명사구로 다듬어라(20자 이내).
-  원문에 제목이 없거나 로고·회사명뿐이면 본문에서 핵심을 뽑아 제목을 지어라.
-- lead 는 그 장을 한 문장으로 요약한다(60자 이내). 요약할 내용이 없으면 빈 문자열.
-- points 는 핵심 항목들이다. 원문의 긴 문장을 읽기 쉬운 길이로 다듬되 뜻을 바꾸지 마라.
-  목차·페이지번호·중복 문구는 버려라. 한 장에 최대 8개.
+- title 은 그 장의 핵심을 나타내는 짧은 명사구(20자 이내). 원문에 제목이 없거나
+  로고·회사명뿐이면 본문에서 핵심을 뽑아 제목을 지어라.
+- kicker 는 제목 위에 작게 붙는 영문 또는 한글 표지다(예 "The Problem", "핵심 지표").
+  20자 이내. 마땅치 않으면 빈 문자열.
+- lead 는 그 장을 한 문장으로 요약한다(60자 이내). 없으면 빈 문자열.
+- tag 는 오른쪽 위에 들어가는 구획 이름이다. 짧은 영문 대문자(예 "OVERVIEW").
+- 목차·페이지번호·반복되는 회사명은 버려라. 한 장의 items 는 최대 8개.
 - 모든 문장은 한국어 '~다'체 또는 명사형으로 간결하게.
 
 반드시 아래 JSON 형태로만 답하라. 설명·코드블록 표시 없이 JSON 만.
-{"slides":[{"title":"...","lead":"...","points":["...","..."]}]}`
+items 의 네 칸은 항상 넣되, 그 레이아웃에서 쓰지 않는 칸은 빈 문자열로 둔다.
+{"slides":[{"layout":"cards","tag":"OVERVIEW","kicker":"The Problem","title":"...","lead":"...","items":[{"title":"...","desc":"...","value":"","label":""}]}]}`
 
-// 응답 형태를 스키마로 고정한다 — 형식이 어긋나 되묻는 일이 없어진다
+// 응답 형태를 스키마로 고정한다 — 형식이 어긋나 되묻는 일이 없어진다.
+// items 의 네 칸은 레이아웃마다 쓰임이 달라(cards 는 title/desc, metrics 는 value/label)
+// 모두 필수로 두고, 쓰지 않는 칸은 빈 문자열로 채우게 한다.
 const DECK_SCHEMA = {
   type: 'object',
   properties: {
@@ -1117,11 +1135,30 @@ const DECK_SCHEMA = {
       items: {
         type: 'object',
         properties: {
+          layout: {
+            type: 'string',
+            enum: ['cover', 'section', 'cards', 'metrics', 'timeline', 'list', 'text'],
+          },
+          tag: { type: 'string' },
+          kicker: { type: 'string' },
           title: { type: 'string' },
           lead: { type: 'string' },
-          points: { type: 'array', items: { type: 'string' } },
+          items: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                title: { type: 'string' },
+                desc: { type: 'string' },
+                value: { type: 'string' },
+                label: { type: 'string' },
+              },
+              required: ['title', 'desc', 'value', 'label'],
+              additionalProperties: false,
+            },
+          },
         },
-        required: ['title', 'lead', 'points'],
+        required: ['layout', 'tag', 'kicker', 'title', 'lead', 'items'],
         additionalProperties: false,
       },
     },

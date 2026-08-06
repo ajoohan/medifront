@@ -5414,3 +5414,27 @@ button.docs-item:hover .docs-item__go {
 .admin-notice {
   white-space: pre-wrap;
 }
+
+/* AI 다듬기 진행 표시 — 30초 안팎 걸리는 작업이라 어디까지 왔는지 보여 준다 */
+.pptx-ai__progress {
+  flex-basis: 100%;
+  margin-top: 4px;
+}
+.pptx-ai__bar {
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(16, 166, 150, 0.18);
+  overflow: hidden;
+}
+.pptx-ai__bar span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--primary);
+  transition: width 0.4s ease;
+}
+.pptx-ai__progress p {
+  margin-top: 7px;
+  font-size: 0.82rem;
+  color: var(--muted);
+}

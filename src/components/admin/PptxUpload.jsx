@@ -67,10 +67,21 @@ export default function PptxUpload({ parsed, fileName, onSave, onCancel, onRepic
   return (
     <div className="mag-editor">
       <div className="mag-editor__top">
-        <button className="mag-editor__back" onClick={onCancel}>
+        {/* 다듬는 중에 나가면 진행하던 작업이 사라진다 — 한 번 확인한다 */}
+        <button
+          className="mag-editor__back"
+          onClick={() => {
+            if (aiBusy && !window.confirm('AI가 다듬는 중입니다. 중단하고 나가시겠습니까?')) return
+            onCancel()
+          }}
+        >
           ← 목록으로
         </button>
-        <button className="btn btn--primary admin-head__action" onClick={save} disabled={busy}>
+        <button
+          className="btn btn--primary admin-head__action"
+          onClick={save}
+          disabled={busy || aiBusy}
+        >
           {busy ? '저장 중...' : '자료실에 등록'}
         </button>
       </div>
@@ -100,11 +111,11 @@ export default function PptxUpload({ parsed, fileName, onSave, onCancel, onRepic
               <span>
                 {aiEnabled
                   ? '장표마다 제목을 다시 뽑고 문장을 정리합니다. 없는 내용을 만들지 않습니다.'
-                  : 'Gemini API 키가 서버에 등록되면 사용할 수 있습니다.'}
+                  : 'API 키가 서버에 등록되면 사용할 수 있습니다.'}
               </span>
             </div>
             <div className="pptx-ai__actions">
-              {aiDone && raw && (
+              {aiDone && raw && !aiBusy && (
                 <button type="button" className="pptx-summary__again" onClick={undoAi}>
                   원래대로
                 </button>
@@ -115,15 +126,30 @@ export default function PptxUpload({ parsed, fileName, onSave, onCancel, onRepic
                 onClick={runAi}
                 disabled={!aiEnabled || aiBusy}
               >
-                {aiBusy
-                  ? aiProgress
-                    ? `AI가 다듬는 중... ${aiProgress.done}/${aiProgress.total}장`
-                    : 'AI가 다듬는 중...'
-                  : aiDone
-                    ? '다시 다듬기'
-                    : 'AI로 다듬기'}
+                {aiBusy ? '다듬는 중...' : aiDone ? '다시 다듬기' : 'AI로 다듬기'}
               </button>
             </div>
+
+            {/* 진행 표시 — 여러 묶음을 겹쳐 보내 30초 안팎이 걸린다.
+                버튼 글자만 바꾸면 멈춘 것처럼 보여, 어디까지 왔는지 눈에 보이게 한다. */}
+            {aiBusy && (
+              <div className="pptx-ai__progress">
+                <div className="pptx-ai__bar">
+                  <span
+                    style={{
+                      width: aiProgress
+                        ? `${Math.round((aiProgress.done / aiProgress.total) * 100)}%`
+                        : '4%',
+                    }}
+                  />
+                </div>
+                <p>
+                  {aiProgress
+                    ? `${aiProgress.done} / ${aiProgress.total}장 다듬는 중 — 이 화면을 닫지 마세요`
+                    : '시작하는 중…'}
+                </p>
+              </div>
+            )}
           </div>
 
           <div className="mag-editor__head">
@@ -152,12 +178,6 @@ export default function PptxUpload({ parsed, fileName, onSave, onCancel, onRepic
             placeholder="한 줄 요약 — 목록에서 제목 아래에 표시됩니다"
             value={summary}
             onChange={(e) => setSummary(e.target.value)}
-          />
-
-          <h3 className="consult-editor__section">미리보기</h3>
-          <div
-            className="doc-read__body pptx-preview"
-            dangerouslySetInnerHTML={{ __html: result.html }}
           />
         </>
       )}

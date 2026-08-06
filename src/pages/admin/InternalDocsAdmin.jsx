@@ -9,6 +9,7 @@ import {
 import { INTERNAL_DOCS_SEED, INTERNAL_DOC_CATEGORIES } from '../../lib/internalDocsSeed'
 import { INTERNAL_FILES } from '../../lib/internalFiles'
 import { pptxToDeck } from '../../lib/pptxToDeck'
+import { isDeck, deckDocument } from '../../lib/deckTemplate'
 import { useUser } from '../../context/UserContext'
 import useAdminData from '../../hooks/useAdminData'
 import useBackClose from '../../hooks/useBackClose'
@@ -321,6 +322,40 @@ export default function InternalDocsAdmin() {
             <b>{viewing.title}</b>
           </div>
           <iframe className="doc-frame__view" src={viewing.file} title={viewing.title} />
+        </div>
+
+        <DocThread doc={viewing} />
+      </>
+    )
+  }
+
+  // ── 덱 자료 열람 — PPT 로 만든 자료는 메디프론트 덱 서식이 입혀진 문서다.
+  //     사이트 CSS 와 섞이지 않도록 iframe 안에서 통째로 띄운다(파일형 자료와 같은 방식). ──
+  if (viewing && isDeck(viewing.content)) {
+    return (
+      <>
+        <div className="mag-editor__top">
+          <button className="mag-editor__back" onClick={() => setViewing(null)}>
+            ← 목록으로
+          </button>
+          <div className="admin-actions">
+            <button onClick={() => setWriting({ mode: 'edit', doc: viewing })}>수정</button>
+            <button className="danger" onClick={() => remove(viewing)}>
+              삭제
+            </button>
+          </div>
+        </div>
+
+        <div className="doc-frame doc-frame--admin admin-fade">
+          <div className="doc-frame__head">
+            <span className="doc-read__cat">{viewing.category}</span>
+            <b>{viewing.title}</b>
+          </div>
+          <iframe
+            className="doc-frame__view"
+            srcDoc={deckDocument(viewing.content, viewing.title)}
+            title={viewing.title}
+          />
         </div>
 
         <DocThread doc={viewing} />

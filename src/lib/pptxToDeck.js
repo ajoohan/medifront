@@ -8,6 +8,7 @@
 // 가져와 메디프론트 서식으로 '다시 조판'한다 — 글꼴·색·여백이 사이트와 같아지고,
 // 원본의 자리 배치는 사라진다.
 import JSZip from 'jszip'
+import { renderDeck } from './deckTemplate'
 
 // DynamoDB 한 항목의 한계는 400KB 다. 여유를 두고 이 선에서 멈춘다.
 const MAX_CONTENT_BYTES = 300 * 1024
@@ -26,12 +27,6 @@ const decodeXml = (s) =>
     .replace(/&#39;/g, "'")
     .replace(/&apos;/g, "'")
     .replace(/&amp;/g, '&')
-
-const escapeHtml = (s) =>
-  String(s).replace(
-    /[&<>"']/g,
-    (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c],
-  )
 
 // 한 문단(<a:p>)의 글자들을 이어 붙인다
 const paragraphText = (p) =>
@@ -103,26 +98,37 @@ function slideOrder(zip) {
   return names.sort((a, b) => Number(a.match(/(\d+)/)[1]) - Number(b.match(/(\d+)/)[1]))
 }
 
-// 뽑아낸 슬라이드를 메디프론트 서식 HTML 로 조판
-function buildHtml(slides) {
-  return slides
-    .map((s, i) => {
-      const num = s.kicker || String(i + 1).padStart(2, '0')
-      const body = s.lines.length
-        ? `<ul>${s.lines.map((l) => `<li>${escapeHtml(l)}</li>`).join('')}</ul>`
-        : ''
-      const pics = s.images.map((src) => `<img src="${src}" alt="" />`).join('')
-      return [
-        `<section class="deck-slide">`,
-        `<span class="deck-slide__num">${escapeHtml(num)}</span>`,
-        s.title ? `<h3>${escapeHtml(s.title)}</h3>` : '',
-        body,
-        pics,
-        `</section>`,
-      ].join('')
-    })
-    .join('')
+// 뽑아낸 장표를 덱 서식의 구조로 옮긴다.
+//
+// AI 를 거치지 않아도 메디프론트 자료로 보여야 하므로, 규칙만으로 유형을 고른다.
+// 첫 장은 표지, 나머지는 체크 목록 — 항목 수와 무관하게 안정적으로 보이는 형태다.
+// (AI 를 거치면 장마다 어울리는 유형을 다시 고른다)
+function toSpec(slides) {
+  return slides.map((s, i) => {
+    if (i === 0) {
+      return {
+        layout: 'cover',
+        tag: 'MEDIFRONT',
+        kicker: s.kicker || '',
+        title: s.title || '메디프론트 자료',
+        lead: s.lines[0] || '',
+        items: [],
+        images: s.images,
+      }
+    }
+    return {
+      layout: s.lines.length ? 'list' : 'section',
+      tag: 'MEDIFRONT',
+      kicker: s.kicker || '',
+      title: s.title || '',
+      lead: '',
+      items: s.lines.map((l) => ({ title: l })),
+      images: s.images,
+    }
+  })
 }
+
+const buildHtml = (slides) => renderDeck(toSpec(slides))
 
 // 변환 결과: { ok, html, slideCount, title, dropped, bytes } 또는 { error }
 export async function pptxToDeck(file) {
@@ -219,23 +225,31 @@ export async function pptxToDeck(file) {
   }
 }
 
-// AI 가 다듬어 준 결과({title, lead, points})를 원래 그림과 합쳐 다시 조판한다.
+// AI 가 고른 유형·문구를 원래 그림과 합쳐 다시 조판한다.
 // 장 수가 다르면 앞에서부터 짝지어, AI 가 장을 합치거나 빠뜨려도 그림이 어긋나지 않게 한다.
 export function applyFormatted(slides, formatted) {
-  const merged = formatted.map((f, i) => ({
-    kicker: slides[i]?.kicker || '',
+  const spec = formatted.map((f, i) => ({
+    layout: f.layout || 'list',
+    tag: String(f.tag || 'MEDIFRONT').trim() || 'MEDIFRONT',
+    kicker: String(f.kicker || '').trim(),
     title: String(f.title || '').trim(),
-    lines: [
-      ...(f.lead ? [String(f.lead).trim()] : []),
-      ...(Array.isArray(f.points) ? f.points.map((p) => String(p).trim()).filter(Boolean) : []),
-    ],
+    lead: String(f.lead || '').trim(),
+    items: (Array.isArray(f.items) ? f.items : [])
+      .map((it) => ({
+        title: String(it?.title || '').trim(),
+        desc: String(it?.desc || '').trim(),
+        value: String(it?.value || '').trim(),
+        label: String(it?.label || '').trim(),
+      }))
+      .filter((it) => it.title || it.value),
     images: slides[i]?.images || [],
   }))
-  // AI 응답이 원본보다 짧으면 남은 장은 원본 그대로 둔다 — 내용이 사라지지 않게
-  if (merged.length < slides.length) merged.push(...slides.slice(merged.length))
 
-  const html = buildHtml(merged)
-  return { html, bytes: utf8Bytes(html), slideCount: merged.length }
+  // AI 응답이 원본보다 짧으면 남은 장은 규칙 기반 결과를 그대로 둔다 — 내용이 사라지지 않게
+  if (spec.length < slides.length) spec.push(...toSpec(slides).slice(spec.length))
+
+  const html = renderDeck(spec)
+  return { html, bytes: utf8Bytes(html), slideCount: spec.length }
 }
 
 export const pptxLimits = { MAX_CONTENT_BYTES, MAX_IMAGE_BYTES }
