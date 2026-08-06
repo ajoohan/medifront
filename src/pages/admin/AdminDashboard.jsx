@@ -74,7 +74,11 @@ function NavGroup({ label, views, open, onToggle, view, setView }) {
 }
 
 export default function AdminDashboard({ onLogout }) {
-  const [view, setView] = useState('dashboard')
+  // 공유 링크(/admin?doc=…)로 들어오면 그 자료가 있는 화면부터 연다.
+  // 링크를 받은 사람이 메뉴를 찾아 들어가지 않아도 되게 한다.
+  const [view, setView] = useState(() =>
+    new URLSearchParams(window.location.search).get('doc') ? INTERNAL_VIEW.key : 'dashboard',
+  )
   const [contentOpen, setContentOpen] = useState(false) // 콘텐츠 관리 펼침
   const [consultOpen, setConsultOpen] = useState(false) // 상담 관리 펼침
   const Current = ALL_VIEWS.find((v) => v.key === view)?.component ?? DashboardAdmin

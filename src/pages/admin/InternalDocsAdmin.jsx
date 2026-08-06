@@ -18,6 +18,16 @@ import { SkeletonCards, LoadingRegion } from '../../components/admin/Skeleton'
 import DocThread from '../../components/admin/DocThread'
 import PptxUpload from '../../components/admin/PptxUpload'
 
+// 최근 일주일 안에 올라온 자료에 NEW 를 붙인다. 자료가 자주 늘지 않는 자료실이라
+// 하루로 잡으면 대부분 놓치고, 한 달로 잡으면 표시가 의미를 잃는다.
+const NEW_DAYS = 7
+function isNew(iso) {
+  if (!iso) return false
+  const t = new Date(iso).getTime()
+  if (Number.isNaN(t)) return false
+  return Date.now() - t < NEW_DAYS * 24 * 60 * 60 * 1000
+}
+
 function formatDate(iso) {
   if (!iso) return ''
   const d = new Date(iso)
@@ -193,9 +203,15 @@ export default function InternalDocsAdmin() {
     setWriting({ mode: 'upload', parsed: res, fileName: file.name })
   }
 
-  // 파일 주소를 전체 주소(https://…)로 만들어 클립보드에 넣는다 — 그대로 공유할 수 있게
+  // 공유할 주소. 파일형 자료는 파일 자체를, 등록한 자료는 그 자료가 열리는
+  // 관리자 주소를 준다 — 자료실은 로그인해야 볼 수 있으므로 파일 주소가 없다.
+  const shareUrl = (doc) =>
+    doc.file
+      ? `${window.location.origin}${doc.file}`
+      : `${window.location.origin}/admin?doc=${encodeURIComponent(doc.id)}`
+
   const copyLink = async (doc) => {
-    const url = `${window.location.origin}${doc.file}`
+    const url = shareUrl(doc)
     try {
       await navigator.clipboard.writeText(url)
       setCopied(doc.id)
@@ -205,12 +221,40 @@ export default function InternalDocsAdmin() {
     }
   }
 
+  // 등록한 자료는 파일이 없으므로 볼 때와 같은 문서를 만들어 내려받게 한다.
+  // 서식이 들어 있는 완성된 HTML 이라 인터넷 없이 열어도 그대로 보인다.
+  const downloadDoc = (doc) => {
+    const html = isDeck(doc.content)
+      ? deckDocument(doc.content, doc.title)
+      : `<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><title>${doc.title}</title></head><body>${doc.content || ''}</body></html>`
+    const url = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }))
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${doc.title.replace(/[\\/:*?"<>|]/g, '_')}.html`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   // 목록이 갱신되면 열람 중인 자료도 최신 내용으로 맞춘다
   useEffect(() => {
     if (!viewing) return
     const latest = docs.find((d) => d.id === viewing.id)
     if (latest && latest !== viewing) setViewing(latest)
   }, [docs, viewing])
+
+  // 공유 링크(/admin?doc=…)로 들어왔으면 그 자료를 펼친다.
+  // 한 번만 처리하고 주소에서 지운다 — 목록으로 돌아갔다가 다시 열리면 안 된다.
+  const sharedHandled = useRef(false)
+  useEffect(() => {
+    if (sharedHandled.current || !docs.length) return
+    const id = new URLSearchParams(window.location.search).get('doc')
+    if (!id) return
+    sharedHandled.current = true
+    window.history.replaceState({}, '', window.location.pathname)
+    const doc = [...INTERNAL_FILES, ...docs].find((d) => String(d.id) === id)
+    if (doc) setViewing(doc)
+    else showToast('링크의 자료를 찾지 못했습니다. 삭제되었을 수 있습니다.', { type: 'warn' })
+  }, [docs, showToast])
 
   const setDocs = (next) => setData((cur) => (typeof next === 'function' ? next(cur || []) : next))
 
@@ -397,7 +441,10 @@ export default function InternalDocsAdmin() {
 
   // ── 목록 화면 ──
   // 파일형 자료(public/internal/)를 먼저, 그 뒤에 관리자가 쓴 자료를 붙인다
-  const all = [...INTERNAL_FILES, ...docs]
+  // 최근에 올린 자료가 위로. 파일형 자료와 등록한 자료가 섞여 있어 날짜 칸 이름이
+  // 다르므로 한 값으로 맞춰 비교한다. 날짜가 없는 자료는 맨 아래로 보낸다.
+  const dateOf = (d) => d.updatedAt || d.date || ''
+  const all = [...INTERNAL_FILES, ...docs].sort((a, b) => (dateOf(a) < dateOf(b) ? 1 : -1))
   const shown = filter === '전체' ? all : all.filter((d) => d.category === filter)
 
   return (
@@ -517,7 +564,10 @@ export default function InternalDocsAdmin() {
                     {d.file && <em className="docs-item__type">문서</em>}
                     {(d.date || d.updatedAt) && ` · ${formatDate(d.date || d.updatedAt)}`}
                   </span>
-                  <h3>{d.title}</h3>
+                  <h3>
+                    {d.title}
+                    {isNew(dateOf(d)) && <em className="docs-item__new">NEW</em>}
+                  </h3>
                   {d.summary && <p>{d.summary}</p>}
                 </div>
                 <span className="docs-item__go" aria-hidden="true">
@@ -616,10 +666,82 @@ export default function InternalDocsAdmin() {
                 </div>
               )}
 
-              {/* 직접 등록한 자료 — 목록에서 바로 지운다.
-                  잘못 올린 자료가 여러 건일 때 한 건씩 열어 지우면 번거롭다. */}
+              {/* 직접 등록한 자료 — 파일형 자료와 같은 도구를 둔다.
+                  링크는 그 자료가 열리는 관리자 주소, 다운로드는 서식이 들어 있는
+                  완성된 HTML 이다. 삭제는 여러 건을 정리할 때 한 건씩 열지 않게. */}
               {!d.file && (
                 <div className="docs-row__tools">
+                  <button
+                    type="button"
+                    className={`icon-btn ${copied === d.id ? 'is-done' : ''}`}
+                    onClick={() => copyLink(d)}
+                    title="링크 복사"
+                    aria-label={`${d.title} 링크 복사`}
+                  >
+                    {copied === d.id ? (
+                      <svg
+                        width="17"
+                        height="17"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        aria-hidden="true"
+                      >
+                        <path
+                          d="m5 12.5 4.5 4.5L19 7.5"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    ) : (
+                      <svg
+                        width="17"
+                        height="17"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        aria-hidden="true"
+                      >
+                        <path
+                          d="M10 13a4 4 0 0 0 5.7.3l3-3A4 4 0 0 0 13 4.7l-1.2 1.2"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                        <path
+                          d="M14 11a4 4 0 0 0-5.7-.3l-3 3A4 4 0 0 0 11 19.3l1.2-1.2"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    className="icon-btn"
+                    onClick={() => downloadDoc(d)}
+                    title="다운로드"
+                    aria-label={`${d.title} 다운로드`}
+                  >
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <path
+                        d="M12 4v11m0 0 4-4m-4 4-4-4"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      <path
+                        d="M5 18.5h14"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                  </button>
                   <button
                     type="button"
                     className="icon-btn icon-btn--danger"

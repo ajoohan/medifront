@@ -5438,3 +5438,18 @@ button.docs-item:hover .docs-item__go {
   font-size: 0.82rem;
   color: var(--muted);
 }
+
+/* 최근 등록 표시 — 제목 옆에 작게. 목록을 훑을 때 바로 눈에 띄어야 한다 */
+.docs-item__new {
+  display: inline-block;
+  margin-left: 9px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 0.62rem;
+  font-weight: 800;
+  font-style: normal;
+  letter-spacing: 0.08em;
+  vertical-align: middle;
+}
