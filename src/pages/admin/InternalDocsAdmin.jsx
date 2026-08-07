@@ -18,10 +18,11 @@ import { SkeletonCards, LoadingRegion } from '../../components/admin/Skeleton'
 import DocThread from '../../components/admin/DocThread'
 import PptxUpload from '../../components/admin/PptxUpload'
 
-// 최근 일주일 안에 올라온 자료에 NEW 를 붙인다. 자료가 자주 늘지 않는 자료실이라
-// 하루로 잡으면 대부분 놓치고, 한 달로 잡으면 표시가 의미를 잃는다.
-const NEW_DAYS = 7
-function isNew(iso) {
+// NEW 는 '가장 최근에 올라온 자료' 하나에만 붙는다. 새 자료가 올라오면 앞의 것에서는
+// 저절로 사라져, 무엇이 마지막에 들어온 것인지 한눈에 보인다.
+// 다만 그 하나도 2주가 지나면 떼어 낸다 — 오래 붙어 있으면 표시가 의미를 잃는다.
+const NEW_DAYS = 14
+function isFresh(iso) {
   if (!iso) return false
   const t = new Date(iso).getTime()
   if (Number.isNaN(t)) return false
@@ -466,9 +467,12 @@ export default function InternalDocsAdmin() {
   // 파일형 자료(public/internal/)를 먼저, 그 뒤에 관리자가 쓴 자료를 붙인다
   // 최근에 올린 자료가 위로. 파일형 자료와 등록한 자료가 섞여 있어 날짜 칸 이름이
   // 다르므로 한 값으로 맞춰 비교한다. 날짜가 없는 자료는 맨 아래로 보낸다.
-  const dateOf = (d) => d.updatedAt || d.date || ''
+  const dateOf = (d) => d?.updatedAt || d?.date || ''
   const all = [...INTERNAL_FILES, ...docs].sort((a, b) => (dateOf(a) < dateOf(b) ? 1 : -1))
   const shown = filter === '전체' ? all : all.filter((d) => d.category === filter)
+
+  // NEW 를 붙일 자료. 분류를 걸러 봐도 자리가 옮겨 다니지 않도록 전체 기준으로 고른다.
+  const newestId = isFresh(dateOf(all[0])) ? all[0].file || all[0].id : null
 
   return (
     <>
@@ -589,7 +593,7 @@ export default function InternalDocsAdmin() {
                   </span>
                   <h3>
                     {d.title}
-                    {isNew(dateOf(d)) && <em className="docs-item__new">NEW</em>}
+                    {(d.file || d.id) === newestId && <em className="docs-item__new">NEW</em>}
                   </h3>
                   {d.summary && <p>{d.summary}</p>}
                 </div>
