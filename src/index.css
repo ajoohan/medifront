@@ -4471,26 +4471,26 @@ button.docs-item:hover .docs-item__go {
 /* ── 매거진 빈 목록 ────────────────────────────────────────────────
    글이 하나도 없을 때 한 줄 텍스트만 덩그러니 놓이지 않도록,
    아이콘·제목·설명을 갖춘 안내 카드로 보여준다. */
+/* 안내가 전부인 자리다. 색을 채우면 무언가 들어 있는 것처럼 보이고,
+   여백이 크면 빈 화면이 더 비어 보인다 — 테두리만 남기고 높이를 줄인다. */
 .mag-empty {
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
   gap: 6px;
-  padding: 72px 24px;
+  padding: 44px 24px;
   border: 1px dashed var(--line);
   border-radius: var(--radius-lg);
-  background: var(--paper-soft);
 }
 .mag-empty__icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 64px;
-  height: 64px;
-  margin-bottom: 12px;
+  width: 56px;
+  height: 56px;
+  margin-bottom: 10px;
   border-radius: 50%;
-  background: #fff;
   border: 1px solid var(--line);
   color: var(--primary);
 }
@@ -4505,7 +4505,7 @@ button.docs-item:hover .docs-item__go {
   color: var(--muted);
 }
 .mag-empty--sm {
-  padding: 48px 24px;
+  padding: 32px 24px;
 }
 .mag-empty--sm h3 {
   font-size: 1rem;
@@ -4513,7 +4513,7 @@ button.docs-item:hover .docs-item__go {
 
 @media (max-width: 560px) {
   .mag-empty {
-    padding: 52px 18px;
+    padding: 36px 18px;
   }
   .mag-empty h3 {
     font-size: 1.04rem;

@@ -50,7 +50,9 @@ export default function Magazine() {
   const hasArticles = visible.length > 0
 
   return (
-    <section className="section">
+    // 글이 하나도 없을 때는 안내 한 줄만 남는다 — 목록이 있을 때와 같은 여백을 두면
+    // 화면이 실제보다 더 비어 보인다.
+    <section className={`section ${loaded && !hasArticles ? 'section--tight' : ''}`}>
       <div className="container">
         {/* 게시물이 하나도 없으면 카테고리 필터를 숨긴다 (선택할 대상이 없으므로) */}
         {hasArticles && (
