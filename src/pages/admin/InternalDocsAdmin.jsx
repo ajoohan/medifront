@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { fileToDataUrl } from '../../lib/imageUtils'
 import {
   fetchInternalDocs,
@@ -10,6 +10,7 @@ import { INTERNAL_DOCS_SEED, INTERNAL_DOC_CATEGORIES } from '../../lib/internalD
 import { INTERNAL_FILES } from '../../lib/internalFiles'
 import { pptxToDeck } from '../../lib/pptxToDeck'
 import { isDeck, deckDocument } from '../../lib/deckTemplate'
+import { loadRead, markRead, readKeyOf } from '../../lib/readDocs'
 import { useUser } from '../../context/UserContext'
 import useAdminData from '../../hooks/useAdminData'
 import useBackClose from '../../hooks/useBackClose'
@@ -18,9 +19,8 @@ import { SkeletonCards, LoadingRegion } from '../../components/admin/Skeleton'
 import DocThread from '../../components/admin/DocThread'
 import PptxUpload from '../../components/admin/PptxUpload'
 
-// NEW 는 '가장 최근에 올라온 자료' 하나에만 붙는다. 새 자료가 올라오면 앞의 것에서는
-// 저절로 사라져, 무엇이 마지막에 들어온 것인지 한눈에 보인다.
-// 다만 그 하나도 2주가 지나면 떼어 낸다 — 오래 붙어 있으면 표시가 의미를 잃는다.
+// NEW 는 '올라온 지 2주 안이면서 아직 열어 보지 않은' 자료에 붙는다.
+// 한 번 열면 그 자료에서만 사라지므로, 목록에 남은 NEW 가 곧 '아직 안 본 것'이 된다.
 const NEW_DAYS = 14
 function isFresh(iso) {
   if (!iso) return false
@@ -189,7 +189,7 @@ function DocEditor({ doc, onSave, onCancel, busy }) {
 // (일반 회원은 서버에서 조회 자체가 막혀 있다)
 // ─────────────────────────────────────────────────────────
 export default function InternalDocsAdmin() {
-  const { showToast } = useUser()
+  const { showToast, user } = useUser()
   const { data, status, fresh, setData } = useAdminData(CK.internalDocs, fetchInternalDocs)
   // useMemo 로 감싸 참조가 매 렌더 바뀌지 않게 한다 (아래 동기화 useEffect 의 의존성)
   const docs = useMemo(() => data || [], [data])
@@ -207,6 +207,17 @@ export default function InternalDocsAdmin() {
   const [busy, setBusy] = useState(false)
   const [filter, setFilter] = useState('전체')
   const [copied, setCopied] = useState('') // 방금 링크를 복사한 자료 id
+
+  // 이미 열어 본 자료 — NEW 를 떼는 기준. 여는 길은 모두 여기를 지나게 한다.
+  // useCallback 으로 감싸 참조가 매 렌더 바뀌지 않게 한다 (아래 공유 링크 useEffect 의 의존성).
+  const [read, setRead] = useState(() => loadRead(user?.email))
+  const openDoc = useCallback(
+    (doc) => {
+      setRead((cur) => markRead(user?.email, readKeyOf(doc), cur))
+      setViewing(doc)
+    },
+    [user?.email],
+  )
 
   // PPT 등록 — 버튼을 누르면 바로 파일 창이 열린다.
   // 중간에 '파일 선택' 화면을 두면 누를 것이 뻔한 단계를 한 번 더 거치게 된다.
@@ -276,9 +287,9 @@ export default function InternalDocsAdmin() {
     sharedHandled.current = true
     window.history.replaceState({}, '', window.location.pathname)
     const doc = [...INTERNAL_FILES, ...docs].find((d) => String(d.id) === id)
-    if (doc) setViewing(doc)
+    if (doc) openDoc(doc)
     else showToast('링크의 자료를 찾지 못했습니다. 삭제되었을 수 있습니다.', { type: 'warn' })
-  }, [docs, showToast])
+  }, [docs, showToast, openDoc])
 
   const setDocs = (next) => setData((cur) => (typeof next === 'function' ? next(cur || []) : next))
 
@@ -471,9 +482,6 @@ export default function InternalDocsAdmin() {
   const all = [...INTERNAL_FILES, ...docs].sort((a, b) => (dateOf(a) < dateOf(b) ? 1 : -1))
   const shown = filter === '전체' ? all : all.filter((d) => d.category === filter)
 
-  // NEW 를 붙일 자료. 분류를 걸러 봐도 자리가 옮겨 다니지 않도록 전체 기준으로 고른다.
-  const newestId = isFresh(dateOf(all[0])) ? all[0].file || all[0].id : null
-
   return (
     <>
       <div className="admin-head">
@@ -584,7 +592,7 @@ export default function InternalDocsAdmin() {
         <ul className="docs-list docs-list--admin admin-fade">
           {shown.map((d) => (
             <li key={d.file || d.id} className="docs-row">
-              <button type="button" className="docs-item" onClick={() => setViewing(d)}>
+              <button type="button" className="docs-item" onClick={() => openDoc(d)}>
                 <div className="docs-item__body">
                   <span className="docs-item__kicker">
                     {d.category}
@@ -593,7 +601,9 @@ export default function InternalDocsAdmin() {
                   </span>
                   <h3>
                     {d.title}
-                    {(d.file || d.id) === newestId && <em className="docs-item__new">NEW</em>}
+                    {isFresh(dateOf(d)) && !read.has(readKeyOf(d)) && (
+                      <em className="docs-item__new">NEW</em>
+                    )}
                   </h3>
                   {d.summary && <p>{d.summary}</p>}
                 </div>
