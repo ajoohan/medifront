@@ -5218,33 +5218,6 @@ button.docs-item:hover .docs-item__go {
   }
 }
 
-/* 헤더의 관리자 진입 버튼 — 권한이 있는 사람에게만 보인다.
-   로그아웃 버튼과 구분되도록 민트 테두리를 두른다. */
-.btn--admin {
-  padding: 9px 14px;
-  border: 1px solid var(--teal-400);
-  border-radius: 999px;
-  background: rgba(46, 217, 198, 0.12);
-  color: var(--teal-400);
-  font-size: 0.9rem;
-  font-weight: 700;
-  text-decoration: none;
-  white-space: nowrap;
-  transition:
-    background 0.15s,
-    color 0.15s;
-}
-.btn--admin:hover {
-  background: var(--teal-400);
-  color: var(--navy-900);
-}
-.mobile-login--admin {
-  display: block;
-  text-align: center;
-  text-decoration: none;
-  color: var(--teal-400);
-}
-
 /* ── PPT 등록 ─────────────────────────────────────────────────── */
 .pptx-drop {
   display: flex;
@@ -5452,4 +5425,15 @@ button.docs-item:hover .docs-item__go {
   font-style: normal;
   letter-spacing: 0.08em;
   vertical-align: middle;
+}
+
+/* 역할 표시가 곧 관리자 화면으로 가는 길이다 — 누를 수 있다는 것이 보이게 한다 */
+.header__role--link {
+  color: var(--teal-400);
+  text-decoration: none;
+  border-bottom: 1px dashed rgba(46, 217, 198, 0.5);
+  transition: border-color 0.15s;
+}
+.header__role--link:hover {
+  border-bottom-color: var(--teal-400);
 }

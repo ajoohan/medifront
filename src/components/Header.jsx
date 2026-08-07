@@ -97,15 +97,23 @@ export default function Header() {
           {user ? (
             <>
               <span className="header__user">
-                <b>{user.name}</b> 님<span className="header__role"> ({roleLabel(user)})</span>
+                <b>{user.name}</b> 님
+                {/* 관리 권한이 있으면 역할 표시가 곧 관리자 화면으로 가는 길이다.
+                    따로 버튼을 두면 같은 말을 두 번 하게 된다. */}
+                {user.isAdmin ? (
+                  <a
+                    className="header__role header__role--link"
+                    href="/admin"
+                    title="관리자 화면으로 이동"
+                  >
+                    {' '}
+                    ({roleLabel(user)})
+                  </a>
+                ) : (
+                  <span className="header__role"> ({roleLabel(user)})</span>
+                )}
                 <ProviderBadge user={user} />
               </span>
-              {/* 관리 권한이 있으면 사이트에서 바로 관리자 화면으로 */}
-              {user.isAdmin && (
-                <a className="btn btn--admin" href="/admin">
-                  관리자
-                </a>
-              )}
               <button className="btn btn--login" onClick={handleLogout}>
                 로그아웃
               </button>
@@ -132,14 +140,21 @@ export default function Header() {
         {user ? (
           <>
             <div className="mobile-user">
-              <b>{user.name}</b> 님 ({roleLabel(user)})
+              <b>{user.name}</b> 님{' '}
+              {user.isAdmin ? (
+                <a
+                  className="header__role--link"
+                  href="/admin"
+                  onClick={closeMenu}
+                  title="관리자 화면으로 이동"
+                >
+                  ({roleLabel(user)})
+                </a>
+              ) : (
+                <>({roleLabel(user)})</>
+              )}
               <ProviderBadge user={user} />
             </div>
-            {user.isAdmin && (
-              <a className="mobile-login mobile-login--admin" href="/admin" onClick={closeMenu}>
-                관리자 화면
-              </a>
-            )}
             <button className="mobile-login" onClick={handleLogout}>
               로그아웃
             </button>
