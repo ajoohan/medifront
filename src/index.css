@@ -5437,3 +5437,18 @@ button.docs-item:hover .docs-item__go {
 .header__role--link:hover {
   border-bottom-color: var(--teal-400);
 }
+
+/* 하단 배너 문구 — 폭에 따라 하나만 보인다.
+   좁은 화면에서는 본문 영역이 화면의 절반도 안 돼(버튼과 나눠 쓴다) 같은 문장이
+   세 줄로 접힌다. 짧은 문구로 바꿔 한 줄에 떨어지게 한다. */
+.cta-bar__title--narrow {
+  display: none;
+}
+@media (max-width: 900px) {
+  .cta-bar__title--wide {
+    display: none;
+  }
+  .cta-bar__title--narrow {
+    display: block;
+  }
+}

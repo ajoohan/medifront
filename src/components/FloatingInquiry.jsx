@@ -42,8 +42,13 @@ export default function FloatingInquiry() {
               <span className="cta-bar__sub">20+ 개원 수행 · 폐업률 0% · 데이터 기반</span>
             </div>
 
-            <p className="cta-bar__title">
+            {/* 좁은 화면에서는 본문에 쓸 수 있는 폭이 절반도 되지 않아 같은 문장이
+                세 줄로 접힌다. 배너가 두꺼워지므로 짧은 문구를 따로 둔다. */}
+            <p className="cta-bar__title cta-bar__title--wide">
               무료 정밀 상담으로 <b>입지·비용·개원 일정</b>이 막히는 지점을 한 번에 짚어드립니다.
+            </p>
+            <p className="cta-bar__title cta-bar__title--narrow">
+              <b>입지·비용·일정</b>을 한 번에
             </p>
 
             <ul className="cta-bar__tags">
